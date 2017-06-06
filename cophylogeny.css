@@ -1,0 +1,49 @@
+
+.tree_label {
+   font-size: 14px;
+   font-family: Helvetica, sans-serif;
+}
+
+.node {
+   font-family: Helvetica, sans-serif;
+   font-size: 9px;
+	cursor: default; 
+	pointer-events: all;
+}
+
+.link {
+   fill: none;
+   stroke: black;
+   stroke-width: 1px;
+}
+
+.bridge_orig {
+   stroke: #E8E8E8;
+	fill: none;
+	stroke-width: 1px;
+}
+
+.bridge-highlighted_orig {
+   stroke: red;
+	fill: none;
+	stroke-width: 1.5px;
+}
+
+.bridge {
+	fill: none;
+	stroke-width: 0.75px;
+}
+
+.bridge-highlighted {
+	fill: none;
+	stroke-width: 2.5px;
+}
+
+@media print
+{
+   .no-print, .no-print *
+	{
+	display: none !important;
+	}
+}
+

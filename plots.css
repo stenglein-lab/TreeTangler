@@ -1,0 +1,49 @@
+p {
+  margin-top: 6px;
+  margin-bottom: 4px;
+}
+
+.header_p {
+  font: 14px helvetica;
+}
+ 
+.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+ 
+.point {
+  fill: steelblue;
+  stroke: #000;
+}
+
+.cov_line_blue {
+  fill: lightsteelblue;
+  stroke: black;
+  stroke-width: 1;
+}
+
+.cov_line {
+  fill: yellow;
+  fillx: #E8E8E8;
+  stroke: black;
+  stroke-width: 1;
+}
+
+.ss_line {
+  fill: none;
+  stroke: url(#energy-gradient);
+  stroke-width: 1;
+}
+
+.ss_box {
+  fill: url(#energy-gradient);
+  stroke: black;
+  stroke-width: 1;
+}
+
+.axis tspan {
+  font-size: 10px;
+}
+

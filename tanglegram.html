@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="utf-8">
+   <!-- boostrap -->
+   <!-- Latest compiled and minified CSS -->
+   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+
+   <!-- Optional theme -->
+   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
+
+   <!-- boostrap JS and jquery required for that -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+
+   <!-- Styles for figure graphics -->
+   <link rel="stylesheet" href="./cophylogeny.css">
+   <link rel="stylesheet" href="./map.css">
+   <link rel="stylesheet" href="./plots.css">
+   <link rel="stylesheet" href="./fasta.css">
+
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+</head>
+<style>
+   body,html {
+      height:100%;
+   }
+
+	pre {
+	   font-size: 8pt;
+	}
+</style>
+<body onload="load()">
+
+<script src="./d3/d3.min.js"></script> 
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<script src="./newick.js"></script>
+<script src="./cophylogeny.js"></script>
+<script>
+function load() {
+    var cophylogeny_fig = new cophylogeny('#left_container');
+    var leftURL = null, 
+        rightURL = null;
+
+    console.log("load...");
+    var fileButtonLeft = document.getElementById("fileButtonLeft"),
+        fileInputLeft = document.getElementById("fileInputLeft");
+    var fileButtonRight = document.getElementById("fileButtonRight"),
+        fileInputRight = document.getElementById("fileInputRight");
+
+    fileButtonLeft.addEventListener("click", function (e) {
+      if (fileInputLeft) {
+        fileInputLeft.click();
+      }
+    }, false);
+    fileButtonRight.addEventListener("click", function (e) {
+      if (fileInputRight) {
+        fileInputRight.click();
+      }
+    }, false);
+}
+
+function clear(selector)
+{
+	selector = selector.replace("#",""); // # not necessary for getElementById (only for css/d3)
+	var myNode = document.getElementById(selector);
+	while (myNode.firstChild) {
+	    myNode.removeChild(myNode.firstChild);
+	}
+}
+function getBlobURL(files) {
+    var file = files[0];
+    var fileURL = window.URL.createObjectURL(file);
+    return fileURL;
+    //window.URL.revokeObjectURL(fileURL);
+}
+function setLeftURL(files) {
+    fileButtonLeft.innerHTML = files[0].name;
+    fileButtonLeft.classList.remove("btn-default");
+    fileButtonLeft.classList.add("btn-success");
+    leftURL = getBlobURL(files);
+    console.log("leftURL:" + leftURL);
+    if (typeof rightURL === 'undefined') { console.log("rightURL is undefined."); }
+    else {
+        callRender();
+    }
+}
+function setRightURL(files) {
+    fileButtonRight.innerHTML = files[0].name;
+    fileButtonRight.classList.remove("btn-remove");
+    fileButtonRight.classList.add("btn-success");
+    rightURL = getBlobURL(files);
+    console.log("rightURL:" + rightURL);
+    if (typeof leftURL === 'undefined') { console.log("leftURL is undefined."); }
+    else {
+        callRender();
+    }
+}
+
+function callRender() {
+    render_cophylogeny('#left_container', 'unnamed', leftURL, rightURL, 700);
+}
+
+function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2, height)
+{
+	var container_sel = d3.select(container_id);
+   var w = container_sel.style("width");
+	w = parseInt(w);
+	// var w = 600;
+   var h = height;
+
+   // process newick trees from file upload
+   newick_file_1 = newick_url_1;
+   newick_file_2 = newick_url_2;
+
+   clear(container_id);
+   var cophylogeny_fig = new cophylogeny(container_id);
+   cophylogeny_fig.render(newick_file_1, newick_file_2, w, h);
+   figures[container_id] = cophylogeny_fig;
+   // var cophylogeny_fig = cophylogeny.render(container_id, newick_file_1, newick_file_2, w, h);
+   // figures[container_id] = cophylogeny_fig;
+}
+</script>
+<div class="container-fluid">
+
+  <!-- Static navbar -->
+  <nav class="navbar navbar-default" role="navigation">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="javascript:void(0)">Tanglegram - rename this</a>
+      </div>
+      <div id="navbar" class="navbar-collapse collapse">
+        <ul class="nav navbar-nav">
+          <li class="active"><a href="javascript:void(0)">Home</a></li>
+          <li><a href="./about.html">About</a></li>
+          <li><a href="./help.html">Help</a></li>
+        </ul>
+      </div><!--/.nav-collapse -->
+    </div><!--/.container-fluid -->
+  </nav>
+</div>
+<div class="container-fluid">
+   <div class="row">
+      <div class="col-md-12"">
+         <h3>Tree Tangler Web Interface</h3>
+			<br>
+			<br>
+      </div>
+   </div>
+</div>
+<div class="container-fluid">
+   <div class="row">
+      <div class="col-md-5">
+        <input type="file" id="fileInputLeft" accept=".nw, .newick" style="display:none" onchange="setLeftURL(this.files)">
+        <button id="fileButtonLeft" type="button" class="btn btn-default">
+            Upload left-side tree file (newick)
+        </button>
+      </div>
+      <div class="col-md-2">
+        <button id="upload_middle" type="button" disabled="disabled" class="btn btn-default">
+            Upload lookup file (text)
+        </button>
+		</div>
+      <div class="col-md-5">
+        <input type="file" id="fileInputRight" accept=".nw, .newick" style="display:none" onchange="setRightURL(this.files)">
+        <button id="fileButtonRight" type="button" class="btn btn-default">
+            Upload right-side tree file (newick)
+        </button>
+      </div>
+    </div><!--/.row -->
+
+<!-- spacer -->
+<div class="container-fluid">
+<p></p>
+</div>
+
+<!-- empty containers to be populated by various figs -->
+<div class="container-fluid">
+   <div class="row">
+      <div class="col-md-6" id="left_container">
+      </div >
+      <div class="col-md-6" id="right_container">
+      </div >
+   </div>
+</div>
+
+</body>
+</html>
+
