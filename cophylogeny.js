@@ -64,11 +64,26 @@ cophylogeny.prototype.update_highlighted_segments = function(selector){
 // cophylogeny.prototype.render = function(selector, newick_file_1, newick_file_2, width, height)
 cophylogeny.prototype.render = function(newick_file_1, newick_file_2, width, height)
 {
-	// my_selector = selector;
+    console.log("tree1 is " + this.tree1_name);
+    console.log("tree2 is " + this.tree2_name);
+   // determine tree names for labeling
+   // use everything before first "."
+    if (undefined == this.tree1_name) {
+       tree1_name = newick_file_1.match(/\w+/)[0].toUpperCase();
+    }
+    else {
+        tree1_name = this.tree1_name;
+    }
+    if (undefined == this.tree2_name) {
+       tree2_name = newick_file_2.match(/\w+/)[0].toUpperCase();
+    }
+    else {
+        tree2_name = this.tree2_name;
+    }
 
-	var cophy_obj = this;
+   var cophy_obj = this;
 
-	var sel = d3.select(this.my_selector);
+   var sel = d3.select(this.my_selector);
    var w = width || sel.style('width') || sel.attr('width');
    var h = height || sel.style('height') || sel.attr('height');
 
@@ -88,10 +103,6 @@ cophylogeny.prototype.render = function(newick_file_1, newick_file_2, width, hei
      .attr("height", svg_h)
 	  .on("click", fade_all);
 
-   // determine tree names for labeling
-	// use everything before first "."
-	tree1_name = newick_file_1.match(/\w+/)[0].toUpperCase();
-	tree2_name = newick_file_2.match(/\w+/)[0].toUpperCase();
 
    // here, parse newick files, by async http requests
    var remaining = 2; // necessary b/c requests are asynchronous

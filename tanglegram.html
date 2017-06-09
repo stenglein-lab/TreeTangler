@@ -77,6 +77,7 @@ function getBlobURL(files) {
 }
 function setLeftURL(files) {
     fileButtonLeft.innerHTML = files[0].name;
+    // switch the button to something indicating success
     fileButtonLeft.classList.remove("btn-default");
     fileButtonLeft.classList.add("btn-success");
     leftURL = getBlobURL(files);
@@ -88,6 +89,7 @@ function setLeftURL(files) {
 }
 function setRightURL(files) {
     fileButtonRight.innerHTML = files[0].name;
+    // switch the button to something indicating success
     fileButtonRight.classList.remove("btn-remove");
     fileButtonRight.classList.add("btn-success");
     rightURL = getBlobURL(files);
@@ -116,6 +118,10 @@ function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2
 
    clear(container_id);
    var cophylogeny_fig = new cophylogeny(container_id);
+    cophylogeny_fig.tree1_name = fileButtonLeft.innerHTML;
+    console.log("name1 is " + cophylogeny_fig.tree1_name);
+    cophylogeny_fig.tree2_name = fileButtonRight.innerHTML;
+    console.log("name2 is " + cophylogeny_fig.tree2_name);
    cophylogeny_fig.render(newick_file_1, newick_file_2, w, h);
    figures[container_id] = cophylogeny_fig;
    // var cophylogeny_fig = cophylogeny.render(container_id, newick_file_1, newick_file_2, w, h);
