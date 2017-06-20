@@ -72,12 +72,168 @@ class CoPhylogenyGraph {
         .style("text-anchor", "end")
         .text(this.tree2_name);
 
+        // a fxn to create right angled edges connecting nodes
+        var diagonal = SVGUtils.rightAngleDiagonal();
+
+        // actually create paths between nodes
+        this.tree1_g.selectAll(".link")
+            .data(tree1_edges)
+            .enter().append("path")
+            .attr("class", "link")
+            .attr("d", diagonal);
+
+        // actually create paths between nodes
+        this.tree2_g.selectAll(".link")
+            .data(tree2_edges)
+            .enter().append("path")
+            .attr("class", "link")
+            .attr("d", diagonal);
+
+        // define whether it is a root, inner, or leaf node
+        function define_node_position(n)
+        {
+            if (n.children)
+            {
+                if (n.depth == 0)
+                {
+                    return "root node"
+                }
+                else
+                {
+                    return "inner node"
+                }
+            }
+            else
+            {
+                return "leaf node"
+            }
+        }
+
+        // reposition nodes and add class
+        this.tree1_g.selectAll(".node")
+            .data(tree1_nodes)
+            .enter().append("g")
+            .attr("class", define_node_position)
+            .attr("transform", function (d)
+            {
+                return "translate(" + d.y + "," + d.x + ")";
+            })
+
+        this.tree2_g.selectAll(".node")
+            .data(tree2_nodes)
+            .enter().append("g")
+            .attr("class", define_node_position)
+            .attr("transform", function (d)
+            {
+                return "translate(" + d.y + "," + d.x + ")";
+            })
+
+        this.styleTreeNodes(this.tree1_g);
+        this.styleTreeNodes(this.tree2_g);
+
+        // add labels to nodes
+        this.tree1_g.selectAll('g.leaf.node')
+            .append("text")
+            .attr("dx", 8)
+            .attr("dy", 3)
+            .style("text-anchor", "start")
+            // .style("cursor", "default") // make it not be a text cursor
+            // .attr("pointer-events", "all") 
+            .text(function (d)
+            {
+                return d.name.replace(/'/g, "").replace("snake", "").replace(/[SL]/, "").replace("_", "-");
+            })
+            .on("click", this.highlight_from_node());
+
+        // add labels to nodes
+        this.tree2_g.selectAll('g.leaf.node')
+            .append("text")
+            .attr("dx", -8)
+            .attr("dy", 3)
+            .style("text-anchor", "end")
+            // .style("cursor", "default") // make it not be a text cursor
+            // .attr("pointer-events", "all") 
+            .text(function (d)
+            {
+                return d.name.replace(/'/g, "").replace("snake", "").replace(/[SL]/, "").replace("_", "-");
+            })
+            .on("click", this.highlight_from_node());
+
+        // draw bridging lines
+        var cophy_obj = this;
+        tree1_nodes.forEach(function (n)
+        {
+            if (n.children)
+            {
+                return false;
+            }
+            var seg_id = String(n.name);
+            var seg_pair = cophy_obj.get_segment_node_pair(seg_id, tree1_nodes, tree2_nodes);
+            var x1 = seg_pair[0].x;
+            var y1 = seg_pair[0].y + 40; // to get past text. NB x,y flipped in d3.layout.cluster
+            var x2 = seg_pair[1].x;
+            var y2 = seg_pair[1].y - 40;
+            var midx = (x1 + x2) / 2;
+            var midy = (y1 + y2) / 2;
+
+            var seg_pair_spline_coords = [
+            {
+                "x": x1,
+                "y": y1
+            },
+            {
+                "x": x1,
+                "y": midy
+            },
+            {
+                "x": x2,
+                "y": midy
+            },
+            {
+                "x": x2,
+                "y": y2
+            }];
+
+            var lineFunction = d3.svg.line()
+                .x(function (d)
+                {
+                    return d.y;
+                })
+                .y(function (d)
+                {
+                    return d.x;
+                })
+                .interpolate("bundle")
+                .tension(0.99);
+
+            var line_connect = cophy_obj.bridge_g.append("path")
+                .attr("d", lineFunction(seg_pair_spline_coords))
+                .attr("class", "bridge")
+                .attr("id", seg_id)
+                .attr("pointer-events", "stroke") // only clicking on stroke works
+                .attr("stroke", function (d, i)
+                {
+                    // color bridging lines by genotype 
+                    var seg_genotype = seg_id.match(/[SL]([0-9]+)/)
+                    if (seg_genotype)
+                    {
+                        // match actually returns an array of results, the 2nd element is the one we want
+                        seg_genotype_number = seg_genotype[1];
+                        // we'll have to cycle through colors if more than in our scheme
+                        var color_index = seg_genotype_number % color_scheme.length;
+                        return color_scheme[color_index];
+                    }
+                    else
+                    {
+                        return "#d3d3d3"; // == "lightgrey" --> d3, ha ha
+                    }
+                })
+                // .on("click", highlight_toggle); 
+                .on("click", cophy_obj.highlight_from_node());
+        });
     } // end renderTrees
 
-
-
     render(leftTreeURL, rightTreeURL) {
-        
         // create an SVG canvas area
         this.overall_vis = this.selector.append("svg")
           .attr("width", this.svg_w)
@@ -97,13 +253,98 @@ class CoPhylogenyGraph {
                 console.dir(v);
                 this.renderTrees(v.nw1, v.nw2);
                 /////////// tree data synchronized: render trees ////////////////////
+                // flow control now defaults back to this point if there is an error
             })
             .catch(reason => {
                 console.log(reason);
                 //console.log(reason.statusText + ": " + reason.responseURL); 
             });
     }
-    // once the SVG tree has objects...
+    /* once the SVG tree has objects...
+     * The following functions apply changes to the cophy object SVG 
+     */
+    transmit_new_highlighting()
+    {
+        var my_selector = this.selector;
+        console.log("my_selector: " + my_selector);
+        var highlighted_segments_this_fig = [];
+        var highlighted_segs = d3.select(my_selector).selectAll(".bridge-highlighted")[0]; // nested selection
+
+        highlighted_segs.forEach(function (seg)
+        {
+            var segment_id = d3.select(seg).attr("id");
+            console.log(segment_id);
+            highlighted_segments_this_fig.push(segment_id);
+        });
+
+        update_highlighting(my_selector, highlighted_segments_this_fig);
+    }
+    update_highlighted_segments()
+    {
+        var selector = this.selector;
+        console.log("updating cophylogeny highlighting for container: " + selector);
+        // first, turn off all highlighting, then turn back on as appropriate
+        var all_bridges = d3.select(selector).select("#bridge_g").selectAll("path")[0]; // nested selections --> array of arrays hence extra [0]
+        d3.selectAll(all_bridges).each(highlight_off);
+
+        // if any highlighting, turn on as appropriate 
+        if (highlighted_segments.length > 0)
+        {
+            highlighted_segments.forEach(function (id)
+            {
+                var matching_bridges = all_bridges.filter(function (d)
+                {
+                    if (d.id.match(id))
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                });
+                d3.selectAll(matching_bridges).each(highlight_on)
+            });
+        }
+    }
+    update_highlighting(selector, segment_list)
+    {
+        if (segment_list != null)
+        {
+           highlighted_segments = segment_list.slice(0); // copy array
+        }
+
+        console.log("updating highlighting.  Segs:  " +  highlighted_segments);
+
+        var containers = Object.keys(figures); 
+        containers.forEach(function(container){
+           if (container === selector)
+            {
+               // don't do anything, 
+            }
+            else
+            {  
+                // clear(container);
+                console.log("for container: " +  container);
+               figures[container].update_highlighted_segments(container);
+            }
+        });
+    }
+    // this function will highlight a bridge line
+    // when user mouseovers a node
+    highlight_from_node()
+    {
+        var cophy_obj = this;
+        return function ()
+        {
+            console.log("Cophy_obj: " + cophy_obj);
+            var node = d3.select(this).datum();
+            var node_id = node.name;
+            cophy_obj.highlight_by_id(node_id);
+            cophy_obj.transmit_new_highlighting();
+        }
+    };
+
     // this function sets up mouse events for nodes
     styleTreeNodes(selection)
     {
@@ -116,7 +357,7 @@ class CoPhylogenyGraph {
          .attr('stroke', "none")
          .attr('fill', 'none')
          .attr("pointer-events", "all") // enable mouse events to be detected even though no fill
-         .on("click", highlight_from_node(cophy_obj));
+         .on("click", this.highlight_from_node());
 
       selection.selectAll('g.inner.node')
          .append("svg:circle")
@@ -142,10 +383,10 @@ class CoPhylogenyGraph {
                 return false;
             }
         }
-        nodes_1_match = nodes_1.filter(match_filter);
+        var nodes_1_match = nodes_1.filter(match_filter);
         console.log("Node name is " + nodeName);
         console.dir(nodes_1_match[0]);
-        nodes_2_match = nodes_2.filter(match_filter);
+        var nodes_2_match = nodes_2.filter(match_filter);
         // TODO - error if match >1 node
         return [nodes_1_match[0], nodes_2_match[0]];
     }
