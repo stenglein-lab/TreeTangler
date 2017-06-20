@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 David C. King, adapted from code by Mark Stenglein.
+ * Copyright 2017 David C. King and Mark Stenglein.
  * Using ECMAScript 2015 class definition wrapper around prototype inheritance.
  * See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes
  */
