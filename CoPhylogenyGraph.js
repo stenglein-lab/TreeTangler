@@ -43,7 +43,7 @@ class CoPhylogenyGraph {
                 return a.parent == b.parent ? 1.5 : 1.8;
         });
 
-        // TODO: can be CoPhylogenyGraph member functions
+        // TODO: can be CoPhylogenyGraph member functions?
         var tree1_nodes = tree1.nodes(leftTree);
         var tree1_edges = tree1.links(tree1_nodes);
 
@@ -218,10 +218,10 @@ class CoPhylogenyGraph {
                     if (seg_genotype)
                     {
                         // match actually returns an array of results, the 2nd element is the one we want
-                        seg_genotype_number = seg_genotype[1];
+                        var seg_genotype_number = seg_genotype[1];
                         // we'll have to cycle through colors if more than in our scheme
-                        var color_index = seg_genotype_number % color_scheme.length;
-                        return color_scheme[color_index];
+                        var color_index = seg_genotype_number % SVGUtils.color_scheme().length;
+                        return SVGUtils.color_scheme()[color_index];
                     }
                     else
                     {
@@ -399,6 +399,7 @@ class SVGUtils {
     // several functions copied from:
     // from: https://gist.github.com/kueda/1036776
     // Copyright (c) 2013, Ken-ichi Ueda
+    static color_scheme() { return  ["#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a","#b15928"]; }
     static rightAngleDiagonal()
     {
          var projection = function(d)
@@ -462,7 +463,7 @@ class SVGUtils {
         {
             // rootdist is total distance from root node
             node.rootDist = (node.parent ? node.parent.rootDist : 0) + (node.length || 0)
-        })
+        });
         // an array of the root dists corresponding to nodes array
         // map creates a new array based on other array and function 
         var rootDists = nodes.map(function(n)
@@ -484,7 +485,7 @@ class SVGUtils {
         visitPreOrder(nodes[0], function(node)
         {
             node.y = yscale(node.rootDist)
-        })
+        });
         return yscale
     } // end scaleBranchLengths
 } // end SVGUtils
@@ -510,6 +511,10 @@ function getNewickFile(url) {
                 // but could it be called outside of and before "resolve()" 
                 // and the output evaluated for success/failure?
                 resolve( Newick.parse(parsed_text) ); 
+                if (url.match(/^blob:/)) {
+                    console.log("unhooking blob resource");
+                    window.URL.revokeObjectURL(url);
+                }
             });
         }
     );
