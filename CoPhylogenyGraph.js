@@ -152,31 +152,6 @@ class CoPhylogenyGraph {
 }
 
 /*
- * Utilities for reading and parsing URLs that point to newick files, asynchronously
- */
-async function readBothNewickURLs(url1, url2) {
-    var parsedFile1 = await getNewickFile(url1);
-    var parsedFile2 = await getNewickFile(url2);
-    return { nw1: parsedFile1, nw2: parsedFile2 };
-}
-// Define a function that returns a new "Promise"
-function getNewickFile(url) {
-    return new Promise(
-        (resolve,reject) => {
-            d3.text( url, function(error, parsed_text) {
-                if (error) {
-                    console.log("rejecting: " + error); // gives "rejecting [XMLHttpRequest]"
-                    reject(error); return;
-                }
-                // Newick.parse does not have an error handler
-                // but could it be called outside of and before "resolve()" 
-                // and the output evaluated for success/failure?
-                resolve( Newick.parse(parsed_text) ); 
-            });
-        }
-    );
-}
-/*
  * Static functions for drawing SVG elements
  */
 class SVGUtils {
@@ -273,3 +248,28 @@ class SVGUtils {
     } // end scaleBranchLengths
 } // end SVGUtils
 
+/*
+ * Utilities for reading and parsing URLs that point to newick files, asynchronously
+ */
+async function readBothNewickURLs(url1, url2) {
+    var parsedFile1 = await getNewickFile(url1);
+    var parsedFile2 = await getNewickFile(url2);
+    return { nw1: parsedFile1, nw2: parsedFile2 };
+}
+// Define a function that returns a new "Promise"
+function getNewickFile(url) {
+    return new Promise(
+        (resolve,reject) => {
+            d3.text( url, function(error, parsed_text) {
+                if (error) {
+                    console.log("rejecting: " + error); // gives "rejecting [XMLHttpRequest]"
+                    reject(error); return;
+                }
+                // Newick.parse does not have an error handler
+                // but could it be called outside of and before "resolve()" 
+                // and the output evaluated for success/failure?
+                resolve( Newick.parse(parsed_text) ); 
+            });
+        }
+    );
+}
