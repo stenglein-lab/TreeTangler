@@ -36,10 +36,10 @@
 <script src="./d3/d3.min.js"></script> 
 <script src="http://d3js.org/topojson.v1.min.js"></script>
 <script src="./newick.js"></script>
-<script src="./cophylogeny-old.js"></script>
+<script src="./CoPhylogenyGraph.js"></script>
 <script>
 function load() {
-    var cophylogeny_fig = new cophylogeny('#left_container');
+    //var cophylogeny_fig = new CoPhylogenyGraph('#left_container');
     var leftURL = null, 
         rightURL = null;
 
@@ -117,17 +117,13 @@ function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2
    newick_file_2 = newick_url_2;
 
    clear(container_id);
-   var cophylogeny_fig = new cophylogeny(container_id);
+   var cophylogeny_fig = new CoPhylogenyGraph(container_sel, w, h);
    cophylogeny_fig.tree1_name = fileButtonLeft.innerHTML;
    console.log("name1 is " + cophylogeny_fig.tree1_name);
    cophylogeny_fig.tree2_name = fileButtonRight.innerHTML;
    console.log("name2 is " + cophylogeny_fig.tree2_name);
    cophylogeny_fig.render(newick_file_1, newick_file_2, w, h);
 
-    cophylogeny_fig.tree1_nodes.foreach(function(n) {
-        console.log(n);
-        
-    });
 
    //figures[container_id] = cophylogeny_fig;
    // var cophylogeny_fig = cophylogeny.render(container_id, newick_file_1, newick_file_2, w, h);
