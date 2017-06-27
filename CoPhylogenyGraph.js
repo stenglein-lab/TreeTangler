@@ -62,67 +62,77 @@ class CoPhylogenyGraph {
             }
             var nodeName = String(n.name);
             var nodePair = cophy_obj.matchNodesByName(nodeName, cophy_obj.tree1_nodes, cophy_obj.tree2_nodes);
-            var x1 = nodePair[0].x;
-            var y1 = nodePair[0].y + 40; // to get past text. NB x,y flipped in d3.layout.cluster
-            var x2 = nodePair[1].x;
-            var y2 = nodePair[1].y - 40;
-            var midx = (x1 + x2) / 2;
-            var midy = (y1 + y2) / 2;
+            if (undefined === nodePair[1]) {
+                console.log("couldn't match " + nodeName);
+            }
+            else {
+                console.log("Matched " + nodeName);
+                var x1 = nodePair[0].x;
+                var y1 = nodePair[0].y + 40; // to get past text. NB x,y flipped in d3.layout.cluster
+                var x2 = nodePair[1].x;
+                var y2 = nodePair[1].y - 40;
+                var midx = (x1 + x2) / 2;
+                var midy = (y1 + y2) / 2;
 
-            var nodePair_spline_coords = [
-            {
-                "x": x1,
-                "y": y1
-            },
-            {
-                "x": x1,
-                "y": midy
-            },
-            {
-                "x": x2,
-                "y": midy
-            },
-            {
-                "x": x2,
-                "y": y2
-            }];
+                var nodePair_spline_coords = [
+                {
+                    "x": x1,
+                    "y": y1
+                },
+                {
+                    "x": x1,
+                    "y": midy
+                },
+                {
+                    "x": x2,
+                    "y": midy
+                },
+                {
+                    "x": x2,
+                    "y": y2
+                }];
 
-            var lineFunction = d3.svg.line()
-                .x(function (d)
-                {
-                    return d.y;
-                })
-                .y(function (d)
-                {
-                    return d.x;
-                })
-                .interpolate("bundle")
-                .tension(0.99);
-
-            var line_connect = cophy_obj.bridge_g.append("path")
-                .attr("d", lineFunction(nodePair_spline_coords))
-                .attr("class", "bridge")
-                .attr("id", nodeName)
-                .attr("pointer-events", "stroke") // only clicking on stroke works
-                .attr("stroke", function (d, i)
-                {
-                    // color bridging lines by genotype 
-                    var seg_genotype = nodeName.match(/[SL]([0-9]+)/)
-                    if (seg_genotype)
+                var lineFunction = d3.svg.line()
+                    .x(function (d)
                     {
-                        // match actually returns an array of results, the 2nd element is the one we want
-                        var seg_genotype_number = seg_genotype[1];
-                        // we'll have to cycle through colors if more than in our scheme
-                        var color_index = seg_genotype_number % SVGUtils.color_scheme().length;
-                        return SVGUtils.color_scheme()[color_index];
-                    }
-                    else
+                        return d.y;
+                    })
+                    .y(function (d)
                     {
-                        return "#d3d3d3"; // == "lightgrey" --> d3, ha ha
-                    }
-                })
-                // .on("click", highlight_toggle); 
-                .on("click", cophy_obj.highlight_from_node());
+                        return d.x;
+                    })
+                    .interpolate("bundle")
+                    .tension(0.99);
+
+                var line_connect = cophy_obj.bridge_g.append("path")
+                    .attr("d", lineFunction(nodePair_spline_coords))
+                    .attr("class", "bridge")
+                    .attr("id", nodeName)
+                    .attr("pointer-events", "stroke") // only clicking on stroke works
+                    .attr("stroke", function (d, i)
+                    {
+                        // TODO: separate out bridge line coloring function to something 
+                        // that can be passed down from top level.
+                        //
+                        // code block below is meaningful for Mark's genotypes specified by node names
+                        // color bridging lines by genotype 
+                        var seg_genotype = nodeName.match(/[SL]([0-9]+)/)
+                        if (seg_genotype)
+                        {
+                            // match actually returns an array of results, the 2nd element is the one we want
+                            var seg_genotype_number = seg_genotype[1];
+                            // we'll have to cycle through colors if more than in our scheme
+                            var color_index = seg_genotype_number % SVGUtils.color_scheme().length;
+                            return SVGUtils.color_scheme()[color_index];
+                        }
+                        else
+                        {
+                            return "#d3d3d3"; // == "lightgrey" --> d3, ha ha
+                        }
+                    })
+                    // .on("click", highlight_toggle); 
+                    .on("click", cophy_obj.highlight_from_node());
+                }
         });
     }
     renderTrees(leftTree, rightTree) {
@@ -399,25 +409,24 @@ class CoPhylogenyGraph {
          .attr('stroke', 'black')
     } // end styleTreeNodes
 
-    //get_segment_node_pair(nodeName, nodes_1, nodes_2) 
-    matchNodesByFunction(nodeName, nodes_1, nodes_2, fxn) 
+    matchNodesByFunction(nodeName, fxn) 
     {
-        var nodes_1_match = nodes_1.filter(fxn);
-        var nodes_2_match = nodes_2.filter(fxn);
+        var nodes_1_match = this.tree1_nodes.filter(fxn);
+        var nodes_2_match = this.tree2_nodes.filter(fxn);
         // TODO - error if match >1 node
         return [nodes_1_match[0], nodes_2_match[0]];
     }
-    matchNodesByTable(nodeName, nodes_1, nodes_2, table)
+    matchNodesByMap(nodeName, map) // takes a d3 map
     {
         function match_filter(n)
         {
-            if ( table[n.name] === nodeName ) { return true; }
+            if ( table.has(n.name) && (table.key(n.name) === nodeName) ) { return true; }
             return false;
         }
-        return this.matchNodesByFunction(nodeName, nodes_1, nodes_2, match_filter);
+        return this.matchNodesByFunction(nodeName, match_filter);
     }
 
-    matchNodesByName(nodeName, nodes_1, nodes_2) 
+    matchNodesByName(nodeName) 
     {
         function match_filter(n) 
         {
@@ -427,7 +436,7 @@ class CoPhylogenyGraph {
                 return false;
             }
         }
-        return this.matchNodesByFunction(nodeName, nodes_1, nodes_2, match_filter);
+        return this.matchNodesByFunction(nodeName, match_filter);
     }
 }
 
