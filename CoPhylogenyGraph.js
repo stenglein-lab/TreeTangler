@@ -26,37 +26,127 @@ class CoPhylogenyGraph {
     get svg_w() {
         return this.width - this.margin.left - this.margin.right;
     }
+
+    convert_newick_trees_to_d3() {
+        // a two-item array that sets the layout size for d3.layout.cluster
+        var d3_layout_bounds = [this.svg_h - this.margin.top - this.margin.bottom, 
+                                this.svg_w - this.margin.left - this.margin.right];
+        
+        // specifies the separation between nodes on the graph
+        function cluster_spread_fxn(a,b) {
+            return a.parent == b.parent ? 1.5 : 1.8;
+        }
+        // return branchset: the object property created by Newick.js 
+        function newick_node_fxn(node) {
+            return node.branchset;
+        }
+        function init_d3_cluster() {
+            return d3.layout.cluster().size( d3_layout_bounds )
+                .children( newick_node_fxn )
+                .separation( cluster_spread_fxn );
+        }
+        this.tree1 = init_d3_cluster();
+        this.tree2 = init_d3_cluster();
+        this.tree1_nodes = this.tree1.nodes(this.leftTree);
+        this.tree2_nodes = this.tree2.nodes(this.rightTree);
+        this.tree1_edges = this.tree1.links(this.tree1_nodes);
+        this.tree2_edges = this.tree2.links(this.tree2_nodes);
+    }
+    drawBridgingLines() {
+        var cophy_obj = this;
+        this.tree1_nodes.forEach(function (n)
+        {
+            if (n.children)
+            {
+                return false;
+            }
+            var nodeName = String(n.name);
+            var nodePair = cophy_obj.matchNodesByName(nodeName, cophy_obj.tree1_nodes, cophy_obj.tree2_nodes);
+            var x1 = nodePair[0].x;
+            var y1 = nodePair[0].y + 40; // to get past text. NB x,y flipped in d3.layout.cluster
+            var x2 = nodePair[1].x;
+            var y2 = nodePair[1].y - 40;
+            var midx = (x1 + x2) / 2;
+            var midy = (y1 + y2) / 2;
+
+            var nodePair_spline_coords = [
+            {
+                "x": x1,
+                "y": y1
+            },
+            {
+                "x": x1,
+                "y": midy
+            },
+            {
+                "x": x2,
+                "y": midy
+            },
+            {
+                "x": x2,
+                "y": y2
+            }];
+
+            var lineFunction = d3.svg.line()
+                .x(function (d)
+                {
+                    return d.y;
+                })
+                .y(function (d)
+                {
+                    return d.x;
+                })
+                .interpolate("bundle")
+                .tension(0.99);
+
+            var line_connect = cophy_obj.bridge_g.append("path")
+                .attr("d", lineFunction(nodePair_spline_coords))
+                .attr("class", "bridge")
+                .attr("id", nodeName)
+                .attr("pointer-events", "stroke") // only clicking on stroke works
+                .attr("stroke", function (d, i)
+                {
+                    // color bridging lines by genotype 
+                    var seg_genotype = nodeName.match(/[SL]([0-9]+)/)
+                    if (seg_genotype)
+                    {
+                        // match actually returns an array of results, the 2nd element is the one we want
+                        var seg_genotype_number = seg_genotype[1];
+                        // we'll have to cycle through colors if more than in our scheme
+                        var color_index = seg_genotype_number % SVGUtils.color_scheme().length;
+                        return SVGUtils.color_scheme()[color_index];
+                    }
+                    else
+                    {
+                        return "#d3d3d3"; // == "lightgrey" --> d3, ha ha
+                    }
+                })
+                // .on("click", highlight_toggle); 
+                .on("click", cophy_obj.highlight_from_node());
+        });
+    }
     renderTrees(leftTree, rightTree) {
-        // json format binary trees, processed from newick style text files.
+        // json format binary trees, processed from newick style text files by Newick.js.
         this.leftTree = leftTree;
         this.rightTree = rightTree;
-
-        var tree1 = d3.layout.cluster().size([this.svg_h - this.margin.top - this.margin.bottom, this.svg_w - this.margin.left - this.margin.right])
-            .children(function (node) { return node.branchset; })
-            .separation(function (a, b) {
-                return a.parent == b.parent ? 1.5 : 1.8;
-        });
-
-        var tree2 = d3.layout.cluster().size([this.svg_h - this.margin.top - this.margin.bottom, this.svg_w - this.margin.left - this.margin.right])
-            .children(function (node) { return node.branchset; })
-            .separation(function (a, b) {
-                return a.parent == b.parent ? 1.5 : 1.8;
-        });
-
-        // TODO: can be CoPhylogenyGraph member functions?
-        var tree1_nodes = tree1.nodes(leftTree);
-        var tree1_edges = tree1.links(tree1_nodes);
-
-        var tree2_nodes = tree2.nodes(rightTree);
-        var tree2_edges = tree2.links(tree2_nodes);
+        
+        this.convert_newick_trees_to_d3();
+        var tree1 = this.tree1;
+        var tree2 = this.tree2;
+        var tree1_nodes = this.tree1_nodes;
+        var tree2_nodes = this.tree2_nodes;
+        var tree1_edges = this.tree1_edges;
+        var tree2_edges = this.tree2_edges;
 
         // this repositions nodes based on actual branch lengths
         var yscale = SVGUtils.scaleBranchLengths(tree1_nodes, this.svg_w - this.margin.left - this.margin.right, false);
         var yscale = SVGUtils.scaleBranchLengths(tree2_nodes, this.svg_w - this.margin.left - this.margin.right, true);
 
-        this.tree1_g = this.overall_vis.append("g") .attr("transform", "translate(" + this.margin.left + ", " + this.margin.top + ")") ;
-        this.tree2_g = this.overall_vis.append("g") .attr("transform", "translate(" + this.margin.left + ", " + this.margin.top + ")") ;
-        this.bridge_g = this.overall_vis.append("g") .attr("transform", "translate(" + this.margin.left + ", " + this.margin.top + ")").attr("id", "bridge_g") ;
+        // shift everything down and right for the margins
+        var margin_shift = "translate(" + this.margin.left + ", " + this.margin.top + ")";
+        this.tree1_g = this.overall_vis.append("g") .attr("transform", margin_shift);
+        this.tree2_g = this.overall_vis.append("g") .attr("transform", margin_shift);
+        this.bridge_g = this.overall_vis.append("g") .attr("transform", margin_shift).attr("id", "bridge_g");
 
         // add labels
         this.tree1_g.append("text")
@@ -96,16 +186,16 @@ class CoPhylogenyGraph {
             {
                 if (n.depth == 0)
                 {
-                    return "root node"
+                    return "root node";
                 }
                 else
                 {
-                    return "inner node"
+                    return "inner node";
                 }
             }
             else
             {
-                return "leaf node"
+                return "leaf node";
             }
         }
 
@@ -132,6 +222,10 @@ class CoPhylogenyGraph {
         this.styleTreeNodes(this.tree2_g);
 
         // add labels to nodes
+        function snakeNameFormat(snakeName) {
+            return snakeName.replace(/'/g, "").replace("snake", "").replace(/[SL]/, "").replace("_", "-");
+            
+        }
         this.tree1_g.selectAll('g.leaf.node')
             .append("text")
             .attr("dx", 8)
@@ -141,7 +235,8 @@ class CoPhylogenyGraph {
             // .attr("pointer-events", "all") 
             .text(function (d)
             {
-                return d.name.replace(/'/g, "").replace("snake", "").replace(/[SL]/, "").replace("_", "-");
+                return snakeNameFormat(d.name);
+                //return d.name;
             })
             .on("click", this.highlight_from_node());
 
@@ -155,82 +250,13 @@ class CoPhylogenyGraph {
             // .attr("pointer-events", "all") 
             .text(function (d)
             {
-                return d.name.replace(/'/g, "").replace("snake", "").replace(/[SL]/, "").replace("_", "-");
+                return snakeNameFormat(d.name);
+                //return d.name;
             })
             .on("click", this.highlight_from_node());
 
         // draw bridging lines
-        var cophy_obj = this;
-        tree1_nodes.forEach(function (n)
-        {
-            if (n.children)
-            {
-                return false;
-            }
-            var seg_id = String(n.name);
-            var seg_pair = cophy_obj.get_segment_node_pair(seg_id, tree1_nodes, tree2_nodes);
-            var x1 = seg_pair[0].x;
-            var y1 = seg_pair[0].y + 40; // to get past text. NB x,y flipped in d3.layout.cluster
-            var x2 = seg_pair[1].x;
-            var y2 = seg_pair[1].y - 40;
-            var midx = (x1 + x2) / 2;
-            var midy = (y1 + y2) / 2;
-
-            var seg_pair_spline_coords = [
-            {
-                "x": x1,
-                "y": y1
-            },
-            {
-                "x": x1,
-                "y": midy
-            },
-            {
-                "x": x2,
-                "y": midy
-            },
-            {
-                "x": x2,
-                "y": y2
-            }];
-
-            var lineFunction = d3.svg.line()
-                .x(function (d)
-                {
-                    return d.y;
-                })
-                .y(function (d)
-                {
-                    return d.x;
-                })
-                .interpolate("bundle")
-                .tension(0.99);
-
-            var line_connect = cophy_obj.bridge_g.append("path")
-                .attr("d", lineFunction(seg_pair_spline_coords))
-                .attr("class", "bridge")
-                .attr("id", seg_id)
-                .attr("pointer-events", "stroke") // only clicking on stroke works
-                .attr("stroke", function (d, i)
-                {
-                    // color bridging lines by genotype 
-                    var seg_genotype = seg_id.match(/[SL]([0-9]+)/)
-                    if (seg_genotype)
-                    {
-                        // match actually returns an array of results, the 2nd element is the one we want
-                        var seg_genotype_number = seg_genotype[1];
-                        // we'll have to cycle through colors if more than in our scheme
-                        var color_index = seg_genotype_number % SVGUtils.color_scheme().length;
-                        return SVGUtils.color_scheme()[color_index];
-                    }
-                    else
-                    {
-                        return "#d3d3d3"; // == "lightgrey" --> d3, ha ha
-                    }
-                })
-                // .on("click", highlight_toggle); 
-                .on("click", cophy_obj.highlight_from_node());
-        });
+        this.drawBridgingLines();
     } // end renderTrees
 
     render(leftTreeURL, rightTreeURL) {
@@ -373,7 +399,25 @@ class CoPhylogenyGraph {
          .attr('stroke', 'black')
     } // end styleTreeNodes
 
-    get_segment_node_pair(nodeName, nodes_1, nodes_2) 
+    //get_segment_node_pair(nodeName, nodes_1, nodes_2) 
+    matchNodesByFunction(nodeName, nodes_1, nodes_2, fxn) 
+    {
+        var nodes_1_match = nodes_1.filter(fxn);
+        var nodes_2_match = nodes_2.filter(fxn);
+        // TODO - error if match >1 node
+        return [nodes_1_match[0], nodes_2_match[0]];
+    }
+    matchNodesByTable(nodeName, nodes_1, nodes_2, table)
+    {
+        function match_filter(n)
+        {
+            if ( table[n.name] === nodeName ) { return true; }
+            return false;
+        }
+        return this.matchNodesByFunction(nodeName, nodes_1, nodes_2, match_filter);
+    }
+
+    matchNodesByName(nodeName, nodes_1, nodes_2) 
     {
         function match_filter(n) 
         {
@@ -383,12 +427,7 @@ class CoPhylogenyGraph {
                 return false;
             }
         }
-        var nodes_1_match = nodes_1.filter(match_filter);
-        console.log("Node name is " + nodeName);
-        console.dir(nodes_1_match[0]);
-        var nodes_2_match = nodes_2.filter(match_filter);
-        // TODO - error if match >1 node
-        return [nodes_1_match[0], nodes_2_match[0]];
+        return this.matchNodesByFunction(nodeName, nodes_1, nodes_2, match_filter);
     }
 }
 
@@ -396,53 +435,52 @@ class CoPhylogenyGraph {
  * Static functions for drawing SVG elements
  */
 class SVGUtils {
+    static color_scheme() { return  ["#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a","#b15928"]; }
     // several functions copied from:
     // from: https://gist.github.com/kueda/1036776
     // Copyright (c) 2013, Ken-ichi Ueda
-    static color_scheme() { return  ["#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a","#b15928"]; }
     static rightAngleDiagonal()
     {
-         var projection = function(d)
-         {
+        var projection = function (d)
+        {
             return [d.y, d.x];
-         }
-         var path = function(pathData)
-         {
+        }
+        var path = function (pathData)
+        {
             return "M" + pathData[0] + ' ' + pathData[1] + " " + pathData[2];
-         }
+        }
 
-         function diagonal(diagonalPath, i)
-         {
+        function diagonal(diagonalPath, i)
+        {
             var source = diagonalPath.source,
-               target = diagonalPath.target,
-               midpointX = (source.x + target.x) / 2,
-               midpointY = (source.y + target.y) / 2,
-               pathData = [source,
-                  {
-                     x: target.x,
-                     y: source.y
-                  },
-                  target
-               ];
+                target = diagonalPath.target,
+                midpointX = (source.x + target.x) / 2,
+                midpointY = (source.y + target.y) / 2,
+                pathData = [source,
+                    {
+                        x: target.x,
+                        y: source.y
+                    },
+                    target
+                ];
             pathData = pathData.map(projection);
             return path(pathData)
-         }
-         diagonal.projection = function(x)
-         {
+        }
+        diagonal.projection = function (x)
+        {
             if (!arguments.length) return projection;
             projection = x;
             return diagonal;
-         };
-         diagonal.path = function(x)
-         {
+        };
+        diagonal.path = function (x)
+        {
             if (!arguments.length) return path;
             path = x;
             return diagonal;
-         };
-         // this function returns a function
-         return diagonal;
-      }
-
+        };
+        // this function returns a function
+        return diagonal;
+    }
 
     // this function adjusts node positions (node y values) based on their branch lengths
     static scaleBranchLengths(nodes, w, inverted)

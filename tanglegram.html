@@ -38,20 +38,77 @@
 <script src="./newick.js"></script>
 <script src="./CoPhylogenyGraph.js"></script>
 <script>
+class FileByLines  {
+    constructor(filetext) {
+        this.fileText = filetext;
+        this.lines = filetext.split(/\r\n|\r|\n/g); // accounts for the three NEWLINE types
+
+        // split: final line separator before EOF will result in a blank line
+        if (! this.lines[this.lines.length-1]) {
+            this.lines.splice(this.lines.length-1, 1); // delete final array element if blank
+        }
+        console.dir(this.lines);
+    }
+
+    *nextLine() {
+        for (var i in this.lines) {
+            var line = this.lines[i];
+            yield line;
+        }
+    }
+}
+function processFile(files) {
+    var file = files[0];
+    var reader = new FileReader();
+    reader.readAsText(file);
+    reader.onload = function(evt) {
+        var filetext = evt.target.result;
+        var filer = new FileByLines(filetext);
+        var leftToRight = d3.map();
+        var rightToLeft = d3.map();
+
+        var lineGenerator = filer.nextLine();
+        var line = lineGenerator.next(); // line has 2 properties: value and done
+        while (!line.done)
+        {
+            //console.dir(line);
+            if (line.value) { // final newline splits to an empty array value
+                var fields = line.value.split(/\s+/);
+                leftToRight.set( fields[0],  fields[1] );
+                rightToLeft.set( fields[1],  fields[0] );
+
+            }
+            else {
+                console.log("skipping empty line");
+            }
+            line = lineGenerator.next();
+        } 
+        console.dir( leftToRight );
+        console.dir( rightToLeft );
+    };
+
+}
 function load() {
-    //var cophylogeny_fig = new CoPhylogenyGraph('#left_container');
+    // URL blobs needed for newick reader
     var leftURL = null, 
         rightURL = null;
 
     console.log("load...");
     var fileButtonLeft = document.getElementById("fileButtonLeft"),
         fileInputLeft = document.getElementById("fileInputLeft");
+    var fileButtonMiddle = document.getElementById("fileButtonMiddle"),
+        fileInputMiddle = document.getElementById("fileInputMiddle");
     var fileButtonRight = document.getElementById("fileButtonRight"),
         fileInputRight = document.getElementById("fileInputRight");
 
     fileButtonLeft.addEventListener("click", function (e) {
       if (fileInputLeft) {
         fileInputLeft.click();
+      }
+    }, false);
+    fileButtonMiddle.addEventListener("click", function (e) {
+      if (fileInputMiddle) {
+        fileInputMiddle.click();
       }
     }, false);
     fileButtonRight.addEventListener("click", function (e) {
@@ -172,7 +229,8 @@ function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2
         </button>
       </div>
       <div class="col-md-2">
-        <button id="upload_middle" type="button" disabled="disabled" class="btn btn-default">
+        <input type="file" id="fileInputMiddle" style="display:none" onchange="processFile(this.files)">
+        <button id="fileButtonMiddle" type="button" class="btn btn-default" onchange="processFile(this.files)">
             Upload lookup file (text)
         </button>
 		</div>
