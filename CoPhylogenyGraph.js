@@ -19,6 +19,10 @@ class CoPhylogenyGraph {
 
         // margins for SVG drawing area
         this.margin = { top: 20, right: 20, bottom: 20, left: 20 };
+
+        /* initialize some member variables ********/
+        this.bridgeMap = undefined;
+        /*******************************************/
     }
     get svg_h() {
         return this.height - this.margin.top - this.margin.bottom;
@@ -61,7 +65,13 @@ class CoPhylogenyGraph {
                 return false;
             }
             var nodeName = String(n.name);
-            var nodePair = cophy_obj.matchNodesByName(nodeName, cophy_obj.tree1_nodes, cophy_obj.tree2_nodes);
+            // determine matching method
+            if (undefined === cophy_obj.bridgeMap){
+                 var nodePair = cophy_obj.matchNodesByName(nodeName); }
+            else {
+                 var nodePair = cophy_obj.matchNodesByMap(nodeName); }
+
+            // draw bridging line if matched
             if (undefined === nodePair[1]) {
                 console.log("couldn't match " + nodeName);
             }
@@ -385,8 +395,8 @@ class CoPhylogenyGraph {
     styleTreeNodes(selection)
     {
         var cophy_obj = this;
-        console.log("c_o: " + cophy_obj);
-        console.dir( cophy_obj);
+        //console.log("c_o: " + cophy_obj);
+        //console.dir( cophy_obj);
         selection.selectAll('g.leaf.node')
          .append("svg:circle")
          .attr("r", 5)
@@ -413,14 +423,25 @@ class CoPhylogenyGraph {
     {
         var nodes_1_match = this.tree1_nodes.filter(fxn);
         var nodes_2_match = this.tree2_nodes.filter(fxn);
-        // TODO - error if match >1 node
+        // a one-to-many match problem is overridden in the bridgeMap, but not in the name-matching
         return [nodes_1_match[0], nodes_2_match[0]];
     }
-    matchNodesByMap(nodeName, map) // takes a d3 map
+    matchNodesByMap(nodeName) // takes a d3 map in d3.bridgeMap
     {
+        var table = this.bridgeMap;
         function match_filter(n)
         {
-            if ( table.has(n.name) && (table.key(n.name) === nodeName) ) { return true; }
+            if (! n.name) {
+                return false; // internal node
+            }
+            if (n.name === nodeName)  // find match in left-hand side
+            {
+                return true;
+            }
+            if ( table.has(n.name) && (table.get(n.name) === nodeName) ) 
+            { 
+                return true; 
+            }
             return false;
         }
         return this.matchNodesByFunction(nodeName, match_filter);

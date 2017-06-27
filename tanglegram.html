@@ -64,8 +64,7 @@ function processFile(files) {
     reader.onload = function(evt) {
         var filetext = evt.target.result;
         var filer = new FileByLines(filetext);
-        var leftToRight = d3.map();
-        var rightToLeft = d3.map();
+        leftToRight = d3.map();
 
         var lineGenerator = filer.nextLine();
         var line = lineGenerator.next(); // line has 2 properties: value and done
@@ -75,8 +74,7 @@ function processFile(files) {
             if (line.value) { // final newline splits to an empty array value
                 var fields = line.value.split(/\s+/);
                 leftToRight.set( fields[0],  fields[1] );
-                rightToLeft.set( fields[1],  fields[0] );
-
+                leftToRight.set( fields[1],  fields[0] );
             }
             else {
                 console.log("skipping empty line");
@@ -84,11 +82,12 @@ function processFile(files) {
             line = lineGenerator.next();
         } 
         console.dir( leftToRight );
-        console.dir( rightToLeft );
     };
 
 }
 function load() {
+    var leftToRight; // will this be in scope?
+
     // URL blobs needed for newick reader
     var leftURL = null, 
         rightURL = null;
@@ -179,6 +178,15 @@ function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2
    console.log("name1 is " + cophylogeny_fig.tree1_name);
    cophylogeny_fig.tree2_name = fileButtonRight.innerHTML;
    console.log("name2 is " + cophylogeny_fig.tree2_name);
+   if (undefined !== leftToRight)
+    {
+        console.log("leftToRight is defined");
+        console.dir(leftToRight);
+        cophylogeny_fig.bridgeMap = leftToRight;
+    }
+    else {
+        console.log("leftToRight NOT defined");
+    }
    cophylogeny_fig.render(newick_file_1, newick_file_2, w, h);
 
 
