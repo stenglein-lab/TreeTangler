@@ -58,29 +58,31 @@ class CoPhylogenyGraph {
     }
     drawBridgingLines() {
         var cophy_obj = this;
-        this.tree1_nodes.forEach(function (n)
+        this.tree1_nodes.forEach(function (leftNode)
         {
-            if (n.children)
+            if (leftNode.children)
             {
                 return false;
             }
-            var nodeName = String(n.name);
+            var leftNodeName = String(leftNode.name);
             // determine matching method
             if (undefined === cophy_obj.bridgeMap){
-                 var nodePair = cophy_obj.matchNodesByName(nodeName); }
+                 var rightNode = cophy_obj.findNode("right", leftNodeName);}
             else {
-                 var nodePair = cophy_obj.matchNodesByMap(nodeName); }
+                var rightNodeName = cophy_obj.bridgeMap.get(leftNodeName);
+                var rightNode = cophy_obj.findNode("right", rightNodeName);
+            }
 
             // draw bridging line if matched
-            if (undefined === nodePair[1]) {
-                console.log("couldn't match " + nodeName);
+            if (undefined === rightNode) {
+                console.log("couldn't match " + leftNodeName);
             }
             else {
-                console.log("Matched " + nodeName);
-                var x1 = nodePair[0].x;
-                var y1 = nodePair[0].y + 40; // to get past text. NB x,y flipped in d3.layout.cluster
-                var x2 = nodePair[1].x;
-                var y2 = nodePair[1].y - 40;
+                console.log("Matched " + leftNodeName + " with " + rightNodeName);
+                var x1 = leftNode.x;
+                var y1 = leftNode.y + 40; // to get past text. NB x,y flipped in d3.layout.cluster
+                var x2 = rightNode.x;
+                var y2 = rightNode.y - 40;
                 var midx = (x1 + x2) / 2;
                 var midy = (y1 + y2) / 2;
 
@@ -117,7 +119,7 @@ class CoPhylogenyGraph {
                 var line_connect = cophy_obj.bridge_g.append("path")
                     .attr("d", lineFunction(nodePair_spline_coords))
                     .attr("class", "bridge")
-                    .attr("id", nodeName)
+                    .attr("id", leftNodeName)
                     .attr("pointer-events", "stroke") // only clicking on stroke works
                     .attr("stroke", function (d, i)
                     {
@@ -126,7 +128,7 @@ class CoPhylogenyGraph {
                         //
                         // code block below is meaningful for Mark's genotypes specified by node names
                         // color bridging lines by genotype 
-                        var seg_genotype = nodeName.match(/[SL]([0-9]+)/)
+                        var seg_genotype = leftNodeName.match(/[SL]([0-9]+)/)
                         if (seg_genotype)
                         {
                             // match actually returns an array of results, the 2nd element is the one we want
@@ -419,45 +421,11 @@ class CoPhylogenyGraph {
          .attr('stroke', 'black')
     } // end styleTreeNodes
 
-    matchNodesByFunction(nodeName, fxn) 
-    {
-        var nodes_1_match = this.tree1_nodes.filter(fxn);
-        var nodes_2_match = this.tree2_nodes.filter(fxn);
-        // a one-to-many match problem is overridden in the bridgeMap, but not in the name-matching
-        return [nodes_1_match[0], nodes_2_match[0]];
-    }
-    matchNodesByMap(nodeName) // takes a d3 map in d3.bridgeMap
-    {
-        var table = this.bridgeMap;
-        function match_filter(n)
-        {
-            if (! n.name) {
-                return false; // internal node
-            }
-            if (n.name === nodeName)  // find match in left-hand side
-            {
-                return true;
-            }
-            if ( table.has(n.name) && (table.get(n.name) === nodeName) ) 
-            { 
-                return true; 
-            }
-            return false;
-        }
-        return this.matchNodesByFunction(nodeName, match_filter);
-    }
-
-    matchNodesByName(nodeName) 
-    {
-        function match_filter(n) 
-        {
-            if (n.name === nodeName) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-        return this.matchNodesByFunction(nodeName, match_filter);
+    findNode(whichTree, name) {
+        var tree = whichTree === "left" ? this.tree1_nodes : this.tree2_nodes;
+        return tree.filter(function(n) {
+            return n.name === name ? true : false;
+        })[0];
     }
 }
 
