@@ -5,7 +5,7 @@
 }
 
 .node {
-   font-family: Helvetica, sans-serif;
+   font-family: "Gill Sans", Helvetica, sans-serif;
    font-size: 9px;
 	cursor: default; 
 	pointer-events: all;

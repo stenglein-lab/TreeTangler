@@ -17,7 +17,6 @@
    <link rel="stylesheet" href="./cophylogeny.css">
    <link rel="stylesheet" href="./map.css">
    <link rel="stylesheet" href="./plots.css">
-   <link rel="stylesheet" href="./fasta.css">
 
    <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -30,6 +29,23 @@
 	pre {
 	   font-size: 8pt;
 	}
+    #graph {
+        margin-bottom:30px;
+    }
+    #fileButtonMiddle {
+        margin: auto;
+        display: block;
+    }
+    .btn-pass {
+        background-image: linear-gradient(to bottom, #F0FFFF 0, #F0F9F9 90%, #F3F3F0 100%);
+        border-color: #E2E2E0;
+        color: black;
+    }
+    /*.btn-success {
+        background-image: linear-gradient(to bottom, #FFFFFF 0, #F0F9F9 90%, #F3F3F0 100%);
+        border-color: #E2E2E0;
+        color: black;
+    }*/
 </style>
 <body onload="load()">
 
@@ -37,26 +53,9 @@
 <script src="http://d3js.org/topojson.v1.min.js"></script>
 <script src="./newick.js"></script>
 <script src="./CoPhylogenyGraph.js"></script>
+<script src="./FileByLines.js"></script>
 <script>
-class FileByLines  {
-    constructor(filetext) {
-        this.fileText = filetext;
-        this.lines = filetext.split(/\r\n|\r|\n/g); // accounts for the three NEWLINE types
-
-        // split: final line separator before EOF will result in a blank line
-        if (! this.lines[this.lines.length-1]) {
-            this.lines.splice(this.lines.length-1, 1); // delete final array element if blank
-        }
-        console.dir(this.lines);
-    }
-
-    *nextLine() {
-        for (var i in this.lines) {
-            var line = this.lines[i];
-            yield line;
-        }
-    }
-}
+var leftToRight = undefined; // will this be in scope?
 function processFile(files) {
     var file = files[0];
     var reader = new FileReader();
@@ -74,19 +73,16 @@ function processFile(files) {
             if (line.value) { // final newline splits to an empty array value
                 var fields = line.value.split(/\s+/);
                 leftToRight.set( fields[0],  fields[1] );
-                leftToRight.set( fields[1],  fields[0] );
             }
             else {
                 console.log("skipping empty line");
             }
             line = lineGenerator.next();
         } 
-        console.dir( leftToRight );
     };
 
 }
 function load() {
-    var leftToRight; // will this be in scope?
 
     // URL blobs needed for newick reader
     var leftURL = null, 
@@ -135,7 +131,9 @@ function setLeftURL(files) {
     fileButtonLeft.innerHTML = files[0].name;
     // switch the button to something indicating success
     fileButtonLeft.classList.remove("btn-default");
-    fileButtonLeft.classList.add("btn-success");
+    //fileButtonLeft.classList.add("btn-success");
+    fileButtonLeft.classList.add("btn-pass");
+    fileButtonLeft.setAttribute('disabled','disabled');
     leftURL = getBlobURL(files);
     console.log("leftURL:" + leftURL);
     if (typeof rightURL === 'undefined') { console.log("rightURL is undefined."); }
@@ -146,8 +144,10 @@ function setLeftURL(files) {
 function setRightURL(files) {
     fileButtonRight.innerHTML = files[0].name;
     // switch the button to something indicating success
-    fileButtonRight.classList.remove("btn-remove");
-    fileButtonRight.classList.add("btn-success");
+    fileButtonRight.classList.remove("btn-default");
+    //fileButtonRight.classList.add("btn-success");
+    fileButtonRight.classList.add("btn-pass");
+    fileButtonRight.setAttribute('disabled','disabled');
     rightURL = getBlobURL(files);
     console.log("rightURL:" + rightURL);
     if (typeof leftURL === 'undefined') { console.log("leftURL is undefined."); }
@@ -157,7 +157,7 @@ function setRightURL(files) {
 }
 
 function callRender() {
-    render_cophylogeny('#left_container', 'unnamed', leftURL, rightURL, 700);
+    render_cophylogeny('#middle_container', 'unnamed', leftURL, rightURL, 700);
 }
 
 function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2, height)
@@ -178,7 +178,7 @@ function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2
    console.log("name1 is " + cophylogeny_fig.tree1_name);
    cophylogeny_fig.tree2_name = fileButtonRight.innerHTML;
    console.log("name2 is " + cophylogeny_fig.tree2_name);
-   if (undefined !== leftToRight)
+   if ('undefined' !== leftToRight)
     {
         console.log("leftToRight is defined");
         console.dir(leftToRight);
@@ -188,11 +188,6 @@ function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2
         console.log("leftToRight NOT defined");
     }
    cophylogeny_fig.render(newick_file_1, newick_file_2, w, h);
-
-
-   //figures[container_id] = cophylogeny_fig;
-   // var cophylogeny_fig = cophylogeny.render(container_id, newick_file_1, newick_file_2, w, h);
-   // figures[container_id] = cophylogeny_fig;
 }
 </script>
 <div class="container-fluid">
@@ -230,22 +225,22 @@ function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2
 </div>
 <div class="container-fluid">
    <div class="row">
-      <div class="col-md-5">
+      <div class="col-md-2">
         <input type="file" id="fileInputLeft" accept=".nw, .newick" style="display:none" onchange="setLeftURL(this.files)">
         <button id="fileButtonLeft" type="button" class="btn btn-default">
-            Upload left-side tree file (newick)
+            Left-side tree (newick)
         </button>
       </div>
-      <div class="col-md-2">
+      <div class="col-md-8">
         <input type="file" id="fileInputMiddle" style="display:none" onchange="processFile(this.files)">
         <button id="fileButtonMiddle" type="button" class="btn btn-default" onchange="processFile(this.files)">
             Upload lookup file (text)
         </button>
 		</div>
-      <div class="col-md-5">
+      <div class="col-md-2">
         <input type="file" id="fileInputRight" accept=".nw, .newick" style="display:none" onchange="setRightURL(this.files)">
         <button id="fileButtonRight" type="button" class="btn btn-default">
-            Upload right-side tree file (newick)
+            Right-side tree (newick)
         </button>
       </div>
     </div><!--/.row -->
@@ -256,12 +251,11 @@ function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2
 </div>
 
 <!-- empty containers to be populated by various figs -->
-<div class="container-fluid">
+<div id="graph" class="container-fluid">
    <div class="row">
-      <div class="col-md-6" id="left_container">
-      </div >
-      <div class="col-md-6" id="right_container">
-      </div >
+      <div class="col-md-2" id="left_container"> </div >
+      <div class="col-md-8" id="middle_container"> </div >
+      <div class="col-md-2" id="right_container"> </div >
    </div>
 </div>
 

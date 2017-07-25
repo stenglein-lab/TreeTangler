@@ -67,7 +67,9 @@ class CoPhylogenyGraph {
             var leftNodeName = String(leftNode.name);
             // determine matching method
             if (undefined === cophy_obj.bridgeMap){
-                 var rightNode = cophy_obj.findNode("right", leftNodeName);}
+                 var rightNode = cophy_obj.findNode("right", leftNodeName);
+                var rightNodeName = rightNode.name;
+            }
             else {
                 var rightNodeName = cophy_obj.bridgeMap.get(leftNodeName);
                 var rightNode = cophy_obj.findNode("right", rightNodeName);
@@ -165,24 +167,33 @@ class CoPhylogenyGraph {
         var yscale = SVGUtils.scaleBranchLengths(tree2_nodes, this.svg_w - this.margin.left - this.margin.right, true);
 
         // shift everything down and right for the margins
-        var margin_shift = "translate(" + this.margin.left + ", " + this.margin.top + ")";
+        var margin_shift = "translate(" + (this.margin.left/2) + ", " + this.margin.top + ")";
         this.tree1_g = this.overall_vis.append("g") .attr("transform", margin_shift);
         this.tree2_g = this.overall_vis.append("g") .attr("transform", margin_shift);
         this.bridge_g = this.overall_vis.append("g") .attr("transform", margin_shift).attr("id", "bridge_g");
 
         // add labels
-        this.tree1_g.append("text")
+        var label_offset = 15;
+        var left_label = this.tree1_g.append("text")
         .attr("class", "tree_label")
-        .attr("x", 0)
+        .attr("x", label_offset)
         .attr("y", 0)
         .text(this.tree1_name);
 
-        this.tree2_g.append("text")
+        var right_label = this.tree2_g.append("text")
         .attr("class", "tree_label")
-        .attr("x", this.svg_w - this.margin.left - this.margin.right)
+        .attr("x", this.svg_w - this.margin.left - this.margin.right - label_offset)
         .attr("y", 0)
         .style("text-anchor", "end")
         .text(this.tree2_name);
+
+        // shared properties of both labels
+        for (let label of [left_label, right_label]) {
+            label.style("font-family", "Optima")
+                .style("font-size","larger")
+                .style("font-weight","bold")
+                .style("font-style","oblique");
+        }
 
         // a fxn to create right angled edges connecting nodes
         var diagonal = SVGUtils.rightAngleDiagonal();
@@ -288,11 +299,34 @@ class CoPhylogenyGraph {
           .attr("height", this.svg_h)
           .attr("transform", "translate(" + this.margin.left + ", " + this.margin.top + ")") ;
 
-        // plain white background
+        var svg = this.overall_vis;
+        // gradient
+        var gradient = svg.append("defs")
+            .append("linearGradient")
+            .attr("id", "gradient")
+            .attr("x1", "0%")
+            .attr("y1", "00%")
+            .attr("x2", "100%")
+            .attr("y2", "100%")
+            .attr("spreadMethod", "pad");
+        gradient.append("stop")
+            .attr("offset", "50%")
+            .attr("stop-color", "#FFFFFF")
+            .attr("stop-opacity", ".5");
+        gradient.append("stop")
+            .attr("offset", "90%")
+            .attr("stop-color", "#F9FDFD")
+            .attr("stop-opacity", ".5");
+        gradient.append("stop")
+            .attr("offset", "100%")
+            .attr("stop-color", "#F3F3F0")
+            .attr("stop-opacity", ".5");
+        // background
         this.overall_vis.append("rect")
          .attr("class", "background")
          .attr("width", this.svg_w)
-         .attr("height", this.svg_h);
+         .attr("height", this.svg_h)
+         .style("fill", "url(#gradient)");
           //.on("click", fade_all);
 
         // since d3.text is asynchronous, handle through async/Promise construct
