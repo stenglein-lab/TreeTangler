@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.node circle {
+  fill: #999;
+}
+
+.node text {
+  font: 10px sans-serif;
+}
+
+.node--internal circle {
+  fill: #555;
+}
+
+.node--internal text {
+  text-shadow: 0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff;
+}
+
+.link {
+  fill: none;
+  stroke: #555;
+  stroke-opacity: 0.4;
+  stroke-width: 1.5px;
+}
+
+</style>
+<svg width="960" height="2000"></svg>
+<script src="./d3/d3.min.js"></script> 
+<script>
+var svg = d3.select("svg"),
+    width = +svg.attr("width"),
+    height = +svg.attr("height"),
+    g = svg.append("g").attr("transform", "translate(40,0)");
+
+var tree = d3.layout.cluster()
+    .size([height, width - 160])
+    .children(function (node) { return node.branchset; });
+
+console.dir(tree);
+var data = {
+  "branchset": [
+    {
+      "name": "furry",
+      "length": 0.14
+    },
+    {
+      "name": "shelled",
+      "length": 0.02
+    },
+    {
+      "name": "",
+      "branchset": [
+        {
+          "name": "rayfin",
+          "length": 0.25
+        },
+        {
+          "name": "",
+          "branchset": [
+            {
+              "name": "hopper",
+              "length": 0.01
+            },
+            {
+              "name": "pollywog",
+              "length": 0.01
+            }
+          ],
+          "length": 0.12
+        }
+      ],
+      "length": 0.09
+    }
+  ],
+  "name": ""
+};
+//console.dir(data);
+var nodes = tree.nodes(data);
+console.dir(nodes);
+console.dir(tree);
+</script>
