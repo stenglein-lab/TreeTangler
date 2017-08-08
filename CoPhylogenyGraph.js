@@ -52,6 +52,7 @@ class CoPhylogenyGraph {
         this.tree1 = init_d3_cluster();
         this.tree2 = init_d3_cluster();
         this.tree1_nodes = this.tree1.nodes(this.leftTree);
+        console.dir(this.tree1_nodes);
         this.tree2_nodes = this.tree2.nodes(this.rightTree);
         this.tree1_edges = this.tree1.links(this.tree1_nodes);
         this.tree2_edges = this.tree2.links(this.tree2_nodes);

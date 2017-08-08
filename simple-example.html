@@ -3,15 +3,16 @@
 <style>
 
 .node circle {
-  fill: #999;
+  /*fill: #99f;*/
+  fill: #8da0cb;
 }
 
 .node text {
-  font: 10px sans-serif;
+  font: 10pt monospace;
 }
 
-.node--internal circle {
-  fill: #555;
+.node.inner circle {
+  fill: #f99;
 }
 
 .node--internal text {
@@ -20,82 +21,21 @@
 
 .link {
   fill: none;
-  stroke: #555;
+  stroke: #8da0cb;
   stroke-opacity: 0.9;
   stroke-width: 1.5px;
 }
 
+.tree-label {
+   color: black;
+   font-size: 14px;
+   font-family: Helvetica, sans-serif;
+
+}
+
 </style>
-<svg width="960" height="2000"></svg>
-<script src="./d3/d3.min.js"></script> 
-<script src="./SVGUtils.js"></script> 
-<script>
-var svg = d3.select("svg"),
-    width = +svg.attr("width"),
-    height = +svg.attr("height"),
-    g = svg.append("g").attr("transform", "translate(80,0)");
-
-var tree = d3.layout.cluster()
-    .size([height, width - 160])
-    .children(function (node) { return node.branchset; });
-
-console.dir(tree);
-var data = {
-  "branchset": [
-    {
-      "name": "furry",
-      "length": 0.14
-    },
-    {
-      "name": "shelled",
-      "length": 0.02
-    },
-    {
-      "name": "",
-      "branchset": [
-        {
-          "name": "rayfin",
-          "length": 0.25
-        },
-        {
-          "name": "",
-          "branchset": [
-            {
-              "name": "hopper",
-              "length": 0.01
-            },
-            {
-              "name": "pollywog",
-              "length": 0.01
-            }
-          ],
-          "length": 0.12
-        }
-      ],
-      "length": 0.09
-    }
-  ],
-  "name": "",
-  "length": 0.05
-};
-//console.dir(data);
-var nodes = tree.nodes(data);
-console.dir(nodes);
-console.dir(tree);
-var diagonal = d3.svg.diagonal()
-    .projection(function (d) {
-    //return [d.x, d.y];
-    return [d.y, d.x];
-});
-
-var links = tree.links(nodes);
-var yscale = SVGUtils.scaleBranchLengths(nodes, width, false);
-
-var link = g.selectAll(".link")
-        .data(links)
-        .enter()
-        .append("path")
-        .attr("class", "link")
-        .style("stroke", "#8da0cb")
-        .attr("d", SVGUtils.rightAngleDiagonal());
-</script>
+<svg width="1000" height="2000"></svg>
+<script src="./d3/d3.v4.min.js"></script> 
+<script src="./newick.js"></script> 
+<script src="./SVGUtils.v4.js"></script> 
+<script src="./simple-example.js"></script>
