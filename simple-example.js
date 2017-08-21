@@ -40,7 +40,7 @@
 var svg = d3.select("svg"),
     width = +svg.attr("width"),
     height = +svg.attr("height"),
-    g = svg.append("g").attr("transform", "translate(80,0)");
+    g = svg.append("g").attr("transform", "translate(80,0)").attr("id", "dendrogram");
 
 d3.text("simple-tree.newick",
     function(error, wormTree) {
@@ -49,8 +49,51 @@ d3.text("simple-tree.newick",
 });
             
 
+function traverse_newickJSON(json, depth=0) {
+    var depth_str = "[" + depth + "]";
+    for (var i=0; i < depth; i++) {
+        depth_str = "___" + depth_str;
+    }
+    if (! json.hasOwnProperty('unique_id')) {
+        json['unique_id'] = "node_id_" + unique_id;
+        unique_id++;
+    }
+    for (var key in json) {
+        if (json.hasOwnProperty(key)) {
+            console.log(depth_str + key + "-->" + json[key]);
+            if (key == "branchset") {
+                for (var branch in json["branchset"]) {
+                    console.log(depth_str + "branch = " + branch);
+                    traverse_newickJSON(json["branchset"][branch], depth+1);
+                }
+            }
+        }
+    }
+}
+
+// uses the "unique_id field as the target"
+function swap_children(json, target) {
+    if (json.hasOwnProperty('unique_id') && json['unique_id'] == target) {
+        console.log("found target");
+        var children = json['branchset'];
+        json['branchset'] = [children[1], children[0]]; // swap the order
+        return 1;
+    }
+    if (json.hasOwnProperty('branchset')) {
+        // continue searching
+        var retval = 0;
+        for (var branch in json["branchset"]) {
+            retval |= swap_children(json["branchset"][branch], target);
+        }
+        return retval;
+    }
+    return 0;
+}
+
+var unique_id = 0;
 function drawCluster(treeObject, rescale = false) {
-    console.dir(treeObject);
+    //console.dir(treeObject);
+    traverse_newickJSON(treeObject);
 
     // the following commands create d3 objects that represent the cluster
     var root = d3.hierarchy(treeObject, function(d) {return d.branchset;});
@@ -59,22 +102,19 @@ function drawCluster(treeObject, rescale = false) {
 
     var links = root.links();
     var nodes = root.descendants();
-    console.dir(nodes);
     if (rescale) {
-    var yscale = SVGUtils.scaleBranchLengths(nodes, width, false);
+        SVGUtils.scaleBranchLengths(nodes, width, false);
     }
-    console.dir(yscale);
 
+    var g = svg.select("#dendrogram");
     // this actually draws the structure by appending path elements to the svg
-    var link = g.selectAll(".link")
+    var link = svg.select("#dendrogram").selectAll(".link")
             .data(links)
             .enter()
             .append("path")
             .attr("class", "link")
             .attr("d", SVGUtils.rightAngleDiagonal());
 
-    console.log("link: " + link);
-    console.dir(link);
 
     var node = g.selectAll(".node")
         .data(nodes)
@@ -86,8 +126,6 @@ function drawCluster(treeObject, rescale = false) {
             return "translate(" + d.y + "," + d.x + ")";
         })
         ;
-    console.log("node: " + node);
-    console.dir(node);
 
     // define whether it is a root, inner, or leaf node
     function define_node_position(n)
@@ -144,11 +182,9 @@ function drawCluster(treeObject, rescale = false) {
     function highlight_from_node(n) {
         console.log("--------- highlight from node --------");
         console.dir(n);
-        var tmp = n.children[0];
-        n.children[0] = n.children[1];
-        n.children[1] = tmp;
-        console.log(treeObject);
-        //drawCluster(treeObject,false);
+        console.log("got " + n.data.unique_id);
+        swap_children(treeObject, n.data.unique_id);
+        drawCluster(treeObject,true);
     }
 }
     
