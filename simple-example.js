@@ -42,14 +42,15 @@ var svg = d3.select("svg"),
     height = +svg.attr("height"),
     g = svg.append("g").attr("transform", "translate(80,0)");
 
-d3.text("ce11.newick",
+d3.text("simple-tree.newick",
     function(error, wormTree) {
             if (error) throw error; 
-            drawCluster(Newick.parse(wormTree));
+            drawCluster(Newick.parse(wormTree), true);
 });
             
 
-function drawCluster(treeObject) {
+function drawCluster(treeObject, rescale = false) {
+    console.dir(treeObject);
 
     // the following commands create d3 objects that represent the cluster
     var root = d3.hierarchy(treeObject, function(d) {return d.branchset;});
@@ -59,7 +60,9 @@ function drawCluster(treeObject) {
     var links = root.links();
     var nodes = root.descendants();
     console.dir(nodes);
+    if (rescale) {
     var yscale = SVGUtils.scaleBranchLengths(nodes, width, false);
+    }
     console.dir(yscale);
 
     // this actually draws the structure by appending path elements to the svg
@@ -141,6 +144,11 @@ function drawCluster(treeObject) {
     function highlight_from_node(n) {
         console.log("--------- highlight from node --------");
         console.dir(n);
+        var tmp = n.children[0];
+        n.children[0] = n.children[1];
+        n.children[1] = tmp;
+        console.log(treeObject);
+        //drawCluster(treeObject,false);
     }
 }
     
