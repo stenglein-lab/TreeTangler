@@ -67,15 +67,15 @@ class SVGUtils {
         }
         function nodeSum(node) {
             // rootdist is total distance from root node
-            //node.rootFist = (node.parent ? node.parent.rootFist : 0) + (node.length || 0);
+            //node.rootDist = (node.parent ? node.parent.rootDist : 0) + (node.length || 0);
             if (node.parent) {
-                //console.log("nodeSum: node has parent:" + node.parent.rootFist);
+                //console.log("nodeSum: node has parent:" + node.parent.rootDist);
                 //console.log("nodeSum: node.length:" + node.data.length);
-                node.rootFist = node.parent.rootFist + (node.data.length || 0);
+                node.rootDist = node.parent.rootDist + (node.data.length || 0);
             }
             else {
                 //console.log("nodeSum: node has no parent, use node.length || 0");
-                node.rootFist = node.data.length || 0;
+                node.rootDist = node.data.length || 0;
             }
         }
         visitPreOrder(nodes[0], nodeSum);
@@ -84,7 +84,7 @@ class SVGUtils {
         // map creates a new array based on other array and function 
         var rootDists = nodes.map(function(n)
         {
-            return n.rootFist;
+            return n.rootDist;
         });
         console.log(rootDists);
         // var y_range = [0, (w / 3)]; // --> draw the tree on 1st 1/3 of the svg canvas
@@ -101,7 +101,7 @@ class SVGUtils {
         // according to the actual branch lengths
         visitPreOrder(nodes[0], function(node)
         {
-            node.y = yscale(node.rootFist)
+            node.y = yscale(node.rootDist)
         });
         return yscale
     } // end scaleBranchLengths
