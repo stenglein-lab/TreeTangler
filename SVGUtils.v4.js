@@ -53,7 +53,6 @@ class SVGUtils {
     static scaleBranchLengths(nodes, w, inverted)
     {
         console.log("------------- scaleBranchLengths ------------");
-        console.dir(nodes);
         // Visit all nodes and adjust y pos with distance metric
         function visitPreOrder(root, callback)
         {
@@ -67,18 +66,15 @@ class SVGUtils {
             }
         }
         function nodeSum(node) {
-            console.log("---------- nodeSum node: -----------");
-            console.dir(node);
-            console.log("---------- nodeSum end node: -----------");
             // rootdist is total distance from root node
             //node.rootFist = (node.parent ? node.parent.rootFist : 0) + (node.length || 0);
             if (node.parent) {
-                console.log("nodeSum: node has parent:" + node.parent.rootFist);
-                console.log("nodeSum: node.length:" + node.data.length);
+                //console.log("nodeSum: node has parent:" + node.parent.rootFist);
+                //console.log("nodeSum: node.length:" + node.data.length);
                 node.rootFist = node.parent.rootFist + (node.data.length || 0);
             }
             else {
-                console.log("nodeSum: node has no parent, use node.length || 0");
+                //console.log("nodeSum: node has no parent, use node.length || 0");
                 node.rootFist = node.data.length || 0;
             }
         }
