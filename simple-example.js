@@ -91,7 +91,7 @@ function swap_children(json, target) {
 }
 
 var unique_id = 0;
-function drawCluster(treeObject, rescale = false) {
+function drawCluster(treeObject, rescale = false, redraw = false) {
     //console.dir(treeObject);
     traverse_newickJSON(treeObject);
 
@@ -106,7 +106,12 @@ function drawCluster(treeObject, rescale = false) {
         SVGUtils.scaleBranchLengths(nodes, width, false);
     }
 
+
     var g = svg.select("#dendrogram");
+    if (redraw) {
+        g.selectAll(".node").remove();
+        g.selectAll(".link").remove();
+    }
     // this actually draws the structure by appending path elements to the svg
     var link = svg.select("#dendrogram").selectAll(".link")
             .data(links)
@@ -184,7 +189,8 @@ function drawCluster(treeObject, rescale = false) {
         console.dir(n);
         console.log("got " + n.data.unique_id);
         swap_children(treeObject, n.data.unique_id);
-        drawCluster(treeObject,true);
+        g.selectAll(".node").remove();
+        drawCluster(treeObject,true, true);
     }
 }
     
