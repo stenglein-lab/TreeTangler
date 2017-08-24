@@ -49,10 +49,12 @@ d3.text("simple-tree.newick",
 });
             
 
-function traverse_newickJSON(json, depth=0) {
-    var depth_str = "[" + depth + "]";
-    for (var i=0; i < depth; i++) {
-        depth_str = "___" + depth_str;
+function traverse_newickJSON(json, depth=0, log=false) {
+    if (log ) {
+        var depth_str = "[" + depth + "]";
+        for (var i=0; i < depth; i++) {
+            depth_str = "___" + depth_str;
+        }
     }
     if (! json.hasOwnProperty('unique_id')) {
         json['unique_id'] = "node_id_" + unique_id;
@@ -60,10 +62,10 @@ function traverse_newickJSON(json, depth=0) {
     }
     for (var key in json) {
         if (json.hasOwnProperty(key)) {
-            console.log(depth_str + key + "-->" + json[key]);
+            if (log) { console.log(depth_str + key + "-->" + json[key]); }
             if (key == "branchset") {
                 for (var branch in json["branchset"]) {
-                    console.log(depth_str + "branch = " + branch);
+                    if (log) { console.log(depth_str + "branch = " + branch); }
                     traverse_newickJSON(json["branchset"][branch], depth+1);
                 }
             }
@@ -75,9 +77,15 @@ function traverse_newickJSON(json, depth=0) {
 function swap_children(json, target) {
     if (json.hasOwnProperty('unique_id') && json['unique_id'] == target) {
         console.log("found target");
-        var children = json['branchset'];
-        json['branchset'] = [children[1], children[0]]; // swap the order
-        return 1;
+        if (json.hasOwnProperty('branchset')) {
+            var children = json['branchset'];
+            json['branchset'] = [children[1], children[0]]; // swap the order
+            return 1;
+        }
+        else {
+            console.log("error - target is a leaf node");
+            return 0;
+        }
     }
     if (json.hasOwnProperty('branchset')) {
         // continue searching
