@@ -139,18 +139,19 @@ d3.tsv(filename, function(error, data) {
         .attr("height", 50)
         .attr("width", 50)
         .style("fill", "red")
+        .attr("class", "exp1")
         .on("click", function(d) {
             console.dir(d3.event.target);
             var rbutton = d3.select(d3.event.target);
-            if (rbutton.style("fill") == "red") {
-                rbutton.style("fill", "blue");
+            if (rbutton.classed("exp1")) {
+                rbutton.attr("class", "exp2");
                 d3.selectAll(".dot").transition().duration(2000)
                     .attr("cx", function(d) { return x(d.a2); })
                     .attr("cy", function(d) { return y(d.m2); })
                 ;
             }
             else {
-                rbutton.style("fill", "red");
+                rbutton.attr("class", "exp1");
                 d3.selectAll(".dot").transition().duration(2000)
                     .attr("cx", function(d) { return x(d.a); })
                     .attr("cy", function(d) { return y(d.m); })
