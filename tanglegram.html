@@ -84,11 +84,12 @@ function processFile(files) {
 }
 function load() {
 
+    console.log("load...");
     // URL blobs needed for newick reader
     var leftURL = null, 
         rightURL = null;
 
-    console.log("load...");
+    // hook into the html buttons and inputs
     var fileButtonLeft = document.getElementById("fileButtonLeft"),
         fileInputLeft = document.getElementById("fileInputLeft");
     var fileButtonMiddle = document.getElementById("fileButtonMiddle"),
@@ -96,6 +97,23 @@ function load() {
     var fileButtonRight = document.getElementById("fileButtonRight"),
         fileInputRight = document.getElementById("fileInputRight");
 
+    console.log(window.location);
+    var urlparts = window.location.href.split("?");
+    if (urlparts.length > 1) {
+        var query = new URLSearchParams(urlparts[1]);
+        if (query.has("left") && query.has("right")) {
+            leftURL = query.get("left");
+            rightURL= query.get("right");
+            // set buttons to deactivated state
+            fileButtonRight.classList.add("btn-pass");
+            fileButtonRight.setAttribute('disabled','disabled');
+            fileButtonLeft.classList.add("btn-pass");
+            fileButtonLeft.setAttribute('disabled','disabled');
+            render_cophylogeny('#middle_container', 'unnamed', leftURL, rightURL, 700);
+            return;
+        }
+        
+    }
     fileButtonLeft.addEventListener("click", function (e) {
       if (fileInputLeft) {
         fileInputLeft.click();
