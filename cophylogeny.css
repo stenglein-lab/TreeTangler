@@ -11,6 +11,21 @@
 	pointer-events: all;
 }
 
+/* added from simple-example */
+.node circle {
+  /*fill: #99f;*/
+  fill: #8da0cb;
+}
+
+.node text {
+  font: 10pt monospace;
+}
+
+.node.inner circle {
+  fill: #f99;
+}
+/* end: added from simple-example */
+
 .link {
    fill: none;
    stroke: black;
