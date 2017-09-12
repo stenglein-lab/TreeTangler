@@ -22,6 +22,8 @@ class CoPhylogenyGraph {
 
         /* initialize some member variables ********/
         this.bridgeMap = undefined;
+        this.leftTreeId = 0;
+        this.rightTreeId = 0;
         /*******************************************/
     }
     get svg_h() {
@@ -81,7 +83,7 @@ class CoPhylogenyGraph {
                 console.log("couldn't match " + leftNodeName);
             }
             else {
-                console.log("Matched " + leftNodeName + " with " + rightNodeName);
+                //console.log("Matched " + leftNodeName + " with " + rightNodeName);
                 var x1 = leftNode.x;
                 var y1 = leftNode.y + 40; // to get past text. NB x,y flipped in d3.layout.cluster
                 var x2 = rightNode.x;
@@ -150,10 +152,37 @@ class CoPhylogenyGraph {
                 }
         });
     }
-    renderTrees(leftTree, rightTree) {
+
+    addUniqueNodeIds(node, isLeft) {
+        if (! node.hasOwnProperty('unique_id')) {
+            if (isLeft) {
+                node['unique_id'] = "node_id_" + this.leftTreeId;
+                this.leftTreeId++;
+            }
+            else {
+                node['unique_id'] = "node_id_" + this.rightTreeId;
+                this.rightTreeId++;
+            }
+        }
+        for (var key in node) {
+            if (node.hasOwnProperty(key)) { // why is this here?
+                if (key == "branchset") {
+                    for (var branch in node["branchset"]) {
+                        this.addUniqueNodeIds(node["branchset"][branch], isLeft);
+                    }
+                }
+            }
+        }
+    }
+    renderTrees(leftTree, rightTree, rescale = true, redraw = true) {
         // json format binary trees, processed from newick style text files by Newick.js.
         this.leftTree = leftTree;
         this.rightTree = rightTree;
+        if (redraw) {
+            this.addUniqueNodeIds(this.leftTree, true);
+            this.addUniqueNodeIds(this.rightTree, false);
+            console.dir(this.leftTree);
+        }
         
         this.convert_newick_trees_to_d3();
         var tree1 = this.tree1;
@@ -164,8 +193,10 @@ class CoPhylogenyGraph {
         var tree2_edges = this.tree2_edges;
 
         // this repositions nodes based on actual branch lengths
-        var yscale = SVGUtils.scaleBranchLengths(tree1_nodes, this.svg_w - this.margin.left - this.margin.right, false);
-        var yscale = SVGUtils.scaleBranchLengths(tree2_nodes, this.svg_w - this.margin.left - this.margin.right, true);
+        if (rescale) {
+            var yscale = SVGUtils.scaleBranchLengths(tree1_nodes, this.svg_w - this.margin.left - this.margin.right, false);
+            var yscale = SVGUtils.scaleBranchLengths(tree2_nodes, this.svg_w - this.margin.left - this.margin.right, true);
+        }
 
         // shift everything down and right for the margins
         var margin_shift = "translate(" + (this.margin.left/2) + ", " + this.margin.top + ")";
@@ -418,13 +449,16 @@ class CoPhylogenyGraph {
     highlight_from_node()
     {
         var cophy_obj = this;
-        return function ()
+        return function (n)
         {
             console.log("Cophy_obj: " + cophy_obj);
             var node = d3.select(this).datum();
             var node_id = node.name;
-            cophy_obj.highlight_by_id(node_id);
-            cophy_obj.transmit_new_highlighting();
+            console.log("node_id: " + node_id);
+            console.dir(n);
+            console.log("unique_id: " + n.unique_id);
+            //cophy_obj.highlight_by_id(node_id);
+            //cophy_obj.transmit_new_highlighting();
         }
     };
 
@@ -436,7 +470,7 @@ class CoPhylogenyGraph {
         //console.dir( cophy_obj);
         selection.selectAll('g.leaf.node')
          .append("svg:circle")
-         .attr("r", 5)
+         .attr("r", 1.5)
          .attr('stroke', "none")
          .attr('fill', 'none')
          .attr("pointer-events", "all") // enable mouse events to be detected even though no fill
@@ -444,10 +478,12 @@ class CoPhylogenyGraph {
 
       selection.selectAll('g.inner.node')
          .append("svg:circle")
-         .attr("r", 5)
+         .attr("r", 3)
          .attr('stroke', "none")
          .attr('fill', 'none')
-         .attr("pointer-events", "all"); // enable mouse events to be detected even though no fill
+         .attr("pointer-events", "all") // enable mouse events to be detected even though no fill
+         .on("click", this.highlight_from_node())
+        ;
 
       selection.selectAll('g.root.node')
          .append('svg:circle')
