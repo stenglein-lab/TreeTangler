@@ -283,8 +283,8 @@ class CoPhylogenyGraph {
                 return "translate(" + d.y + "," + d.x + ")";
             })
 
-        this.styleTreeNodes(this.tree1_g);
-        this.styleTreeNodes(this.tree2_g);
+        this.styleTreeNodes(this.tree1_g, true); // I think this repeats what is done below
+        this.styleTreeNodes(this.tree2_g, false);
 
         // add labels to nodes
         function snakeNameFormat(snakeName) {
@@ -303,7 +303,7 @@ class CoPhylogenyGraph {
                 return snakeNameFormat(d.name);
                 //return d.name;
             })
-            .on("click", this.highlight_from_node());
+            .on("click", this.highlight_from_node(true));
 
         // add labels to nodes
         this.tree2_g.selectAll('g.leaf.node')
@@ -318,7 +318,7 @@ class CoPhylogenyGraph {
                 return snakeNameFormat(d.name);
                 //return d.name;
             })
-            .on("click", this.highlight_from_node());
+            .on("click", this.highlight_from_node(false));
 
         // draw bridging lines
         this.drawBridgingLines();
@@ -446,7 +446,7 @@ class CoPhylogenyGraph {
     }
     // this function will highlight a bridge line
     // when user mouseovers a node
-    highlight_from_node()
+    highlight_from_node(isLeft=true)
     {
         var cophy_obj = this;
         return function (n)
@@ -457,13 +457,14 @@ class CoPhylogenyGraph {
             console.log("node_id: " + node_id);
             console.dir(n);
             console.log("unique_id: " + n.unique_id);
+            console.log("isLeft:" + isLeft);
             //cophy_obj.highlight_by_id(node_id);
             //cophy_obj.transmit_new_highlighting();
         }
     };
 
     // this function sets up mouse events for nodes
-    styleTreeNodes(selection)
+    styleTreeNodes(selection, isLeft=true)
     {
         var cophy_obj = this;
         //console.log("c_o: " + cophy_obj);
@@ -474,7 +475,7 @@ class CoPhylogenyGraph {
          .attr('stroke', "none")
          .attr('fill', 'none')
          .attr("pointer-events", "all") // enable mouse events to be detected even though no fill
-         .on("click", this.highlight_from_node());
+         .on("click", this.highlight_from_node(isLeft));
 
       selection.selectAll('g.inner.node')
          .append("svg:circle")
@@ -482,7 +483,7 @@ class CoPhylogenyGraph {
          .attr('stroke', "none")
          .attr('fill', 'none')
          .attr("pointer-events", "all") // enable mouse events to be detected even though no fill
-         .on("click", this.highlight_from_node())
+         .on("click", this.highlight_from_node(isLeft))
         ;
 
       selection.selectAll('g.root.node')
