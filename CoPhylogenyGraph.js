@@ -6,7 +6,7 @@
 
 
 /* CoPhylogenyGraph
- * Methods and data for creating an SVG drawing 
+ * Methods and data for creating an SVG drawing
  * of a pair of phylogenetic trees that have the same leaf nodes, but different topologies.
  * Connecting lines are drawn between the leaves of both trees.
  */
@@ -32,32 +32,47 @@ class CoPhylogenyGraph {
     get svg_w() {
         return this.width - this.margin.left - this.margin.right;
     }
-
-    convert_newick_trees_to_d3() {
+    //convert_newick_trees_to_d3() {
+    create_d3_objects_from_newick() {
+        // make these class variables if they need to be accessed later
+        var root1 = d3.hierarchy(this.leftTree, function(d) {return d.branchset;}); // "branchset" is the field named by Newick.js
+        var root2 = d3.hierarchy(this.rightTree, function(d) {return d.branchset;});
         // a two-item array that sets the layout size for d3.layout.cluster
-        var d3_layout_bounds = [this.svg_h - this.margin.top - this.margin.bottom, 
+        var d3_layout_bounds = [this.svg_h - this.margin.top - this.margin.bottom,
                                 this.svg_w - this.margin.left - this.margin.right];
-        
         // specifies the separation between nodes on the graph
         function cluster_spread_fxn(a,b) {
             return a.parent == b.parent ? 1.5 : 1.8;
         }
-        // return branchset: the object property created by Newick.js 
-        function newick_node_fxn(node) {
-            return node.branchset;
-        }
-        function init_d3_cluster() {
+        var cluster1 = d3.cluster()
+                            .size(d3_layout_bounds)
+                            .separation(cluster_spread_fxn)
+                            ;
+        cluster1(root1);
+        var cluster2 = d3.cluster()
+                            .size(d3_layout_bounds)
+                            .separation(cluster_spread_fxn)
+                            ;
+        cluster2(root2);
+
+        /*function init_d3_cluster() {
             return d3.layout.cluster().size( d3_layout_bounds )
                 .children( newick_node_fxn )
                 .separation( cluster_spread_fxn );
-        }
-        this.tree1 = init_d3_cluster();
-        this.tree2 = init_d3_cluster();
-        this.tree1_nodes = this.tree1.nodes(this.leftTree);
-        console.dir(this.tree1_nodes);
-        this.tree2_nodes = this.tree2.nodes(this.rightTree);
-        this.tree1_edges = this.tree1.links(this.tree1_nodes);
-        this.tree2_edges = this.tree2.links(this.tree2_nodes);
+        }*/
+        //this.tree1 = init_d3_cluster();
+        this.tree1 = cluster1;
+        //this.tree2 = init_d3_cluster();
+        this.tree2 = cluster2;
+        //this.tree1_nodes = this.tree1.nodes(this.leftTree);
+        this.tree1_nodes = root1.descendants();
+        //this.tree2_nodes = this.tree2.nodes(this.rightTree);
+        this.tree2_nodes = root2.descendants();
+        //this.tree1_edges = this.tree1.links(this.tree1_nodes);
+        this.tree1_edges = root1.links();
+        //this.tree2_edges = this.tree2.links(this.tree2_nodes);
+        this.tree2_edges = root2.links();
+
     }
     drawBridgingLines() {
         var cophy_obj = this;
@@ -67,11 +82,11 @@ class CoPhylogenyGraph {
             {
                 return false;
             }
-            var leftNodeName = String(leftNode.name);
+            var leftNodeName = String(leftNode.data.name);
             // determine matching method
             if (undefined === cophy_obj.bridgeMap){
-                 var rightNode = cophy_obj.findNode("right", leftNodeName);
-                var rightNodeName = rightNode.name;
+                var rightNode = cophy_obj.findNode("right", leftNodeName);
+                var rightNodeName = rightNode.data.name;
             }
             else {
                 var rightNodeName = cophy_obj.bridgeMap.get(leftNodeName);
@@ -109,7 +124,7 @@ class CoPhylogenyGraph {
                     "y": y2
                 }];
 
-                var lineFunction = d3.svg.line()
+                var lineFunction = d3.line()
                     .x(function (d)
                     {
                         return d.y;
@@ -118,8 +133,8 @@ class CoPhylogenyGraph {
                     {
                         return d.x;
                     })
-                    .interpolate("bundle")
-                    .tension(0.99);
+                    .curve(d3.curveBundle.beta(0.99))
+                    ;
 
                 var line_connect = cophy_obj.bridge_g.append("path")
                     .attr("d", lineFunction(nodePair_spline_coords))
@@ -128,11 +143,11 @@ class CoPhylogenyGraph {
                     .attr("pointer-events", "stroke") // only clicking on stroke works
                     .attr("stroke", function (d, i)
                     {
-                        // TODO: separate out bridge line coloring function to something 
+                        // TODO: separate out bridge line coloring function to something
                         // that can be passed down from top level.
                         //
                         // code block below is meaningful for Mark's genotypes specified by node names
-                        // color bridging lines by genotype 
+                        // color bridging lines by genotype
                         var seg_genotype = leftNodeName.match(/[SL]([0-9]+)/)
                         if (seg_genotype)
                         {
@@ -147,7 +162,7 @@ class CoPhylogenyGraph {
                             return "#d3d3d3"; // == "lightgrey" --> d3, ha ha
                         }
                     })
-                    // .on("click", highlight_toggle); 
+                    // .on("click", highlight_toggle);
                     .on("click", cophy_obj.highlight_from_node());
                 }
         });
@@ -183,8 +198,9 @@ class CoPhylogenyGraph {
             this.addUniqueNodeIds(this.rightTree, false);
             console.dir(this.leftTree);
         }
-        
-        this.convert_newick_trees_to_d3();
+
+        //this.convert_newick_trees_to_d3();
+        this.create_d3_objects_from_newick();
         var tree1 = this.tree1;
         var tree2 = this.tree2;
         var tree1_nodes = this.tree1_nodes;
@@ -289,7 +305,7 @@ class CoPhylogenyGraph {
         // add labels to nodes
         function snakeNameFormat(snakeName) {
             return snakeName.replace(/'/g, "").replace("snake", "").replace(/[SL]/, "").replace("_", "-");
-            
+
         }
         this.tree1_g.selectAll('g.leaf.node')
             .append("text")
@@ -297,10 +313,10 @@ class CoPhylogenyGraph {
             .attr("dy", 3)
             .style("text-anchor", "start")
             // .style("cursor", "default") // make it not be a text cursor
-            // .attr("pointer-events", "all") 
+            // .attr("pointer-events", "all")
             .text(function (d)
             {
-                return snakeNameFormat(d.name);
+                return snakeNameFormat(d.data.name);
                 //return d.name;
             })
             .on("click", this.highlight_from_node(true));
@@ -312,10 +328,10 @@ class CoPhylogenyGraph {
             .attr("dy", 3)
             .style("text-anchor", "end")
             // .style("cursor", "default") // make it not be a text cursor
-            // .attr("pointer-events", "all") 
+            // .attr("pointer-events", "all")
             .text(function (d)
             {
-                return snakeNameFormat(d.name);
+                return snakeNameFormat(d.data.name);
                 //return d.name;
             })
             .on("click", this.highlight_from_node(false));
@@ -371,11 +387,11 @@ class CoPhylogenyGraph {
             })
             .catch(reason => {
                 console.log(reason);
-                //console.log(reason.statusText + ": " + reason.responseURL); 
+                //console.log(reason.statusText + ": " + reason.responseURL);
             });
     }
     /* once the SVG tree has objects...
-     * The following functions apply changes to the cophy object SVG 
+     * The following functions apply changes to the cophy object SVG
      */
     transmit_new_highlighting()
     {
@@ -401,7 +417,7 @@ class CoPhylogenyGraph {
         var all_bridges = d3.select(selector).select("#bridge_g").selectAll("path")[0]; // nested selections --> array of arrays hence extra [0]
         d3.selectAll(all_bridges).each(highlight_off);
 
-        // if any highlighting, turn on as appropriate 
+        // if any highlighting, turn on as appropriate
         if (highlighted_segments.length > 0)
         {
             highlighted_segments.forEach(function (id)
@@ -430,14 +446,14 @@ class CoPhylogenyGraph {
 
         console.log("updating highlighting.  Segs:  " +  highlighted_segments);
 
-        var containers = Object.keys(figures); 
+        var containers = Object.keys(figures);
         containers.forEach(function(container){
            if (container === selector)
             {
-               // don't do anything, 
+               // don't do anything,
             }
             else
-            {  
+            {
                 // clear(container);
                 console.log("for container: " +  container);
                figures[container].update_highlighted_segments(container);
@@ -496,7 +512,7 @@ class CoPhylogenyGraph {
     findNode(whichTree, name) {
         var tree = whichTree === "left" ? this.tree1_nodes : this.tree2_nodes;
         return tree.filter(function(n) {
-            return n.name === name ? true : false;
+            return n.data.name === name ? true : false;
         })[0];
     }
 }
@@ -504,7 +520,7 @@ class CoPhylogenyGraph {
 /*
  * Static functions for drawing SVG elements
  */
-class SVGUtils {
+/*class SVGUtils {
     static color_scheme() { return  ["#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a","#b15928"]; }
     // several functions copied from:
     // from: https://gist.github.com/kueda/1036776
@@ -573,7 +589,7 @@ class SVGUtils {
             node.rootDist = (node.parent ? node.parent.rootDist : 0) + (node.length || 0)
         });
         // an array of the root dists corresponding to nodes array
-        // map creates a new array based on other array and function 
+        // map creates a new array based on other array and function
         var rootDists = nodes.map(function(n)
         {
             return n.rootDist;
@@ -597,7 +613,7 @@ class SVGUtils {
         return yscale
     } // end scaleBranchLengths
 } // end SVGUtils
-
+*/
 /*
  * Utilities for reading and parsing URLs that point to newick files, asynchronously
  */
@@ -616,9 +632,9 @@ function getNewickFile(url) {
                     reject(error); return;
                 }
                 // Newick.parse does not have an error handler
-                // but could it be called outside of and before "resolve()" 
+                // but could it be called outside of and before "resolve()"
                 // and the output evaluated for success/failure?
-                resolve( Newick.parse(parsed_text) ); 
+                resolve( Newick.parse(parsed_text) );
                 if (url.match(/^blob:/)) {
                     console.log("unhooking blob resource");
                     window.URL.revokeObjectURL(url);
