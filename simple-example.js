@@ -42,14 +42,15 @@ var svg = d3.select("svg"),
     height = +svg.attr("height"),
     g = svg.append("g").attr("transform", "translate(80,0)").attr("id", "dendrogram");
 
-d3.text("simple-tree.newick",
+d3.text("l_tree.newick",
+//d3.text("simple-tree.newick",
     function(error, wormTree) {
             if (error) throw error; 
             drawCluster(Newick.parse(wormTree), true);
 });
             
 
-function traverse_newickJSON(json, depth=0, log=false) {
+function assign_unique_node_ids(json, depth=0, log=false) {
     if (log ) {
         var depth_str = "[" + depth + "]";
         for (var i=0; i < depth; i++) {
@@ -66,7 +67,7 @@ function traverse_newickJSON(json, depth=0, log=false) {
             if (key == "branchset") {
                 for (var branch in json["branchset"]) {
                     if (log) { console.log(depth_str + "branch = " + branch); }
-                    traverse_newickJSON(json["branchset"][branch], depth+1);
+                    assign_unique_node_ids(json["branchset"][branch], depth+1);
                 }
             }
         }
@@ -101,7 +102,7 @@ function swap_children(json, target) {
 var unique_id = 0;
 function drawCluster(treeObject, rescale = false, redraw = false) {
     //console.dir(treeObject);
-    traverse_newickJSON(treeObject);
+    assign_unique_node_ids(treeObject);
 
     // the following commands create d3 objects that represent the cluster
     var root = d3.hierarchy(treeObject, function(d) {return d.branchset;});
