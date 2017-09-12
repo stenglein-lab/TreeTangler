@@ -173,10 +173,12 @@ class CoPhylogenyGraph {
             if (isLeft) {
                 node['unique_id'] = "node_id_" + this.leftTreeId;
                 this.leftTreeId++;
+                //console.log('adding left tree unique_id: ' + node['unique_id']);
             }
             else {
                 node['unique_id'] = "node_id_" + this.rightTreeId;
                 this.rightTreeId++;
+                //console.log('adding right tree unique_id: ' + node['unique_id']);
             }
         }
         for (var key in node) {
@@ -472,7 +474,7 @@ class CoPhylogenyGraph {
             var node_id = node.name;
             console.log("node_id: " + node_id);
             console.dir(n);
-            console.log("unique_id: " + n.unique_id);
+            console.log("unique_id: " + n.data.unique_id);
             console.log("isLeft:" + isLeft);
             //cophy_obj.highlight_by_id(node_id);
             //cophy_obj.transmit_new_highlighting();
