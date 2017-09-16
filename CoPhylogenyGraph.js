@@ -28,11 +28,14 @@ class CoPhylogenyGraph {
         // varables act as globals during the node naming, unique for left and right trees
         this.leftTreeId = 0;
         this.rightTreeId = 0;
-        /**** d3 object version of the above variables ****/
+        /**** d3 objects created from the newick tree****/
         this.leftHierarchy = null; // d3 hierarchy
         this.rightHierarchy = null;
-        this.leftCluster = null; // d3 cluster
+        this.leftCluster = null; // d3.cluster(), then leftCluster(leftHierarchy) initializes the left object
         this.rightCluster = null;
+        // descendants are nodes
+        this.leftDescendants = null; // d3 leftHierarchy.descendants() acts as "nodes"
+        this.rightDescendants = null;
         /*******************************************/
     }
     get svg_h() {
