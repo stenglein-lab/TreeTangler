@@ -29,11 +29,13 @@ class CoPhylogenyGraph {
         this.leftTreeId = 0;
         this.rightTreeId = 0;
         /**** d3 objects created from the newick tree****/
-        this.leftHierarchy = null; // d3 hierarchy
-        this.rightHierarchy = null;
-        this.leftCluster = null; // d3.cluster(), then leftCluster(leftHierarchy) initializes the left object
-        this.rightCluster = null;
-        // descendants are nodes
+        // d3 hierarchies are trees
+        this.leftHierarchy = null;  // d3 hierarchy is the "tree", but the cluster object below must be called on 
+        this.rightHierarchy = null; // it in order to have it work.
+        // d3.cluster() used to be defined in d3.layout.cluster()
+        this.leftCluster = null;    // the cluster object is created with layout parameters, and is 
+        this.rightCluster = null;   // then called directly, e.g. leftCluster(hierarchy), without a return value
+        // d3 descendants are nodes
         this.leftDescendants = null; // d3 leftHierarchy.descendants() acts as "nodes"
         this.rightDescendants = null;
         /*******************************************/
