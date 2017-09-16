@@ -22,8 +22,17 @@ class CoPhylogenyGraph {
 
         /* initialize some member variables ********/
         this.bridgeMap = undefined;
+        // native tree objects are json objects parsed by Newick.js
+        this.leftTree = null; // or should these be "undefined"
+        this.rightTree = null;
+        // varables act as globals during the node naming, unique for left and right trees
         this.leftTreeId = 0;
         this.rightTreeId = 0;
+        /**** d3 object version of the above variables ****/
+        this.leftHierarchy = null; // d3 hierarchy
+        this.rightHierarchy = null;
+        this.leftCluster = null; // d3 cluster
+        this.rightCluster = null;
         /*******************************************/
     }
     get svg_h() {
@@ -35,8 +44,8 @@ class CoPhylogenyGraph {
     //convert_newick_trees_to_d3() {
     create_d3_objects_from_newick() {
         // make these class variables if they need to be accessed later
-        var root1 = d3.hierarchy(this.leftTree, function(d) {return d.branchset;}); // "branchset" is the field named by Newick.js
-        var root2 = d3.hierarchy(this.rightTree, function(d) {return d.branchset;});
+        this.leftHierarchy = d3.hierarchy(this.leftTree, function(d) {return d.branchset;}); // "branchset" is the field named by Newick.js
+        this.rightHierarchy = d3.hierarchy(this.rightTree, function(d) {return d.branchset;});
         // a two-item array that sets the layout size for d3.layout.cluster
         var d3_layout_bounds = [this.svg_h - this.margin.top - this.margin.bottom,
                                 this.svg_w - this.margin.left - this.margin.right];
@@ -44,39 +53,29 @@ class CoPhylogenyGraph {
         function cluster_spread_fxn(a,b) {
             return a.parent == b.parent ? 1.5 : 1.8;
         }
-        var cluster1 = d3.cluster()
+        // setup left d3 object
+        this.leftCluster = d3.cluster()
                             .size(d3_layout_bounds)
                             .separation(cluster_spread_fxn)
                             ;
-        cluster1(root1);
-        var cluster2 = d3.cluster()
+        this.leftCluster(this.leftHierarchy);
+        // setup right d3 object
+        this.rightCluster = d3.cluster()
                             .size(d3_layout_bounds)
                             .separation(cluster_spread_fxn)
                             ;
-        cluster2(root2);
+        this.rightCluster(this.rightHierarchy);
 
-        /*function init_d3_cluster() {
-            return d3.layout.cluster().size( d3_layout_bounds )
-                .children( newick_node_fxn )
-                .separation( cluster_spread_fxn );
-        }*/
-        //this.tree1 = init_d3_cluster();
-        this.tree1 = cluster1;
-        //this.tree2 = init_d3_cluster();
-        this.tree2 = cluster2;
-        //this.tree1_nodes = this.tree1.nodes(this.leftTree);
-        this.tree1_nodes = root1.descendants();
-        //this.tree2_nodes = this.tree2.nodes(this.rightTree);
-        this.tree2_nodes = root2.descendants();
-        //this.tree1_edges = this.tree1.links(this.tree1_nodes);
-        this.tree1_edges = root1.links();
-        //this.tree2_edges = this.tree2.links(this.tree2_nodes);
-        this.tree2_edges = root2.links();
+        this.leftDescendants = this.leftHierarchy.descendants(); // d3 "nodes"
+        this.rightDescendants = this.rightHierarchy.descendants();
+
+        this.tree1_edges = this.leftHierarchy.links(); // d3 "edges"
+        this.tree2_edges = this.rightHierarchy.links();
 
     }
     drawBridgingLines() {
         var cophy_obj = this;
-        this.tree1_nodes.forEach(function (leftNode)
+        cophy_obj.leftDescendants.forEach(function (leftNode)
         {
             if (leftNode.children)
             {
@@ -203,17 +202,17 @@ class CoPhylogenyGraph {
 
         //this.convert_newick_trees_to_d3();
         this.create_d3_objects_from_newick();
-        var tree1 = this.tree1;
-        var tree2 = this.tree2;
-        var tree1_nodes = this.tree1_nodes;
-        var tree2_nodes = this.tree2_nodes;
+        //var tree1 = this.tree1;
+        //var tree2 = this.tree2;
+        //var tree1_nodes = this.tree1_nodes;
+        //var tree2_nodes = this.tree2_nodes;
         var tree1_edges = this.tree1_edges;
         var tree2_edges = this.tree2_edges;
 
         // this repositions nodes based on actual branch lengths
         if (rescale) {
-            var yscale = SVGUtils.scaleBranchLengths(tree1_nodes, this.svg_w - this.margin.left - this.margin.right, false);
-            var yscale = SVGUtils.scaleBranchLengths(tree2_nodes, this.svg_w - this.margin.left - this.margin.right, true);
+            var yscale = SVGUtils.scaleBranchLengths(this.leftDescendants, this.svg_w - this.margin.left - this.margin.right, false);
+            var yscale = SVGUtils.scaleBranchLengths(this.rightDescendants, this.svg_w - this.margin.left - this.margin.right, true);
         }
 
         // shift everything down and right for the margins
@@ -284,7 +283,7 @@ class CoPhylogenyGraph {
 
         // reposition nodes and add class
         this.tree1_g.selectAll(".node")
-            .data(tree1_nodes)
+            .data(this.leftDescendants)
             .enter().append("g")
             .attr("class", define_node_position)
             .attr("transform", function (d)
@@ -293,7 +292,7 @@ class CoPhylogenyGraph {
             })
 
         this.tree2_g.selectAll(".node")
-            .data(tree2_nodes)
+            .data(this.rightDescendants)
             .enter().append("g")
             .attr("class", define_node_position)
             .attr("transform", function (d)
@@ -512,7 +511,7 @@ class CoPhylogenyGraph {
     } // end styleTreeNodes
 
     findNode(whichTree, name) {
-        var tree = whichTree === "left" ? this.tree1_nodes : this.tree2_nodes;
+        var tree = whichTree === "left" ? this.leftDescendants : this.rightDescendants;
         return tree.filter(function(n) {
             return n.data.name === name ? true : false;
         })[0];
