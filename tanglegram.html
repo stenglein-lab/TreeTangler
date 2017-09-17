@@ -105,11 +105,18 @@ function load() {
         if (query.has("left") && query.has("right")) {
             leftURL = query.get("left");
             rightURL= query.get("right");
-            // set buttons to deactivated state
+            // set buttons as they would be if file uploaded
+            // deactivate left button
             fileButtonRight.classList.add("btn-pass");
             fileButtonRight.setAttribute('disabled','disabled');
+            fileButtonRight.innerHTML = rightURL; // name is used in graph code
+            // deactivate middle button
+            fileButtonMiddle.classList.add("btn-pass");
+            fileButtonMiddle.setAttribute('disabled','disabled');
+            // deactivate right button
             fileButtonLeft.classList.add("btn-pass");
             fileButtonLeft.setAttribute('disabled','disabled');
+            fileButtonLeft.innerHTML = leftURL; // name is used in graph code
             render_cophylogeny('#middle_container', 'unnamed', leftURL, rightURL, 700);
             return;
         }
