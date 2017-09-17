@@ -208,6 +208,7 @@ class CoPhylogenyGraph {
             this.overall_vis.selectAll(".node").remove();
             this.overall_vis.selectAll(".link").remove();
             this.overall_vis.selectAll("#bridge_g").remove();
+            this.overall_vis.selectAll(".tree_label").remove();
         }
         //this.convert_newick_trees_to_d3();
         this.create_d3_objects_from_newick();
