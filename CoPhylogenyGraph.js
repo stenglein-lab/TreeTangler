@@ -232,18 +232,20 @@ class CoPhylogenyGraph {
         this.bridge_g = this.overall_vis.append("g") .attr("transform", margin_shift).attr("id", "bridge_g");
 
         // add labels
-        var label_offset = 15;
+        var label_offset = 5;
         var left_label = this.tree1_g.append("text")
         .attr("class", "tree_label")
         .attr("x", label_offset)
-        .attr("y", 0)
+        .attr("y", -5)
+        .style("alignment-baseline", "baseline")
         .text(this.tree1_name);
 
         var right_label = this.tree2_g.append("text")
         .attr("class", "tree_label")
-        .attr("x", this.svg_w - this.margin.left - this.margin.right - label_offset)
-        .attr("y", 0)
+        .attr("x", this.svg_w -  this.margin.right - label_offset)
+        .attr("y", -5)
         .style("text-anchor", "end")
+        .style("alignment-baseline", "baseline")
         .text(this.tree2_name);
 
         // shared properties of both labels
