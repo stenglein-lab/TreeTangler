@@ -30,10 +30,10 @@ class CoPhylogenyGraph {
         this.rightTreeId = 0;
         /**** d3 objects created from the newick tree****/
         // d3 hierarchies are trees
-        this.leftHierarchy = null;  // d3 hierarchy is the "tree", but the cluster object below must be called on 
+        this.leftHierarchy = null;  // d3 hierarchy is the "tree", but the cluster object below must be called on
         this.rightHierarchy = null; // it in order to have it work.
         // d3.cluster() used to be defined in d3.layout.cluster()
-        this.leftCluster = null;    // the cluster object is created with layout parameters, and is 
+        this.leftCluster = null;    // the cluster object is created with layout parameters, and is
         this.rightCluster = null;   // then called directly, e.g. leftCluster(hierarchy), without a return value
         // d3 descendants are nodes
         this.leftDescendants = null; // d3 leftHierarchy.descendants() acts as "nodes"
@@ -171,8 +171,7 @@ class CoPhylogenyGraph {
                 }
         });
     }
-
-    addUniqueNodeIds(node, isLeft) {
+    addUniqueNodeIds(node, isLeft) { // traverse newick object, enumerate nodes
         if (! node.hasOwnProperty('unique_id')) {
             if (isLeft) {
                 node['unique_id'] = "node_id_" + this.leftTreeId;
@@ -205,6 +204,11 @@ class CoPhylogenyGraph {
             console.dir(this.leftTree);
         }
 
+        if (redraw) {
+            this.overall_vis.selectAll(".node").remove();
+            this.overall_vis.selectAll(".link").remove();
+            this.overall_vis.selectAll("#bridge_g").remove();
+        }
         //this.convert_newick_trees_to_d3();
         this.create_d3_objects_from_newick();
         //var tree1 = this.tree1;
@@ -466,8 +470,39 @@ class CoPhylogenyGraph {
             }
         });
     }
-    // this function will highlight a bridge line
-    // when user mouseovers a node
+    // uses the "unique_id field as the target"
+    swap_children(json, target) {
+        console.log("json:" + json);
+
+        if (json.hasOwnProperty('unique_id')) {
+            console.log("json:" + json['unique_id'] + " ?= " + target);
+        }
+        if (json.hasOwnProperty('unique_id') && json['unique_id'] == target) {
+            console.log("found target");
+            if (json.hasOwnProperty('branchset')) {
+                var children = json['branchset'];
+                json['branchset'] = [children[1], children[0]]; // swap the order
+                return 1;
+            }
+            else {
+                console.log("error - target is a leaf node");
+                return 0;
+            }
+        }
+        if (json.hasOwnProperty('branchset')) {
+            // continue searching
+            var retval = 0;
+            for (var branch in json["branchset"]) {
+                if(this.swap_children(json["branchset"][branch], target)) {
+                    return 1;
+                }
+            }
+            return retval;
+        }
+        return 0;
+    }
+    // this function will pass user click
+    // to function
     highlight_from_node(isLeft=true)
     {
         var cophy_obj = this;
@@ -480,10 +515,18 @@ class CoPhylogenyGraph {
             console.dir(n);
             console.log("unique_id: " + n.data.unique_id);
             console.log("isLeft:" + isLeft);
+            if (isLeft) {
+                cophy_obj.swap_children(cophy_obj.leftTree, n.data.unique_id);
+            }
+            else { // right
+                cophy_obj.swap_children(cophy_obj.rightTree, n.data.unique_id);
+            }
+            cophy_obj.renderTrees(cophy_obj.leftTree, cophy_obj.rightTree, true, true);
             //cophy_obj.highlight_by_id(node_id);
             //cophy_obj.transmit_new_highlighting();
         }
-    };
+    }
+
 
     // this function sets up mouse events for nodes
     styleTreeNodes(selection, isLeft=true)
