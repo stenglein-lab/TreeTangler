@@ -248,13 +248,13 @@ class CoPhylogenyGraph {
         .style("alignment-baseline", "baseline")
         .text(this.tree2_name);
 
-        // shared properties of both labels
+        /* // shared properties of both labels
         for (let label of [left_label, right_label]) {
             label.style("font-family", "Optima")
                 .style("font-size","larger")
                 .style("font-weight","bold")
                 .style("font-style","oblique");
-        }
+        }*/
 
         // a fxn to create right angled edges connecting nodes
         var diagonal = SVGUtils.rightAngleDiagonal();
@@ -484,7 +484,15 @@ class CoPhylogenyGraph {
             console.log("found target");
             if (json.hasOwnProperty('branchset')) {
                 var children = json['branchset'];
-                json['branchset'] = [children[1], children[0]]; // swap the order
+                // reflect array order in-place
+                var n = children.length;
+                for (var i = 0; i < n/2; i++) {
+                    var j = n - i - 1;
+                    var tmp = children[i];
+                    children[i] = children[j];
+                    children[j] = tmp;
+                }
+                json['branchset'] = children;
                 return 1;
             }
             else {
