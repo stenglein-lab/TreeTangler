@@ -473,6 +473,34 @@ class CoPhylogenyGraph {
             }
         });
     }
+
+    /* from StackOverflow, apparently based on Fisher-Yates shuffle  */
+    shuffle(array) {
+      var currentIndex = array.length, temporaryValue, randomIndex;
+
+      // While there remain elements to shuffle...
+      while (0 !== currentIndex) {
+
+        // Pick a remaining element...
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
+
+        // And swap it with the current element.
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
+      }
+
+      return array;
+    }
+    randomize_nodes(json) {
+        if (json.hasOwnProperty('branchset')) {
+            json['branchset'] = shuffle(json['branchset']);
+            for (var branch in json["branchset"]) {
+                this.randomize_nodes(json['branchset'][branch]);
+            }
+        }
+    }
     // uses the "unique_id field as the target"
     swap_children(json, target) {
         console.log("json:" + json);
