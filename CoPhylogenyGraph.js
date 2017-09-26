@@ -51,6 +51,33 @@ class CoPhylogenyGraph {
         // make these class variables if they need to be accessed later
         this.leftHierarchy = d3.hierarchy(this.leftTree, function(d) {return d.branchset;}); // "branchset" is the field named by Newick.js
         this.rightHierarchy = d3.hierarchy(this.rightTree, function(d) {return d.branchset;});
+
+        this.leftDescendants = this.leftHierarchy.descendants(); // d3 "nodes"
+        this.rightDescendants = this.rightHierarchy.descendants();
+        // checking the overall drawing height
+        console.log("check overall height");
+        var height_needed = 6 * this.leftDescendants.length;
+        if (height_needed > this.height) {
+            console.log("this.height " + this.height);
+            console.log(' this.selector.attr("height"); ' + this.selector.attr("height"));
+            console.log(' this.selector.style("height"); ' + this.selector.style("height"));
+            this.overall_vis
+                .style("height", height_needed)
+                .attr("height", height_needed)
+            ;
+            this.height = height_needed;
+            console.log("this.height " + this.height);
+            console.log(' this.selector.attr("height"); ' + this.selector.attr("height"));
+            console.log(' this.selector.style("height"); ' + this.selector.style("height"));
+        }
+
+        // background
+        this.overall_vis.append("rect")
+         .attr("class", "background")
+         .attr("width", this.svg_w)
+         .attr("height", this.svg_h)
+         .style("fill", "#FFFFFF");
+          //.on("click", fade_all);
         // a two-item array that sets the layout size for d3.layout.cluster
         var d3_layout_bounds = [this.svg_h - this.margin.top - this.margin.bottom,
                                 this.svg_w - this.margin.left - this.margin.right];
@@ -71,8 +98,6 @@ class CoPhylogenyGraph {
                             ;
         this.rightCluster(this.rightHierarchy);
 
-        this.leftDescendants = this.leftHierarchy.descendants(); // d3 "nodes"
-        this.rightDescendants = this.rightHierarchy.descendants();
 
         this.tree1_edges = this.leftHierarchy.links(); // d3 "edges"
         this.tree2_edges = this.rightHierarchy.links();
@@ -382,13 +407,6 @@ class CoPhylogenyGraph {
             .attr("offset", "100%")
             .attr("stop-color", "#F3F3F0")
             .attr("stop-opacity", ".5");
-        // background
-        this.overall_vis.append("rect")
-         .attr("class", "background")
-         .attr("width", this.svg_w)
-         .attr("height", this.svg_h)
-         .style("fill", "url(#gradient)");
-          //.on("click", fade_all);
 
         // since d3.text is asynchronous, handle through async/Promise construct
         readBothNewickURLs(leftTreeURL, rightTreeURL)
