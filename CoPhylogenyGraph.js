@@ -46,6 +46,40 @@ class CoPhylogenyGraph {
     get svg_w() {
         return this.width - this.margin.left - this.margin.right;
     }
+    // from formalized Tanglegram notations in 
+    // 1. Venkatachalam B, Apple J, St. John K, Gusfield D. 
+    // Untangling tanglegrams: Comparing trees by their drawings. 
+    // IEEE/ACM Trans Comput Biol Bioinforma. 2010;7(4):588-597. doi:10.1109/TCBB.2010.57.
+    leaves(i) { // i in {0,1}, let's also allow "left" or "right"
+        var traverse = function(root, callback, arr)
+        {
+            var v = callback(root);
+            if (v != null) { arr.push(v); }
+            if (root.children)
+            {
+                for (var i = root.children.length - 1; i >= 0; i--)
+                {
+                    traverse(root.children[i], callback, arr)
+                };
+            }
+        }
+        var return_name_if_leaf = function(node) {
+            if (! node.hasOwnProperty("children")) {
+                return node.data['name'];
+            }
+            return null;
+        }
+        var leafArray = [];
+        if ((i === 0) || (i === "left")) 
+        {
+            traverse(this.leftHierarchy, return_name_if_leaf, leafArray);
+        }
+        else
+        {
+            traverse(this.rightHierarchy, return_name_if_leaf, leafArray);
+        }
+        return leafArray;
+    }
     //convert_newick_trees_to_d3() {
     create_d3_objects_from_newick() {
         // make these class variables if they need to be accessed later
@@ -220,6 +254,7 @@ class CoPhylogenyGraph {
         }
     }
     getTreeStats(node, data) {
+    // looking to see the node degree distribution
         if (! data.hasOwnProperty('degree')) {
             data['degree'] = [0,0,0,0,0,0];
         }
@@ -406,6 +441,8 @@ class CoPhylogenyGraph {
 
         // draw bridging lines
         this.drawBridgingLines();
+        var leftLeaves = this.leaves(0);
+        console.log(leftLeaves.length);
     } // end renderTrees
 
     render(leftTreeURL, rightTreeURL) {
