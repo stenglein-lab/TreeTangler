@@ -47,7 +47,7 @@ class CoPhylogenyGraph {
         return this.width - this.margin.left - this.margin.right;
     }
     // from formalized Tanglegram notations in 
-    // 1. Venkatachalam B, Apple J, St. John K, Gusfield D. 
+    // Venkatachalam B, Apple J, St. John K, Gusfield D. 
     // Untangling tanglegrams: Comparing trees by their drawings. 
     // IEEE/ACM Trans Comput Biol Bioinforma. 2010;7(4):588-597. doi:10.1109/TCBB.2010.57.
     leaves(i) { // i in {0,1}, let's also allow "left" or "right"
@@ -79,6 +79,18 @@ class CoPhylogenyGraph {
             traverse(this.rightHierarchy, return_name_if_leaf, leafArray);
         }
         return leafArray;
+    }
+    dfoot() {
+        // Implementation of Spearman's footrule distance
+        // Defined as the sum of the distance of ranks of the respective lists of leaves.
+        // No ranking system is predefined, so use the order of the left leaves as the ranks.
+        var leftArray = this.leaves(0);
+        var rightArray = this.leaves(1);
+        var sum = 0;
+        for (var i = 0; i < leftArray.length; i++) {
+            sum += Math.abs(i - leftArray.indexOf( rightArray[i] ));
+        }
+        return sum;
     }
     //convert_newick_trees_to_d3() {
     create_d3_objects_from_newick() {
@@ -442,7 +454,9 @@ class CoPhylogenyGraph {
         // draw bridging lines
         this.drawBridgingLines();
         var leftLeaves = this.leaves(0);
-        console.log(leftLeaves.length);
+        console.log("leftLeaves.length: " + leftLeaves.length);
+        var sfd = this.dfoot();
+        console.log("dfoot: " + sfd);
     } // end renderTrees
 
     render(leftTreeURL, rightTreeURL) {
