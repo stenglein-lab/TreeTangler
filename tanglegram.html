@@ -1,290 +1,106 @@
 <!DOCTYPE html>
 <html lang="en-us">
-<head>
-    <meta charset="utf-8">
-    <!-- boostrap -->
-    <!-- Latest compiled and minified CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+    <head>
+        <title>TangleGram</title>
+        <meta charset="utf-8">
+        <!-- boostrap -->
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
 
-    <!-- Optional theme -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
+        <!-- Optional theme -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
 
-    <!-- boostrap JS and jquery required for that -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+        <!-- boostrap JS and jquery required for that -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
 
-    <!-- Styles for figure graphics -->
-    <link rel="stylesheet" href="./cophylogeny.css">
-    <link rel="stylesheet" href="./map.css">
-    <link rel="stylesheet" href="./plots.css">
+        <!-- Styles for figure graphics -->
+        <link rel="stylesheet" href="./cophylogeny.css">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-</head>
-<style>
-   body,html {
-      height:100%;
-      background-color: #ddd;
-   }
-
-	pre {
-	   font-size: 8pt;
-	}
-    #graph {
-        margin-bottom:30px;
-    }
-    #fileButtonMiddle {
-        margin: auto;
-        display: block;
-    }
-    .btn-pass {
-        background-image: linear-gradient(to bottom, #F0FFFF 0, #F0F9F9 90%, #F3F3F0 100%);
-        border-color: #E2E2E0;
-        color: black;
-    }
-    /*.btn-success {
-        background-image: linear-gradient(to bottom, #FFFFFF 0, #F0F9F9 90%, #F3F3F0 100%);
-        border-color: #E2E2E0;
-        color: black;
-    }*/
-</style>
-<body onload="load()">
-
-<!--<script src="./d3/d3.min.js"></script> -->
-<script src="./d3/d3.v4.min.js"></script> 
-<script src="./newick.js"></script>
-<script src="./SVGUtils.v4.js"></script> 
-<script src="./CoPhylogenyGraph.js"></script>
-<script src="./FileByLines.js"></script>
-<script>
-var leftToRight = undefined; // will this be in scope?
-function processFile(files) {
-    var file = files[0];
-    var reader = new FileReader();
-    reader.readAsText(file);
-    reader.onload = function(evt) {
-        var filetext = evt.target.result;
-        var filer = new FileByLines(filetext);
-        leftToRight = d3.map();
-
-        var lineGenerator = filer.nextLine();
-        var line = lineGenerator.next(); // line has 2 properties: value and done
-        while (!line.done)
-        {
-            //console.dir(line);
-            if (line.value) { // final newline splits to an empty array value
-                var fields = line.value.split(/\s+/);
-                leftToRight.set( fields[0],  fields[1] );
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body,html {
+                height:100%;
+                background-color: #ddd;
             }
-            else {
-                console.log("skipping empty line");
+
+            pre {
+                font-size: 8pt;
             }
-            line = lineGenerator.next();
-        } 
-    };
+            #graph {
+                margin-bottom:30px;
+            }
+            #fileButtonMiddle {
+                margin: auto;
+                display: block;
+            }
+            .btn-pass {
+                background-image: linear-gradient(to bottom, #F0FFFF 0, #F0F9F9 90%, #F3F3F0 100%);
+                border-color: #E2E2E0;
+                color: black;
+            }
+            /*.btn-success {
+            background-image: linear-gradient(to bottom, #FFFFFF 0, #F0F9F9 90%, #F3F3F0 100%);
+            border-color: #E2E2E0;
+            color: black;
+            }*/
+        </style>
+    </head>
+    <body onload="load()">
 
-}
-function load() {
-
-    console.log("load...");
-    // URL blobs needed for newick reader
-    var leftURL = null, 
-        rightURL = null;
-
-    // hook into the html buttons and inputs
-    var fileButtonLeft = document.getElementById("fileButtonLeft"),
-        fileInputLeft = document.getElementById("fileInputLeft");
-    var fileButtonMiddle = document.getElementById("fileButtonMiddle"),
-        fileInputMiddle = document.getElementById("fileInputMiddle");
-    var fileButtonRight = document.getElementById("fileButtonRight"),
-        fileInputRight = document.getElementById("fileInputRight");
-
-    console.log(window.location);
-    var urlparts = window.location.href.split("?");
-    if (urlparts.length > 1) {
-        var query = new URLSearchParams(urlparts[1]);
-        if (query.has("left") && query.has("right")) {
-            leftURL = query.get("left");
-            rightURL= query.get("right");
-            // set buttons as they would be if file uploaded
-            // deactivate left button
-            fileButtonRight.classList.add("btn-pass");
-            fileButtonRight.setAttribute('disabled','disabled');
-            fileButtonRight.innerHTML = rightURL; // name is used in graph code
-            // deactivate middle button
-            fileButtonMiddle.classList.add("btn-pass");
-            fileButtonMiddle.setAttribute('disabled','disabled');
-            // deactivate right button
-            fileButtonLeft.classList.add("btn-pass");
-            fileButtonLeft.setAttribute('disabled','disabled');
-            fileButtonLeft.innerHTML = leftURL; // name is used in graph code
-            render_cophylogeny('#middle_container', 'unnamed', leftURL, rightURL, 700);
-            return;
-        }
-        
-    }
-    fileButtonLeft.addEventListener("click", function (e) {
-      if (fileInputLeft) {
-        fileInputLeft.click();
-      }
-    }, false);
-    fileButtonMiddle.addEventListener("click", function (e) {
-      if (fileInputMiddle) {
-        fileInputMiddle.click();
-      }
-    }, false);
-    fileButtonRight.addEventListener("click", function (e) {
-      if (fileInputRight) {
-        fileInputRight.click();
-      }
-    }, false);
-}
-
-function clear(selector)
-{
-	selector = selector.replace("#",""); // # not necessary for getElementById (only for css/d3)
-	var myNode = document.getElementById(selector);
-	while (myNode.firstChild) {
-	    myNode.removeChild(myNode.firstChild);
-	}
-}
-function getBlobURL(files) {
-    var file = files[0];
-    var fileURL = window.URL.createObjectURL(file);
-    return fileURL;
-    //window.URL.revokeObjectURL(fileURL);
-}
-function setLeftURL(files) {
-    fileButtonLeft.innerHTML = files[0].name;
-    // switch the button to something indicating success
-    fileButtonLeft.classList.remove("btn-default");
-    //fileButtonLeft.classList.add("btn-success");
-    fileButtonLeft.classList.add("btn-pass");
-    fileButtonLeft.setAttribute('disabled','disabled');
-    leftURL = getBlobURL(files);
-    console.log("leftURL:" + leftURL);
-    if (typeof rightURL === 'undefined') { console.log("rightURL is undefined."); }
-    else {
-        callRender();
-    }
-}
-function setRightURL(files) {
-    fileButtonRight.innerHTML = files[0].name;
-    // switch the button to something indicating success
-    fileButtonRight.classList.remove("btn-default");
-    //fileButtonRight.classList.add("btn-success");
-    fileButtonRight.classList.add("btn-pass");
-    fileButtonRight.setAttribute('disabled','disabled');
-    rightURL = getBlobURL(files);
-    console.log("rightURL:" + rightURL);
-    if (typeof leftURL === 'undefined') { console.log("leftURL is undefined."); }
-    else {
-        callRender();
-    }
-}
-
-function callRender() {
-    render_cophylogeny('#middle_container', 'unnamed', leftURL, rightURL, 700);
-}
-
-function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2, height)
-{
-	var container_sel = d3.select(container_id);
-   var w = container_sel.style("width");
-	w = parseInt(w);
-	// var w = 600;
-   var h = height;
-
-   // process newick trees from file upload
-   newick_file_1 = newick_url_1;
-   newick_file_2 = newick_url_2;
-
-   clear(container_id);
-   var cophylogeny_fig = new CoPhylogenyGraph(container_sel, w, h);
-   cophylogeny_fig.tree1_name = fileButtonLeft.innerHTML;
-   console.log("name1 is " + cophylogeny_fig.tree1_name);
-   cophylogeny_fig.tree2_name = fileButtonRight.innerHTML;
-   console.log("name2 is " + cophylogeny_fig.tree2_name);
-   if ('undefined' !== leftToRight)
-    {
-        console.log("leftToRight is defined");
-        console.dir(leftToRight);
-        cophylogeny_fig.bridgeMap = leftToRight;
-    }
-    else {
-        console.log("leftToRight NOT defined");
-    }
-   cophylogeny_fig.render(newick_file_1, newick_file_2, w, h);
-}
-</script>
-<div class="container-fluid">
-
-  <!-- Static navbar -->
-  <nav class="navbar navbar-default" role="navigation">
-    <div class="container-fluid">
-      <div class="navbar-header">
-        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-          <span class="sr-only">Toggle navigation</span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a class="navbar-brand" href="javascript:void(0)">Tanglegram - rename this</a>
-      </div>
-      <div id="navbar" class="navbar-collapse collapse">
-        <ul class="nav navbar-nav">
-          <li class="active"><a href="javascript:void(0)">Home</a></li>
-          <li><a href="./about.html">About</a></li>
-          <li><a href="./help.html">Help</a></li>
-        </ul>
-      </div><!--/.nav-collapse -->
-    </div><!--/.container-fluid -->
-  </nav>
+        <!--<script src="./d3/d3.min.js"></script> -->
+        <script src="./d3/d3.v4.min.js"></script> 
+        <script src="./newick.js"></script>
+        <script src="./SVGUtils.v4.js"></script> 
+        <script src="./CoPhylogenyGraph.js"></script>
+        <script src="./FileByLines.js"></script>
+        <script src="./tanglegram.js"> </script>
+<div class="container-fluid" id="header-top">
+    <div class="row">
+        <div class="col-md-12">
+            <h3>Tree Tangler Web Interface</h3>
+            <br>
+            <br>
+        </div>
+    </div>
 </div>
-<div class="container-fluid">
-   <div class="row">
-      <div class="col-md-12"">
-         <h3>Tree Tangler Web Interface</h3>
-			<br>
-			<br>
-      </div>
-   </div>
-</div>
-<div class="container-fluid">
-   <div class="row">
-      <div class="col-md-2">
-        <input type="file" id="fileInputLeft" accept=".nw, .newick" style="display:none" onchange="setLeftURL(this.files)">
-        <button id="fileButtonLeft" type="button" class="btn btn-default">
-            Left-side tree (newick)
-        </button>
-      </div>
-      <div class="col-md-8">
-        <input type="file" id="fileInputMiddle" style="display:none" onchange="processFile(this.files)">
-        <button id="fileButtonMiddle" type="button" class="btn btn-default" onchange="processFile(this.files)">
-            Upload lookup file (text)
-        </button>
-		</div>
-      <div class="col-md-2">
-        <input type="file" id="fileInputRight" accept=".nw, .newick" style="display:none" onchange="setRightURL(this.files)">
-        <button id="fileButtonRight" type="button" class="btn btn-default">
-            Right-side tree (newick)
-        </button>
-      </div>
+<div class="container-fluid" id="file-buttons">
+    <div class="row">
+        <div class="row">
+            <div class="col-offset-1"> </div>
+            <div class="col-md-10">
+                <div class="col-md-2">
+                    <input type="file" id="fileInputLeft" accept=".nw, .newick" style="display:none" onchange="setLeftURL(this.files)">
+                    <button id="fileButtonLeft" type="button" class="btn btn-default">
+                        Left-side tree (newick)
+                    </button>
+                </div>
+                <div class="col-md-8">
+                    <input type="file" id="fileInputMiddle" style="display:none" onchange="processFile(this.files)">
+                    <button id="fileButtonMiddle" type="button" class="btn btn-default" onchange="processFile(this.files)">
+                        Upload lookup file (text)
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <input type="file" id="fileInputRight" accept=".nw, .newick" style="display:none" onchange="setRightURL(this.files)">
+                    <button id="fileButtonRight" type="button" class="btn btn-default">
+                        Right-side tree (newick)
+                    </button>
+                </div>
+            </div><!--/.col-md-10 -->
+            <div class="col-offset-1"> </div >
+        </div><!--/.row -->
     </div><!--/.row -->
-
-<!-- spacer -->
-<div class="container-fluid">
-<p></p>
 </div>
 
 <!-- empty containers to be populated by various figs -->
 <div id="graph" class="container-fluid">
-   <div class="row">
-      <div class="col-md-1" id="left_container"> </div >
-      <div class="col-md-10" id="middle_container"> </div >
-      <div class="col-md-1" id="right_container"> </div >
-   </div>
-</div>
+    <div class="row">
+        <div class="col-md-1" id="left_container"> </div>
+        <div class="col-md-10" id="middle_container"></div>
+        <div class="col-md-1" id="right_container"> </div>
+    </div><!-- /.row -->
+</div><!-- /.container-fluid -->
 
 </body>
 </html>
