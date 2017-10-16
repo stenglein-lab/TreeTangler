@@ -32,8 +32,16 @@ function processFile(files)
 
 function load()
 {
-
     console.log("load...");
+
+    slider = new Slider('#ex1', {
+        reversed: true
+    });
+    console.log("---------slider-------------");
+    console.dir(slider);
+
+
+
     // URL blobs needed for newick reader
     var leftURL = null,
         rightURL = null;

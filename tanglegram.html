@@ -16,6 +16,7 @@
 
         <!-- Styles for figure graphics -->
         <link rel="stylesheet" href="./cophylogeny.css">
+        <link rel="stylesheet" href="./bootstrap-slider.min.css">
 
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
@@ -48,10 +49,18 @@
             border-color: #E2E2E0;
             color: black;
             }*/
+#ex1Slider {
+    margin: auto;
+    
+}
+#ex1Slider .slider-selection {
+    background: #BABABA;
+}
         </style>
     </head>
     <body onload="load()">
 
+<script src="bootstrap-slider.min.js"></script>
 <script src="./d3/d3.v4.min.js"></script> 
 <script src="./newick.js"></script>
 <script src="./SVGUtils.v4.js"></script> 
@@ -81,7 +90,17 @@
 <!-- empty containers to be populated by various figs -->
 <div id="graph" class="container-fluid">
     <div class="row">
-        <div class="col-md-1" id="left_container"> </div>
+        <div class="col-md-4"> </div>
+        <div class="col-md-4">
+            Reserved for some more controls.
+        </div>
+        <div class="col-md-4"> </div>
+    </div>
+    <div class="row">
+        <div class="col-md-1" id="left_container"> 
+            Vertical scale:<br/>
+            <input id="ex1" data-slider-id='ex1Slider' type="text" data-slider-min="1" data-slider-max="10" data-slider-step="1" data-slider-value="6" data-slider-orientation="vertical"/>
+        </div>
         <div class="col-md-10" id="middle_container"></div>
         <div class="col-md-1" id="right_container"> </div>
     </div><!-- /.row -->
