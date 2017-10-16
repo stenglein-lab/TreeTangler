@@ -92,7 +92,7 @@ class CoPhylogenyGraph {
         }
         return sum;
     }
-    //convert_newick_trees_to_d3() {
+    // called by renderTrees()
     create_d3_objects_from_newick() {
         // make these class variables if they need to be accessed later
         this.leftHierarchy = d3.hierarchy(this.leftTree, function(d) {return d.branchset;}); // "branchset" is the field named by Newick.js
@@ -131,13 +131,13 @@ class CoPhylogenyGraph {
         function cluster_spread_fxn(a,b) {
             return a.parent == b.parent ? 1.5 : 1.8;
         }
-        // setup left d3 object
+        // set up left d3 object
         this.leftCluster = d3.cluster()
                             .size(d3_layout_bounds)
                             .separation(cluster_spread_fxn)
                             ;
         this.leftCluster(this.leftHierarchy);
-        // setup right d3 object
+        // set up right d3 object
         this.rightCluster = d3.cluster()
                             .size(d3_layout_bounds)
                             .separation(cluster_spread_fxn)
@@ -147,8 +147,8 @@ class CoPhylogenyGraph {
 
         this.tree1_edges = this.leftHierarchy.links(); // d3 "edges"
         this.tree2_edges = this.rightHierarchy.links();
-
     }
+
     drawBridgingLines() {
         var cophy_obj = this;
         cophy_obj.leftDescendants.forEach(function (leftNode)
@@ -292,7 +292,9 @@ class CoPhylogenyGraph {
             }
         }
     }
-    renderTrees(leftTree, rightTree, rescale = true, redraw = true) {
+    // renderTrees() called by Render() in async callback of readBothNewickURLs, 
+    // or in any function that makes a change to the data and must trigger a redraw.
+    renderTrees(leftTree, rightTree, rescale = true, redraw = true) { 
         // json format binary trees, processed from newick style text files by Newick.js.
         this.leftTree = leftTree;
         this.rightTree = rightTree;
@@ -323,6 +325,7 @@ class CoPhylogenyGraph {
 
         // this repositions nodes based on actual branch lengths
         if (rescale) {
+            // actually the scale is on x
             var yscale = SVGUtils.scaleBranchLengths(this.leftDescendants, this.svg_w - this.margin.left - this.margin.right, false);
             var yscale = SVGUtils.scaleBranchLengths(this.rightDescendants, this.svg_w - this.margin.left - this.margin.right, true);
         }
@@ -459,6 +462,7 @@ class CoPhylogenyGraph {
         console.log("dfoot: " + sfd);
     } // end renderTrees
 
+    // render(): called externally in tanglegram.js by render_cophylogeny(container,segment_id,newick_url_1,newick_url_2,height)
     render(leftTreeURL, rightTreeURL) {
         // create an SVG canvas area
         this.overall_vis = this.selector.append("svg")
