@@ -37,8 +37,10 @@ function load()
     slider = new Slider('#ex1', {
         reversed: true
     });
-    console.log("---------slider-------------");
-    console.dir(slider);
+
+    slider.on("slide", function(sliderValue) {
+        document.getElementById("currentVertScaleLabel").textContent = sliderValue;
+    });
 
 
 
