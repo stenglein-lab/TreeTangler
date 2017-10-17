@@ -38,7 +38,8 @@ function load()
         reversed: true
     });
 
-    slider.on("slide", function(sliderValue) {
+    slider.on("change", function(evt) {
+        var sliderValue = evt.newValue;
         document.getElementById("currentVertScaleLabel").textContent = sliderValue;
     });
 
@@ -197,4 +198,16 @@ function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2
         console.log("leftToRight NOT defined");
     }
     cophylogeny_fig.render(newick_file_1, newick_file_2, w, h);
+    cophylogeny_fig.addEventListener("draw", function() {
+        document.getElementById("sdfootSpan").textContent = cophylogeny_fig.currentDFoot;
+    });
+
+    slider.on("change", function(evt) {
+        var sliderValue = evt.newValue;
+        if (! isNaN(sliderValue)) {
+            cophylogeny_fig.yScaleFactor = sliderValue;
+            cophylogeny_fig.redraw();
+        }
+    });
+    
 }

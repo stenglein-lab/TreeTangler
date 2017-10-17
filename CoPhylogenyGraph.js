@@ -12,6 +12,7 @@
  */
 class CoPhylogenyGraph {
     constructor(selector, width, height) {
+        this.eventListeners = {};
         this.selector = selector; // canvas element in the DOM where drawing will take place
         console.dir(selector);
         this.width = width || selector.style('width') || selector.attr('width');
@@ -19,6 +20,7 @@ class CoPhylogenyGraph {
 
         // margins for SVG drawing area
         this.margin = { top: 20, right: 20, bottom: 20, left: 20 };
+        this.yScaleFactor = 6;
 
         /* initialize some member variables ********/
         this.bridgeMap = undefined;
@@ -39,6 +41,7 @@ class CoPhylogenyGraph {
         this.leftDescendants = null; // d3 leftHierarchy.descendants() acts as "nodes"
         this.rightDescendants = null;
         /*******************************************/
+        this.currentDFoot = 0;
     }
     get svg_h() {
         return this.height - this.margin.top - this.margin.bottom;
@@ -101,9 +104,9 @@ class CoPhylogenyGraph {
         this.leftDescendants = this.leftHierarchy.descendants(); // d3 "nodes"
         this.rightDescendants = this.rightHierarchy.descendants();
         // checking the overall drawing height
-        console.log("check overall height");
-        var height_needed = 6 * this.leftDescendants.length;
-        if (height_needed > this.height) {
+        console.log("check overall height:");
+        var height_needed = this.yScaleFactor * this.leftDescendants.length;
+        if (height_needed != this.height) {
             console.log("this.height " + this.height);
             console.log(' this.selector.attr("height"); ' + this.selector.attr("height"));
             console.log(' this.selector.style("height"); ' + this.selector.style("height"));
@@ -459,11 +462,28 @@ class CoPhylogenyGraph {
 
         // draw bridging lines
         this.drawBridgingLines();
-        var leftLeaves = this.leaves(0);
-        console.log("leftLeaves.length: " + leftLeaves.length);
-        var sfd = this.dfoot();
-        console.log("dfoot: " + sfd);
+        this.currentDFoot = this.dfoot();
+        var draw_event = new Event('draw');
+        this.dispatchEvent(draw_event);
     } // end renderTrees
+
+    addEventListener(evt_str, f) {
+        if (! this.eventListeners.hasOwnProperty(evt_str)) {
+            this.eventListeners[evt_str] = Array();
+        }
+        this.eventListeners[evt_str].push(f);
+    }
+    dispatchEvent(evt) {
+        if (this.eventListeners.hasOwnProperty(evt.type)) {
+            this.eventListeners[evt.type].forEach(
+                function(handler) {
+                    handler(evt);
+                }
+            );
+        }
+    }
+    // needs "removeEventListener"
+    
 
     // render(): called externally in tanglegram.js by render_cophylogeny(container,segment_id,newick_url_1,newick_url_2,height)
     render(leftTreeURL, rightTreeURL) {
