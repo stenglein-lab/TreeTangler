@@ -482,9 +482,15 @@ class CoPhylogenyGraph {
             );
         }
     }
-    // needs "removeEventListener"
+    removeEventListener(type, func) {
+        if (this.eventListeners.hasOwnProperty(evt.type)) {
+            var ix = this.eventListeners[evt.type].indexOf(func);
+            if (ix > -1)  {
+               this.eventListeners[evt.type].splice(ix,1);
+            }
+        }
+    }
     
-
     // render(): called externally in tanglegram.js by render_cophylogeny(container,segment_id,newick_url_1,newick_url_2,height)
     render(leftTreeURL, rightTreeURL) {
         // create an SVG canvas area
