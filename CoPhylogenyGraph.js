@@ -292,6 +292,9 @@ class CoPhylogenyGraph {
             }
         }
     }
+    redraw() { 
+        this.renderTrees(this.leftTree, this.rightTree, true, true);
+    }
     // renderTrees() called by Render() in async callback of readBothNewickURLs, 
     // or in any function that makes a change to the data and must trigger a redraw.
     renderTrees(leftTree, rightTree, rescale = true, redraw = true) { 
@@ -663,7 +666,8 @@ class CoPhylogenyGraph {
             else { // right
                 cophy_obj.swap_children(cophy_obj.rightTree, n.data.unique_id);
             }
-            cophy_obj.renderTrees(cophy_obj.leftTree, cophy_obj.rightTree, true, true);
+            cophy_obj.redraw();
+            //cophy_obj.renderTrees(cophy_obj.leftTree, cophy_obj.rightTree, true, true);
             //cophy_obj.highlight_by_id(node_id);
             //cophy_obj.transmit_new_highlighting();
         }
