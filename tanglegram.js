@@ -57,11 +57,15 @@ function load()
     var fileButtonRight = document.getElementById("fileButtonRight"),
         fileInputRight = document.getElementById("fileInputRight");
 
-    console.log(window.location);
+    var user_args = {};
     var urlparts = window.location.href.split("?");
     if (urlparts.length > 1)
     {
         var query = new URLSearchParams(urlparts[1]);
+        console.dir(urlparts);
+        if (query.has("shuffle")) {
+            user_args['shuffle'] = query.get("shuffle");
+        }
         if (query.has("left") && query.has("right"))
         {
             leftURL = query.get("left");
@@ -78,7 +82,7 @@ function load()
             fileButtonLeft.classList.add("btn-pass");
             fileButtonLeft.setAttribute('disabled', 'disabled');
             fileButtonLeft.innerHTML = leftURL; // name is used in graph code
-            render_cophylogeny('#middle_container', 'unnamed', leftURL, rightURL, 700);
+            render_cophylogeny('#middle_container', 'unnamed', leftURL, rightURL, 700, user_args);
             return;
         }
 
@@ -169,7 +173,7 @@ function callRender()
     render_cophylogeny('#middle_container', 'unnamed', leftURL, rightURL, 700);
 }
 
-function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2, height)
+function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2, height, userArgs = {})
 {
     var container_sel = d3.select(container_id);
     var w = container_sel.style("width");
@@ -182,7 +186,7 @@ function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2
     newick_file_2 = newick_url_2;
 
     clear(container_id);
-    var cophylogeny_fig = new CoPhylogenyGraph(container_sel, w, h);
+    var cophylogeny_fig = new CoPhylogenyGraph(container_sel, w, h, userArgs);
     cophylogeny_fig.tree1_name = fileButtonLeft.innerHTML;
     console.log("name1 is " + cophylogeny_fig.tree1_name);
     cophylogeny_fig.tree2_name = fileButtonRight.innerHTML;

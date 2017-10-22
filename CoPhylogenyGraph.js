@@ -11,12 +11,14 @@
  * Connecting lines are drawn between the leaves of both trees.
  */
 class CoPhylogenyGraph {
-    constructor(selector, width, height) {
+    constructor(selector, width, height, userArgs = {}) {
+        console.log("user args:");
+        console.dir(userArgs);
         this.eventListeners = {};
         this.selector = selector; // canvas element in the DOM where drawing will take place
-        console.dir(selector);
         this.width = width || selector.style('width') || selector.attr('width');
         this.height = height || selector.style('height') || selector.attr('height');
+        this.userArgs = userArgs;
 
         // margins for SVG drawing area
         this.margin = { top: 20, right: 20, bottom: 20, left: 20 };
@@ -311,7 +313,30 @@ class CoPhylogenyGraph {
             console.dir(leftTreeStats);
             this.addUniqueNodeIds(this.leftTree, true);
             this.addUniqueNodeIds(this.rightTree, false);
-            console.dir(this.leftTree);
+
+            // shuffle
+            if (this.userArgs.shuffle) {
+                // left
+                switch(this.userArgs.shuffle) {
+                    case 'l':
+                    case 'left':
+                    case 'b':
+                    case 'both':
+                        this.randomize_nodes(this.leftTree);
+                        break;
+                }
+                // right
+                switch(this.userArgs.shuffle) {
+                    case 'r':
+                    case 'right':
+                    case 'b':
+                    case 'both':
+                        this.randomize_nodes(this.rightTree);
+                        break;
+                }
+                // do not reshuffle on subsequent redraws
+                delete this.userArgs.shuffle;
+            }
         }
 
         if (redraw) {
@@ -358,14 +383,6 @@ class CoPhylogenyGraph {
         .style("text-anchor", "end")
         .style("alignment-baseline", "baseline")
         .text(this.tree2_name);
-
-        /* // shared properties of both labels
-        for (let label of [left_label, right_label]) {
-            label.style("font-family", "Optima")
-                .style("font-size","larger")
-                .style("font-weight","bold")
-                .style("font-style","oblique");
-        }*/
 
         // a fxn to create right angled edges connecting nodes
         var diagonal = SVGUtils.rightAngleDiagonal();
@@ -626,8 +643,8 @@ class CoPhylogenyGraph {
       return array;
     }
     randomize_nodes(json) {
-        if (json.hasOwnProperty('branchset')) {
-            json['branchset'] = shuffle(json['branchset']);
+        if (json.branchset) {
+            json['branchset'] = this.shuffle(json['branchset']);
             for (var branch in json["branchset"]) {
                 this.randomize_nodes(json['branchset'][branch]);
             }
