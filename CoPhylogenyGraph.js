@@ -27,7 +27,7 @@ class CoPhylogenyGraph {
         /* initialize some member variables ********/
         this.bridgeMap = undefined;
         // native tree objects are json objects parsed by Newick.js
-        this.leftTree = null; // or should these be "undefined"
+        this.leftTree = null; // these are set by renderTrees(nw1,nw2), after the read-in code completes (synchronized by render, readBothNewickURLs)
         this.rightTree = null;
         // varables act as globals during the node naming, unique for left and right trees
         this.leftTreeId = 0;
