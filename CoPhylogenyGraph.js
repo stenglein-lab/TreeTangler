@@ -12,13 +12,13 @@
  */
 class CoPhylogenyGraph {
     constructor(selector, width, height, userArgs = {}) {
-        console.log("user args:");
-        console.dir(userArgs);
         this.eventListeners = {};
         this.selector = selector; // canvas element in the DOM where drawing will take place
         this.width = width || selector.style('width') || selector.attr('width');
         this.height = height || selector.style('height') || selector.attr('height');
         this.userArgs = userArgs;
+        this.leftNodeLookup = {};
+        this.rightNodeLookup = {};
 
         // margins for SVG drawing area
         this.margin = { top: 20, right: 20, bottom: 20, left: 20 };
@@ -251,13 +251,13 @@ class CoPhylogenyGraph {
         if (! node.hasOwnProperty('unique_id')) {
             if (isLeft) {
                 node['unique_id'] = "node_id_" + this.leftTreeId;
+                this.leftNodeLookup[ node['unique_id'] ] = node; 
                 this.leftTreeId++;
-                //console.log('adding left tree unique_id: ' + node['unique_id']);
             }
             else {
                 node['unique_id'] = "node_id_" + this.rightTreeId;
+                this.rightNodeLookup[ node['unique_id'] ] = node; 
                 this.rightTreeId++;
-                //console.log('adding right tree unique_id: ' + node['unique_id']);
             }
         }
         for (var key in node) {
@@ -303,7 +303,7 @@ class CoPhylogenyGraph {
     // renderTrees() called by Render() in async callback of readBothNewickURLs, 
     // or in any function that makes a change to the data and must trigger a redraw.
     renderTrees(leftTree, rightTree, rescale = true, redraw = true) { 
-        // json format binary trees, processed from newick style text files by Newick.js.
+        // json format trees, processed from newick style text files by Newick.js.
         this.leftTree = leftTree;
         this.rightTree = rightTree;
         if (redraw) {
@@ -543,6 +543,8 @@ class CoPhylogenyGraph {
         readBothNewickURLs(leftTreeURL, rightTreeURL)
             .then(v => {
                 console.dir(v);
+                this.make_binary(v.nw1);
+                this.make_binary(v.nw2);
                 this.renderTrees(v.nw1, v.nw2);
                 /////////// tree data synchronized: render trees ////////////////////
                 // flow control now defaults back to this point if there is an error
@@ -622,6 +624,25 @@ class CoPhylogenyGraph {
             }
         });
     }
+    make_binary(node) {
+        if (node.branchset) { 
+            var n = node.branchset.length;
+            if (n > 2) {
+                var i = n/2;
+                var leftArray = node.branchset.slice(0,i);
+                var rightArray = node.branchset.slice(i);
+
+                var node_left = leftArray.length == 1 ?  leftArray[0] : this.create_node(node.name + "_left", leftArray, 0);
+                var node_right = rightArray.length == 1 ?  rightArray[0] : this.create_node(node.name + "_right", rightArray, 0);
+                node.branchset = [node_left, node_right];
+            }
+            this.make_binary(node.branchset[0]);
+            this.make_binary(node.branchset[1]);
+        }
+    }
+    create_node(arg_name, arg_children, arg_length){
+        return { name: arg_name, branchset: arg_children, length: arg_length };
+    }
 
     /* from StackOverflow, apparently based on Fisher-Yates shuffle  */
     shuffle(array) {
@@ -652,42 +673,26 @@ class CoPhylogenyGraph {
     }
     // uses the "unique_id field as the target"
     swap_children(json, target) {
-        console.log("json:" + json);
-
-        if (json.hasOwnProperty('unique_id')) {
-            console.log("json:" + json['unique_id'] + " ?= " + target);
+        var node, children;
+        if (json == this.leftTree) {
+            console.log("left json[" + this.leftNodeLookup.hasOwnProperty(target) + "]:" + json);
+            node = this.rightNodeLookup[target];
+            children = node['branchset'];
         }
-        if (json.hasOwnProperty('unique_id') && json['unique_id'] == target) {
-            console.log("found target");
-            if (json.hasOwnProperty('branchset')) {
-                var children = json['branchset'];
-                // reflect array order in-place
-                var n = children.length;
-                for (var i = 0; i < n/2; i++) {
-                    var j = n - i - 1;
-                    var tmp = children[i];
-                    children[i] = children[j];
-                    children[j] = tmp;
-                }
-                json['branchset'] = children;
-                return 1;
-            }
-            else {
-                console.log("error - target is a leaf node");
-                return 0;
-            }
+        else {
+            console.log("right json[" + this.rightNodeLookup.hasOwnProperty(target) + "]:" + json);
+            node = this.rightNodeLookup[target];
+            children = node['branchset'];
         }
-        if (json.hasOwnProperty('branchset')) {
-            // continue searching
-            var retval = 0;
-            for (var branch in json["branchset"]) {
-                if(this.swap_children(json["branchset"][branch], target)) {
-                    return 1;
-                }
-            }
-            return retval;
+        var n = children.length;
+        for (var i = 0; i < n/2; i++) {
+            var j = n - i - 1;
+            var tmp = children[i];
+            children[i] = children[j];
+            children[j] = tmp;
         }
-        return 0;
+        node['branchset'] = children;
+        return 1;
     }
     // this function will pass user click
     // to function
