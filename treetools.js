@@ -47,6 +47,16 @@
         }
         else { console.log(indent + depth + ":" + node.name + " " + " 0 children");}
     };
+    exports.dfoot = function(nodelist, standard) {
+        // Implementation of Spearman's footrule distance
+        // Defined as the sum of the distance of ranks of the respective lists of leaves.
+        // No ranking system is predefined, so use the order of the left leaves as the ranks.
+        var sum = 0;
+        for (var i = 0; i < nodelist.length; i++) {
+            sum += Math.abs(i - nodelist.indexOf( standard[i] ));
+        }
+        return sum;
+    };
 })(
     // exports will be set in any commonjs platform; use it if it's available
     typeof exports !== "undefined" ?
