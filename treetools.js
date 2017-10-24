@@ -33,6 +33,14 @@
             }
         }
     };
+    exports.visitPostOrder = function(root, callback, depth=0, data={}) {
+        if (root.branchset) {
+            for (var i = 0; i < root.branchset.length; i++) {
+                exports.visitPreOrder(root.branchset[i], callback, depth+1,data);
+            }
+        }
+        if (root) { callback(root, depth, data); }
+    };
     exports.leaves = function(tree) {
         var add_name_if_leaf = function(node, depth, data) {
             if (! node.branchset) {
@@ -72,6 +80,8 @@
             console.log(indent + depth + ":" + node.name + " " + node.branchset.length + " children");
         }
         else { console.log(indent + depth + ":" + node.name + " " + " 0 children");}
+    };
+    exports.detangler = function(root, standard) {
     };
     exports.dfoot = function(nodelist, standard) {
         // Implementation of Spearman's footrule distance
