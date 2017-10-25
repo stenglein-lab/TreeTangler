@@ -71,6 +71,14 @@
             exports.make_binary(node.branchset[1]);
         }
     };
+    exports.swap_children = function(node) {
+        // requires binary
+        if (node.branchset) {
+            var right = node.branchset[1];
+            var left = node.branchset[0];
+            node.branchset = [right, left];
+        }
+    }
     exports.print_node_traversal = function(node, depth) {
         var indent = '';
         for (var i = 0; i < depth; i++) {

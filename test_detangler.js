@@ -20,6 +20,27 @@ var main = function(data1, data2) {
     // keeping the configuration that has a lower dfoot.
     // The algorithm necessarily modifies the tree in-place, so
     // a copy might be a good idea.
+    var data = {root: t2, l1: l1}; // needed to call leaves, dfoot
+    var detangle = function(node, depth, data) {
+        var indent = "";
+        for (var i = 0; i < depth; i++) { indent += "   "; }
+        if (node.branchset) {
+            var dfoot_pre = treetools.dfoot(treetools.leaves(data.root), data.l1);
+            treetools.swap_children(node);
+            var dfoot_post = treetools.dfoot(treetools.leaves(data.root), data.l1);
+            console.log(indent + dfoot_pre +" vs " + dfoot_post);
+            if (dfoot_pre < dfoot_post) {
+                console.log(indent + "keep swap");
+                treetools.swap_children(node);
+            }
+            else {
+                console.log(indent + "reject swap");
+            }
+        }
+    }
+
+    treetools.visitPostOrder(t2, detangle, 0, data);
+    
 }
 
 // process trees from command line
