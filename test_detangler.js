@@ -6,6 +6,8 @@ var treetools = require('./treetools.js');
 var main = function(data1, data2) {
     var t1 = newick.parse(data1);
     var t2 = newick.parse(data2);
+    treetools.make_binary(t1);
+    treetools.make_binary(t2);
     var l1 = treetools.leaves(t1);
     console.log("Tree 1 has " + l1.length + " leaves.");
     var l2 = treetools.leaves(t2);
@@ -30,17 +32,25 @@ var main = function(data1, data2) {
             var dfoot_post = treetools.dfoot(treetools.leaves(data.root), data.l1);
             console.log(indent + dfoot_pre +" vs " + dfoot_post);
             if (dfoot_pre < dfoot_post) {
-                console.log(indent + "keep swap");
+                console.log(indent + "reject swap");
                 treetools.swap_children(node);
             }
             else {
-                console.log(indent + "reject swap");
+                console.log(indent + "keep swap");
             }
         }
     }
 
     treetools.visitPostOrder(t2, detangle, 0, data);
     
+    console.log("Tree 1 has " + l1.length + " leaves.");
+    var l2 = treetools.leaves(t2);
+    console.log("Tree 2 has " + l2.length + " leaves.");
+
+    var dfoot = treetools.dfoot(l2,l1);
+    console.log("Ending distance between L1 and L2 = " + dfoot);
+
+    console.log(treetools.writeNewick(t2));
 }
 
 // process trees from command line
