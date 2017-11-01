@@ -676,7 +676,7 @@ class CoPhylogenyGraph {
         var node, children;
         if (json == this.leftTree) {
             console.log("left json[" + this.leftNodeLookup.hasOwnProperty(target) + "]:" + json);
-            node = this.rightNodeLookup[target];
+            node = this.leftNodeLookup[target];
             children = node['branchset'];
         }
         else {
