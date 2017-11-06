@@ -36,6 +36,9 @@ class CoPhylogenyGraph {
         // d3 hierarchies are trees
         this.leftHierarchy = null;  // d3 hierarchy is the "tree", but the cluster object below must be called on
         this.rightHierarchy = null; // it in order to have it work.
+        // d3-hierarchy.links are edges
+        this.tree1_edges = null; // d3 leftHierarchy.links() acts as "edges"
+        this.tree2_edges = null; 
         // d3.cluster() used to be defined in d3.layout.cluster()
         this.leftCluster = null;    // the cluster object is created with layout parameters, and is
         this.rightCluster = null;   // then called directly, e.g. leftCluster(hierarchy), without a return value
@@ -760,7 +763,6 @@ class CoPhylogenyGraph {
     }
 }
 
-*/
 /*
  * Utilities for reading and parsing URLs that point to newick files, asynchronously
  */
