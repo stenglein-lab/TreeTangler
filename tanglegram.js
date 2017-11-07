@@ -70,6 +70,8 @@ function load()
         {
             leftURL = query.get("left");
             rightURL = query.get("right");
+            // add input files to the title bar
+            document.title += " " + leftURL + " vs " + rightURL;
             // set buttons as they would be if file uploaded
             // deactivate left button
             fileButtonRight.classList.add("btn-pass");
