@@ -110,7 +110,7 @@ class CoPhylogenyGraph {
         this.rightDescendants = this.rightHierarchy.descendants();
         // checking the overall drawing height
         console.log("check overall height:");
-        var height_needed = this.yScaleFactor * this.leftDescendants.length;
+        var height_needed = Math.max(200, this.yScaleFactor * this.leftDescendants.length);
         if (height_needed != this.height) {
             console.log("this.height " + this.height);
             console.log(' this.selector.attr("height"); ' + this.selector.attr("height"));
