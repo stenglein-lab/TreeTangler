@@ -4,6 +4,13 @@
  * See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes
  */
 
+/* 
+ * Required in the <script> tags that load this file:
+ *  d3.v4.js - d3 version 4
+ *  newick.js - for parsing newick file trees.
+ *  SVGUtils.v3.js - for SVG drawing utilities
+ *  
+ */
 
 /* CoPhylogenyGraph
  * Methods and data for creating an SVG drawing
