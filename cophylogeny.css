@@ -34,6 +34,10 @@
 	fill: none;
 	stroke-width: 0.75px;
 }
+.highlight {
+    fill: pink;
+    stroke-width:5px;
+}
 
 .bridge-highlighted {
 	fill: none;

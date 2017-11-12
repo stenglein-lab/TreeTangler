@@ -12,6 +12,26 @@
  *  
  */
 
+/* Extension to d3.hierarchy
+ * Need a serial accessor that only returns one level at a time in order to build a truly hierarchical SVG.
+ */
+d3.hierarchy.prototype.eachChild = function(callback) {
+    var node = this;
+    if (node.children) {
+        for (var i = 0; i < node.children.length; i++) {
+            callback(node.children[i]);
+        }
+    }
+    return this;
+}
+d3.hierarchy.prototype.childLinks = function() { // non-recursive generator for one level of links
+    var root = this, links = [];
+    root.eachChild(function(node) {
+        links.push({source: root, target: node});
+    });
+    return links;
+}
+
 /* CoPhylogenyGraph
  * Methods and data for creating an SVG drawing
  * of a pair of phylogenetic trees that have the same leaf nodes, but different topologies.
@@ -161,6 +181,7 @@ class CoPhylogenyGraph {
 
 
         this.tree1_edges = this.leftHierarchy.links(); // d3 "edges"
+        console.dir(this.tree1_edges);
         this.tree2_edges = this.rightHierarchy.links();
     }
 
@@ -396,13 +417,82 @@ class CoPhylogenyGraph {
 
         // a fxn to create right angled edges connecting nodes
         var diagonal = SVGUtils.rightAngleDiagonal();
+        var cophy_obj = this;
+        var drawHierarchy = function(node, parentSelector, depth=0) {
+            var gId = "group_" + node.data.unique_id;
+            var isLeaf = !node.children;
+            var isRoot = depth == 0;
+            var isInner = (!isRoot) && (!isLeaf);
+            var g = parentSelector
+                .append("g")
+                .attr("id", gId); // create the encompassing group
+
+            var selector_str = "#" + gId;
+            var selector = g;
+            console.log("drawHierarchy: " + selector_str);
+            console.dir(node.childLinks());
+            g.selectAll(selector_str) // refer to the "g" element containing this level
+                .data( node.childLinks() ) // only the nuclear family
+                .enter()
+                .append("path")
+                .attr("class", "link")
+                .attr("d", diagonal)
+                ;
+            g.selectAll(selector_str) // refer to the "g" element containing this level
+                .data([node])
+                .enter()
+                .append("svg:circle")
+                .attr("r", isInner ? 3 : 1.5)
+                .attr('stroke', "none")
+                .attr('fill', isRoot ? 'black' : (isLeaf?'red':'orange'))
+                .attr('transform', function(d)
+                 {
+                   return "translate(" + d.y + "," + d.x + ")";
+                 })
+                .classed("node", true)
+                .classed("inner", isInner)
+                .classed("leaf", isLeaf)
+                .classed("root", isRoot)
+                .attr("pointer-events", "all") // enable mouse events to be detected even if no fill
+                .on("click", cophy_obj.highlight_from_node(true)) // isLeft = true
+                ;
+            g.selectAll(selector_str)
+                .data([node])
+                .enter()
+                .append("text")
+                .attr("dx", 8)
+                .attr("dy", 3)
+                .attr('transform', function(d)
+                 {
+                   return "translate(" + d.y + "," + d.x + ")";
+                 })
+                .style("text-anchor", "start")
+                // .style("cursor", "default") // make it not be a text cursor
+                // .attr("pointer-events", "all")
+                .text(function (d)
+                {
+                    return snakeNameFormat(d.data.name);
+                    //return d.name;
+                })
+                .on("click", cophy_obj.highlight_from_node(true));
+
+            if (node.children) {
+                console.log("About to draw..." + node.children);
+                for (var i = 0; i < node.children.length; i++) {
+                    drawHierarchy(node.children[i], selector, depth+1);
+                }
+            }
+                
+        }
+        var root = this.leftHierarchy;
+        drawHierarchy(root, this.tree1_g);
 
         // actually create paths between nodes
-        this.tree1_g.selectAll(".link")
+        /*this.tree1_g.selectAll(".link")
             .data(tree1_edges)
             .enter().append("path")
             .attr("class", "link")
-            .attr("d", diagonal);
+            .attr("d", diagonal);*/
 
         // actually create paths between nodes
         this.tree2_g.selectAll(".link")
@@ -450,7 +540,7 @@ class CoPhylogenyGraph {
                 return "translate(" + d.y + "," + d.x + ")";
             })
 
-        this.styleTreeNodes(this.tree1_g, true); // I think this repeats what is done below
+        //this.styleTreeNodes(this.tree1_g, true); // I think this repeats what is done below
         this.styleTreeNodes(this.tree2_g, false);
 
         // add labels to nodes
@@ -458,7 +548,7 @@ class CoPhylogenyGraph {
             return snakeName.replace(/'/g, "").replace("snake", "").replace(/[SL]/, "").replace("_", "-");
 
         }
-        this.tree1_g.selectAll('g.leaf.node')
+        /*this.tree1_g.selectAll('g.leaf.node')
             .append("text")
             .attr("dx", 8)
             .attr("dy", 3)
@@ -471,6 +561,7 @@ class CoPhylogenyGraph {
                 //return d.name;
             })
             .on("click", this.highlight_from_node(true));
+        */
 
         // add labels to nodes
         this.tree2_g.selectAll('g.leaf.node')
@@ -709,20 +800,25 @@ class CoPhylogenyGraph {
     highlight_from_node(isLeft=true)
     {
         var cophy_obj = this;
-        return function (n)
+        return function (d3obj) // I don't know how d3obj is being specified during the click event.
+                                // It is occassionally (and unpredictably) assigned the wrong member in the d3 node.children
+                                // of the recursively drawn tree.
         {
-            console.log("Cophy_obj: " + cophy_obj);
+            console.log("whatis this: ");
+            console.dir(this);
+            console.log("d3.select(this)");
+            console.dir(d3.select(this));
             var node = d3.select(this).datum();
             var node_id = node.name;
-            console.log("node_id: " + node_id);
-            console.dir(n);
-            console.log("unique_id: " + n.data.unique_id);
+            console.log("console.dir(n)");
+            console.dir(d3obj);
+            console.log("unique_id: " + d3obj.data.unique_id);
             console.log("isLeft:" + isLeft);
             if (isLeft) {
-                cophy_obj.swap_children(cophy_obj.leftTree, n.data.unique_id);
+                cophy_obj.swap_children(cophy_obj.leftTree, d3obj.data.unique_id);
             }
             else { // right
-                cophy_obj.swap_children(cophy_obj.rightTree, n.data.unique_id);
+                cophy_obj.swap_children(cophy_obj.rightTree, d3obj.data.unique_id);
             }
             cophy_obj.redraw();
             //cophy_obj.renderTrees(cophy_obj.leftTree, cophy_obj.rightTree, true, true);
@@ -742,7 +838,7 @@ class CoPhylogenyGraph {
          .append("svg:circle")
          .attr("r", 1.5)
          .attr('stroke', "none")
-         .attr('fill', 'none')
+         .attr('fill', 'red')
          .attr("pointer-events", "all") // enable mouse events to be detected even though no fill
          .on("click", this.highlight_from_node(isLeft));
 
@@ -750,7 +846,7 @@ class CoPhylogenyGraph {
          .append("svg:circle")
          .attr("r", 3)
          .attr('stroke', "none")
-         .attr('fill', 'none')
+         .attr('fill', 'orange')
          .attr("pointer-events", "all") // enable mouse events to be detected even though no fill
          .on("click", this.highlight_from_node(isLeft))
         ;
