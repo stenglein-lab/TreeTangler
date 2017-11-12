@@ -55,6 +55,30 @@
     exports.create_node = function(arg_name, arg_children, arg_length){
         return { name: arg_name, branchset: arg_children, length: arg_length };
     }
+    exports.create_leaf = function(arg_name, arg_length) {
+        return { name: arg_name, length: arg_length };
+    }
+    exports.longest_path = function(subtree, path_str="", length=0) {
+        var running_str = path_str + "." + subtree.name;
+        var running_length = length + subtree.length;
+        if (subtree.branchset) {
+            var values = [];
+            var max_i = 0;
+            for (var i = 0; i < subtree.branchset.length; i++) {
+                var v = exports.longest_path( subtree.branchset[i], running_str, running_length );
+                values.push(v);
+                if (v[1] > values[max_i][1]) {
+                    max_i = i; 
+                }
+            }
+            // max of all children
+            console.log(max_i);
+            console.log(values);
+            running_str = values[max_i][0];
+            running_length = values[max_i][1];
+        }
+        return [running_str,running_length];
+    }
     exports.make_binary = function(node) {
         if (node.branchset) { 
             var n = node.branchset.length;
@@ -89,6 +113,16 @@
         }
         else { console.log(indent + depth + ":" + node.name + " " + " 0 children");}
     };
+    exports.print_ascii_cladogram = function(node, depth=0) {
+        var indent = "";
+        for (var i = 0; i < depth; i++) { indent += "  "; }
+        console.log(indent + "+-" + node.name + ":" + node.length);
+        if (node.branchset) {
+            for (var i = 0; i < node.branchset.length; i++) {
+                exports.print_ascii_cladogram(node.branchset[i], depth+1);
+            }
+        }
+    }
     exports.detangler = function(root, standard) {
     };
     exports.dfoot = function(nodelist, standard) {
