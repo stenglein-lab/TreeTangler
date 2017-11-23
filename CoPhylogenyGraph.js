@@ -494,7 +494,8 @@ class CoPhylogenyGraph {
                     }) // isLeft = true
                 .on("mouseover", function(d3obj, i) {
                     console.log("mouseover " + i + " :" + node.data.unique_id);
-                    var slctn = "#circle_" + node.data.unique_id;
+                    //var slctn = "#circle_" + node.data.unique_id;
+                    var slctn = "#group_" + node.data.unique_id;
                     var obj = d3.selectAll(slctn);
                     obj.classed("highlighted", true);
                     console.log(slctn + ": " + obj.size());
@@ -502,7 +503,7 @@ class CoPhylogenyGraph {
                     //console.dir(obj);
                 })
                 .on("mouseout", function(d3obj) {
-                    var slctn = "#circle_" + node.data.unique_id;
+                    var slctn = "#group_" + node.data.unique_id;
                     var obj = d3.selectAll(slctn);
                     obj.classed("highlighted", false);
                 })

@@ -12,7 +12,14 @@
 }
 
 .highlighted {
-    fill: cyan;
+    fill: yellow;
+}
+g.highlighted > circle {
+    r: 5;
+    fill: yellow;
+}
+g.highlighted path {
+    stroke-width:2px;
 }
 
 
