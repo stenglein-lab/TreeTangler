@@ -418,7 +418,26 @@ class CoPhylogenyGraph {
         // a fxn to create right angled edges connecting nodes
         var diagonal = SVGUtils.rightAngleDiagonal();
         var cophy_obj = this;
+        var id_str = function(node) {
+            if (node) {
+                return "[" + node.data.unique_id + ", " + node.data.name + "]";
+            }
+            else { return "NULL"; }
+        }
+        var ch_str = function(node) {
+            if (node && node.children) {
+                return node.children.length;
+            }
+            return "0";
+        }
         var drawHierarchy = function(node, parentSelector, depth=0) {
+            console.log("drawHierachy " + depth + " --------------------------------------" + id_str(node) + ":" + ch_str(node));
+            var childLinks = node.childLinks(); // only the nuclear family
+            if (undefined !== childLinks[0]) {
+                console.log("childLinks:" + childLinks.length);
+                console.log("childLinks 0:" + id_str(childLinks[0].source) + " to " + id_str(childLinks[0].target));
+                console.log("childLinks 1:" + id_str(childLinks[1].source) + " to " + id_str(childLinks[1].target));
+            }
             var gId = "group_" + node.data.unique_id;
             var isLeaf = !node.children;
             var isRoot = depth == 0;
@@ -429,15 +448,23 @@ class CoPhylogenyGraph {
 
             var selector_str = "#" + gId;
             var selector = g;
-            console.log("drawHierarchy: " + selector_str);
-            console.dir(node.childLinks());
+            console.log("drawHierarchy " + depth + ": " + selector_str + "= " + g.selectAll(selector_str).size() + " elements");
+            console.dir(childLinks);
             g.selectAll(selector_str) // refer to the "g" element containing this level
-                .data( node.childLinks() ) // only the nuclear family
+                .data( childLinks ) // only the nuclear family
                 .enter()
                 .append("path")
                 .attr("class", "link")
                 .attr("d", diagonal)
+                .attr("id", function(l) {
+                    return l.source.data.unique_id + "_to_" + l.target.data.unique_id;
+                 })
+                .on("click", function(d3obj) { 
+                    console.log("sealion");
+                    console.dir(d3obj);
+                    }) // isLeft = true
                 ;
+            console.log("1... drawHierarchy " + depth + ": " + selector_str + "= " + d3.selectAll(selector_str).size() + " elements");
             g.selectAll(selector_str) // refer to the "g" element containing this level
                 .data([node])
                 .enter()
@@ -454,7 +481,15 @@ class CoPhylogenyGraph {
                 .classed("leaf", isLeaf)
                 .classed("root", isRoot)
                 .attr("pointer-events", "all") // enable mouse events to be detected even if no fill
-                .on("click", cophy_obj.highlight_from_node(true)) // isLeft = true
+                .attr("id", function(n) 
+                 {
+                    return "circle_" + n.data.unique_id;
+                 })
+                .on("click", function(d3obj) { 
+                    console.log("walrus");
+                    console.dir(d3obj);
+                    console.log(node);
+                    }) // isLeft = true
                 ;
             g.selectAll(selector_str)
                 .data([node])
@@ -471,7 +506,8 @@ class CoPhylogenyGraph {
                 // .attr("pointer-events", "all")
                 .text(function (d)
                 {
-                    return snakeNameFormat(d.data.name);
+                    return id_str(d);
+                    //return snakeNameFormat(d.data.name);
                     //return d.name;
                 })
                 .on("click", cophy_obj.highlight_from_node(true));
@@ -479,13 +515,17 @@ class CoPhylogenyGraph {
             if (node.children) {
                 console.log("About to draw..." + node.children);
                 for (var i = 0; i < node.children.length; i++) {
+                    console.group([id_str(node.children[i])]);
                     drawHierarchy(node.children[i], selector, depth+1);
                 }
             }
                 
+        console.groupEnd();
         }
         var root = this.leftHierarchy;
+        console.group([id_str(root)]);
         drawHierarchy(root, this.tree1_g);
+        console.log("------done drawingHierarchy-------");
 
         // actually create paths between nodes
         /*this.tree1_g.selectAll(".link")
@@ -800,9 +840,7 @@ class CoPhylogenyGraph {
     highlight_from_node(isLeft=true)
     {
         var cophy_obj = this;
-        return function (d3obj) // I don't know how d3obj is being specified during the click event.
-                                // It is occassionally (and unpredictably) assigned the wrong member in the d3 node.children
-                                // of the recursively drawn tree.
+        return function (d3obj) // d3obj is being passed because the calling function, d3-hierarchy.on(), does the event handling.
         {
             console.log("whatis this: ");
             console.dir(this);
