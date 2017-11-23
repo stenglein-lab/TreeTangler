@@ -281,12 +281,12 @@ class CoPhylogenyGraph {
     addUniqueNodeIds(node, isLeft) { // traverse newick object, enumerate nodes
         if (! node.hasOwnProperty('unique_id')) {
             if (isLeft) {
-                node['unique_id'] = "node_id_" + this.leftTreeId;
+                node['unique_id'] = "l-nd-" + this.leftTreeId;
                 this.leftNodeLookup[ node['unique_id'] ] = node; 
                 this.leftTreeId++;
             }
             else {
-                node['unique_id'] = "node_id_" + this.rightTreeId;
+                node['unique_id'] = "r-nd-" + this.rightTreeId;
                 this.rightNodeLookup[ node['unique_id'] ] = node; 
                 this.rightTreeId++;
             }
@@ -465,8 +465,10 @@ class CoPhylogenyGraph {
                     }) // isLeft = true
                 ;
             console.log("1... drawHierarchy " + depth + ": " + selector_str + "= " + d3.selectAll(selector_str).size() + " elements");
-            g.selectAll(selector_str) // refer to the "g" element containing this level
-                .data([node])
+            g.selectAll( "#circle_" + node.data.unique_id ) // refer to the "g" element containing this level
+                .data([node]) // what does this need to be to be correct?
+                              // This works for the functions before except ".on()"
+                              // wherein it passes the wrong d3 element in most cases
                 .enter()
                 .append("svg:circle")
                 .attr("r", isInner ? 3 : 1.5)
@@ -490,6 +492,20 @@ class CoPhylogenyGraph {
                     console.dir(d3obj);
                     console.log(node);
                     }) // isLeft = true
+                .on("mouseover", function(d3obj, i) {
+                    console.log("mouseover " + i + " :" + node.data.unique_id);
+                    var slctn = "#circle_" + node.data.unique_id;
+                    var obj = d3.selectAll(slctn);
+                    obj.classed("highlighted", true);
+                    console.log(slctn + ": " + obj.size());
+                    console.log(obj.classed("highlighted"));
+                    //console.dir(obj);
+                })
+                .on("mouseout", function(d3obj) {
+                    var slctn = "#circle_" + node.data.unique_id;
+                    var obj = d3.selectAll(slctn);
+                    obj.classed("highlighted", false);
+                })
                 ;
             g.selectAll(selector_str)
                 .data([node])

@@ -11,6 +11,10 @@
 	pointer-events: all;
 }
 
+.highlighted {
+    fill: cyan;
+}
+
 
 .link {
    fill: none;
