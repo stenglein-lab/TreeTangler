@@ -11,15 +11,16 @@
 	pointer-events: all;
 }
 
-.highlighted {
-    fill: yellow;
-}
-g.highlighted > circle {
+g.highlighted > circle { /* immediate node */
     r: 5;
     fill: yellow;
 }
-g.highlighted path {
-    stroke-width:2px;
+g.highlighted circle { /* all successive nodes */
+    stroke: black;
+    stroke-width: .5px;
+}
+g.highlighted path { /* all sucessive paths */
+    stroke-width:1.5px;
 }
 
 
