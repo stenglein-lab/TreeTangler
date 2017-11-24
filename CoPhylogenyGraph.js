@@ -430,32 +430,62 @@ class CoPhylogenyGraph {
             }
             return "0";
         }
-        var drawHierarchy = function(node, parentSelector, depth=0) {
-            console.log("drawHierachy " + depth + " --------------------------------------" + id_str(node) + ":" + ch_str(node));
+        var root = this.leftHierarchy;
+        //console.group([id_str(root)]);
+        this.drawHierarchy(root, this.tree1_g);
+        console.log("------done left drawingHierarchy-------");
+
+        var root = this.rightHierarchy;
+        //console.group([id_str(root)]);
+        this.drawHierarchy(root, this.tree2_g, -1);
+        console.log("------done right drawingHierarchy-------");
+
+        // draw bridging lines
+        this.drawBridgingLines();
+        this.currentDFoot = this.dfoot();
+        var draw_event = new Event('draw');
+        this.dispatchEvent(draw_event);
+    } // end renderTrees
+        drawHierarchy(node, parentSelector, orientation=1, depth=0) {
+            var cophy_obj = this; // for use in subfunctions' scope
+            var debug = false;
+            if (debug) console.log("drawHierachy " + depth + " --------------------------------------" + id_str(node) + ":" + ch_str(node));
             var childLinks = node.childLinks(); // only the nuclear family
-            if (undefined !== childLinks[0]) {
-                console.log("childLinks:" + childLinks.length);
-                console.log("childLinks 0:" + id_str(childLinks[0].source) + " to " + id_str(childLinks[0].target));
-                console.log("childLinks 1:" + id_str(childLinks[1].source) + " to " + id_str(childLinks[1].target));
+            if (debug) {
+                if (undefined !== childLinks[0]) {
+                    console.log("childLinks:" + childLinks.length);
+                    console.log("childLinks 0:" + id_str(childLinks[0].source) + " to " + id_str(childLinks[0].target));
+                    console.log("childLinks 1:" + id_str(childLinks[1].source) + " to " + id_str(childLinks[1].target));
+                }
             }
+
+            // Groupings are SVG:g tags
             var gId = "group_" + node.data.unique_id;
             var isLeaf = !node.children;
             var isRoot = depth == 0;
             var isInner = (!isRoot) && (!isLeaf);
-            var g = parentSelector
+            var g = parentSelector // create the encompassing group
                 .append("g")
-                .attr("id", gId); // create the encompassing group
+                .attr("id", gId)
+                .classed("root", isRoot)
+                .classed("inner", isInner)
+                .classed("leaf", isLeaf)
+              ; 
 
             var selector_str = "#" + gId;
             var selector = g;
-            console.log("drawHierarchy " + depth + ": " + selector_str + "= " + g.selectAll(selector_str).size() + " elements");
-            console.dir(childLinks);
+            if (debug) {
+                console.log("drawHierarchy " + depth + ": " + selector_str + "= " + g.selectAll(selector_str).size() + " elements");
+                console.dir(childLinks);
+            }
+
+            // Visual edges are SVG paths
             g.selectAll(selector_str) // refer to the "g" element containing this level
                 .data( childLinks ) // only the nuclear family
                 .enter()
                 .append("path")
                 .attr("class", "link")
-                .attr("d", diagonal)
+                .attr("d", SVGUtils.rightAngleDiagonal())
                 .attr("id", function(l) {
                     return l.source.data.unique_id + "_to_" + l.target.data.unique_id;
                  })
@@ -464,7 +494,8 @@ class CoPhylogenyGraph {
                     console.dir(d3obj);
                     }) // isLeft = true
                 ;
-            console.log("1... drawHierarchy " + depth + ": " + selector_str + "= " + d3.selectAll(selector_str).size() + " elements");
+            if (debug) console.log("1... drawHierarchy " + depth + ": " + selector_str + "= " + d3.selectAll(selector_str).size() + " elements");
+            // the visual nodes are circles
             g.selectAll( "#circle_" + node.data.unique_id ) // refer to the "g" element containing this level
                 .data([node]) // what does this need to be to be correct?
                               // This works for the functions before except ".on()"
@@ -488,159 +519,75 @@ class CoPhylogenyGraph {
                     return "circle_" + n.data.unique_id;
                  })
                 .on("click", function(d3obj) { 
-                    console.log("walrus");
-                    console.dir(d3obj);
-                    console.log(node);
-                    }) // isLeft = true
+                    if (debug) {
+                        console.log("walrus");
+                        console.dir(d3obj);
+                        console.log(node);
+                    }
+                    //TODO: launch click event?
+                }) 
                 .on("mouseover", function(d3obj, i) {
-                    console.log("mouseover " + i + " :" + node.data.unique_id);
+                    if (debug) console.log("mouseover " + i + " :" + node.data.unique_id);
                     //var slctn = "#circle_" + node.data.unique_id;
                     var slctn = "#group_" + node.data.unique_id;
                     var obj = d3.selectAll(slctn);
                     obj.classed("highlighted", true);
-                    console.log(slctn + ": " + obj.size());
-                    console.log(obj.classed("highlighted"));
-                    //console.dir(obj);
+                    if (debug) {
+                        console.log(slctn + ": " + obj.size());
+                        console.log(obj.classed("highlighted"));
+                    }
+                    //TODO: launch mouseover event instead?
                 })
                 .on("mouseout", function(d3obj) {
                     var slctn = "#group_" + node.data.unique_id;
                     var obj = d3.selectAll(slctn);
                     obj.classed("highlighted", false);
+                    //TODO: launch mouseout event instead?
+                })
+                .on("click", function(d3obj) {
+                    //TODO: launch click event instead?
+                    if (orientation == 1)  // left
+                    {
+                        cophy_obj.swap_children(cophy_obj.leftTree, node.data.unique_id);
+                    }
+                    else // right
+                    {
+                        cophy_obj.swap_children(cophy_obj.rightTree, node.data.unique_id);
+                    }
+                    cophy_obj.redraw();
                 })
                 ;
+            // text elements
             g.selectAll(selector_str)
                 .data([node])
                 .enter()
                 .append("text")
-                .attr("dx", 8)
+                .attr("dx", orientation * 8)
                 .attr("dy", 3)
                 .attr('transform', function(d)
                  {
                    return "translate(" + d.y + "," + d.x + ")";
                  })
-                .style("text-anchor", "start")
+                .style("text-anchor", orientation > 0 ? "start" : "end")
                 // .style("cursor", "default") // make it not be a text cursor
                 // .attr("pointer-events", "all")
                 .text(function (d)
                 {
-                    return id_str(d);
-                    //return snakeNameFormat(d.data.name);
-                    //return d.name;
+                    //return id_str(d);
+                    return d.data.name.replace(/'/g, "").replace("snake", "").replace(/[SL]/, "").replace("_", "-"); // this needs to be replaced by a user-defined option
                 })
-                .on("click", cophy_obj.highlight_from_node(true));
+                //.on("click", cophy_obj.highlight_from_node(true));
 
             if (node.children) {
-                console.log("About to draw..." + node.children);
+                if (debug) console.log("About to draw..." + node.children);
                 for (var i = 0; i < node.children.length; i++) {
-                    console.group([id_str(node.children[i])]);
-                    drawHierarchy(node.children[i], selector, depth+1);
+                    if (debug) console.group([id_str(node.children[i])]);
+                    this.drawHierarchy(node.children[i], selector, orientation, depth+1);
                 }
             }
                 
-        console.groupEnd();
-        }
-        var root = this.leftHierarchy;
-        console.group([id_str(root)]);
-        drawHierarchy(root, this.tree1_g);
-        console.log("------done drawingHierarchy-------");
-
-        // actually create paths between nodes
-        /*this.tree1_g.selectAll(".link")
-            .data(tree1_edges)
-            .enter().append("path")
-            .attr("class", "link")
-            .attr("d", diagonal);*/
-
-        // actually create paths between nodes
-        this.tree2_g.selectAll(".link")
-            .data(tree2_edges)
-            .enter().append("path")
-            .attr("class", "link")
-            .attr("d", diagonal);
-
-        // define whether it is a root, inner, or leaf node
-        function define_node_position(n)
-        {
-            if (n.children)
-            {
-                if (n.depth == 0)
-                {
-                    return "root node";
-                }
-                else
-                {
-                    return "inner node";
-                }
-            }
-            else
-            {
-                return "leaf node";
-            }
-        }
-
-        // reposition nodes and add class
-        this.tree1_g.selectAll(".node")
-            .data(this.leftDescendants)
-            .enter().append("g")
-            .attr("class", define_node_position)
-            .attr("transform", function (d)
-            {
-                return "translate(" + d.y + "," + d.x + ")";
-            })
-
-        this.tree2_g.selectAll(".node")
-            .data(this.rightDescendants)
-            .enter().append("g")
-            .attr("class", define_node_position)
-            .attr("transform", function (d)
-            {
-                return "translate(" + d.y + "," + d.x + ")";
-            })
-
-        //this.styleTreeNodes(this.tree1_g, true); // I think this repeats what is done below
-        this.styleTreeNodes(this.tree2_g, false);
-
-        // add labels to nodes
-        function snakeNameFormat(snakeName) {
-            return snakeName.replace(/'/g, "").replace("snake", "").replace(/[SL]/, "").replace("_", "-");
-
-        }
-        /*this.tree1_g.selectAll('g.leaf.node')
-            .append("text")
-            .attr("dx", 8)
-            .attr("dy", 3)
-            .style("text-anchor", "start")
-            // .style("cursor", "default") // make it not be a text cursor
-            // .attr("pointer-events", "all")
-            .text(function (d)
-            {
-                return snakeNameFormat(d.data.name);
-                //return d.name;
-            })
-            .on("click", this.highlight_from_node(true));
-        */
-
-        // add labels to nodes
-        this.tree2_g.selectAll('g.leaf.node')
-            .append("text")
-            .attr("dx", -8)
-            .attr("dy", 3)
-            .style("text-anchor", "end")
-            // .style("cursor", "default") // make it not be a text cursor
-            // .attr("pointer-events", "all")
-            .text(function (d)
-            {
-                return snakeNameFormat(d.data.name);
-                //return d.name;
-            })
-            .on("click", this.highlight_from_node(false));
-
-        // draw bridging lines
-        this.drawBridgingLines();
-        this.currentDFoot = this.dfoot();
-        var draw_event = new Event('draw');
-        this.dispatchEvent(draw_event);
-    } // end renderTrees
+            if (debug) console.groupEnd();
+        } // end drawHierarchy
 
     addEventListener(evt_str, f) {
         if (! this.eventListeners.hasOwnProperty(evt_str)) {

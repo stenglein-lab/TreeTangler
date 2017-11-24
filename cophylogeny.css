@@ -11,6 +11,10 @@
 	pointer-events: all;
 }
 
+g.inner > text {
+    visibility: hidden;
+}
+
 g.highlighted > circle { /* immediate node */
     r: 5;
     fill: yellow;
