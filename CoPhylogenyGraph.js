@@ -94,8 +94,8 @@ class CoPhylogenyGraph {
             {
                 for (var i = root.children.length - 1; i >= 0; i--)
                 {
-                    traverse(root.children[i], callback, arr)
-                };
+                    traverse(root.children[i], callback, arr);
+                }
             }
         }
         var return_name_if_leaf = function(node) {
@@ -129,6 +129,7 @@ class CoPhylogenyGraph {
     }
     // called by renderTrees()
     create_d3_objects_from_newick() {
+        var debug_create_d3_objects_from_newick = false; // can be made to retrieve value from global settings
         // make these class variables if they need to be accessed later
         this.leftHierarchy = d3.hierarchy(this.leftTree, function(d) {return d.branchset;}); // "branchset" is the field named by Newick.js
         this.rightHierarchy = d3.hierarchy(this.rightTree, function(d) {return d.branchset;});
@@ -136,20 +137,26 @@ class CoPhylogenyGraph {
         this.leftDescendants = this.leftHierarchy.descendants(); // d3 "nodes"
         this.rightDescendants = this.rightHierarchy.descendants();
         // checking the overall drawing height
-        console.log("check overall height:");
+        if (debug_create_d3_objects_from_newick) console.log("check overall height:");
         var height_needed = Math.max(200, this.yScaleFactor * this.leftDescendants.length);
         if (height_needed != this.height) {
-            console.log("this.height " + this.height);
-            console.log(' this.selector.attr("height"); ' + this.selector.attr("height"));
-            console.log(' this.selector.style("height"); ' + this.selector.style("height"));
+            if (debug_create_d3_objects_from_newick)
+            {
+                console.log("this.height " + this.height);
+                console.log(' this.selector.attr("height"); ' + this.selector.attr("height"));
+                console.log(' this.selector.style("height"); ' + this.selector.style("height"));
+            }
             this.overall_vis
                 .style("height", height_needed)
                 .attr("height", height_needed)
             ;
             this.height = height_needed;
-            console.log("this.height " + this.height);
-            console.log(' this.selector.attr("height"); ' + this.selector.attr("height"));
-            console.log(' this.selector.style("height"); ' + this.selector.style("height"));
+            if (debug_create_d3_objects_from_newick)
+            {
+                console.log("this.height " + this.height);
+                console.log(' this.selector.attr("height"); ' + this.selector.attr("height"));
+                console.log(' this.selector.style("height"); ' + this.selector.style("height"));
+            }
         }
 
         // background
@@ -183,7 +190,7 @@ class CoPhylogenyGraph {
         this.tree1_edges = this.leftHierarchy.links(); // d3 "edges"
         console.dir(this.tree1_edges);
         this.tree2_edges = this.rightHierarchy.links();
-    }
+    } // create_d3_objects_from_newick
 
     drawBridgingLines() {
         var cophy_obj = this;
