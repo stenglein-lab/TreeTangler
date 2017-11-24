@@ -453,148 +453,149 @@ class CoPhylogenyGraph {
         var draw_event = new Event('draw');
         this.dispatchEvent(draw_event);
     } // end renderTrees
-        drawHierarchy(node, parentSelector, orientation=1, depth=0) {
-            var cophy_obj = this; // for use in subfunctions' scope
-            var debug = false;
-            if (debug) console.log("drawHierachy " + depth + " --------------------------------------" + id_str(node) + ":" + ch_str(node));
-            var childLinks = node.childLinks(); // only the nuclear family
-            if (debug) {
-                if (undefined !== childLinks[0]) {
-                    console.log("childLinks:" + childLinks.length);
-                    console.log("childLinks 0:" + id_str(childLinks[0].source) + " to " + id_str(childLinks[0].target));
-                    console.log("childLinks 1:" + id_str(childLinks[1].source) + " to " + id_str(childLinks[1].target));
-                }
+    drawHierarchy(node, parentSelector, orientation=1, depth=0) 
+    {
+        var cophy_obj = this; // for use in subfunctions' scope
+        var debug = false;
+        if (debug) console.log("drawHierachy " + depth + " --------------------------------------" + id_str(node) + ":" + ch_str(node));
+        var childLinks = node.childLinks(); // only the nuclear family
+        if (debug) {
+            if (undefined !== childLinks[0]) {
+                console.log("childLinks:" + childLinks.length);
+                console.log("childLinks 0:" + id_str(childLinks[0].source) + " to " + id_str(childLinks[0].target));
+                console.log("childLinks 1:" + id_str(childLinks[1].source) + " to " + id_str(childLinks[1].target));
             }
+        }
 
-            // Groupings are SVG:g tags
-            var gId = "group_" + node.data.unique_id;
-            var isLeaf = !node.children;
-            var isRoot = depth == 0;
-            var isInner = (!isRoot) && (!isLeaf);
-            var g = parentSelector // create the encompassing group
-                .append("g")
-                .attr("id", gId)
-                .classed("root", isRoot)
-                .classed("inner", isInner)
-                .classed("leaf", isLeaf)
-              ; 
+        // Groupings are SVG:g tags
+        var gId = "group_" + node.data.unique_id;
+        var isLeaf = !node.children;
+        var isRoot = depth == 0;
+        var isInner = (!isRoot) && (!isLeaf);
+        var g = parentSelector // create the encompassing group
+            .append("g")
+            .attr("id", gId)
+            .classed("root", isRoot)
+            .classed("inner", isInner)
+            .classed("leaf", isLeaf)
+          ; 
 
-            var selector_str = "#" + gId;
-            var selector = g;
-            if (debug) {
-                console.log("drawHierarchy " + depth + ": " + selector_str + "= " + g.selectAll(selector_str).size() + " elements");
-                console.dir(childLinks);
-            }
+        var selector_str = "#" + gId;
+        var selector = g;
+        if (debug) {
+            console.log("drawHierarchy " + depth + ": " + selector_str + "= " + g.selectAll(selector_str).size() + " elements");
+            console.dir(childLinks);
+        }
 
-            // Visual edges are SVG paths
-            g.selectAll(selector_str) // refer to the "g" element containing this level
-                .data( childLinks ) // only the nuclear family
-                .enter()
-                .append("path")
-                .attr("class", "link")
-                .attr("d", SVGUtils.rightAngleDiagonal())
-                .attr("id", function(l) {
-                    return l.source.data.unique_id + "_to_" + l.target.data.unique_id;
-                 })
-                .on("click", function(d3obj) { 
-                    console.log("sealion");
+        // Visual edges are SVG paths
+        g.selectAll(selector_str) // refer to the "g" element containing this level
+            .data( childLinks ) // only the nuclear family
+            .enter()
+            .append("path")
+            .attr("class", "link")
+            .attr("d", SVGUtils.rightAngleDiagonal())
+            .attr("id", function(l) {
+                return l.source.data.unique_id + "_to_" + l.target.data.unique_id;
+             })
+            .on("click", function(d3obj) { 
+                console.log("sealion");
+                console.dir(d3obj);
+                }) // isLeft = true
+            ;
+        if (debug) console.log("1... drawHierarchy " + depth + ": " + selector_str + "= " + d3.selectAll(selector_str).size() + " elements");
+        // the visual nodes are circles
+        g.selectAll( "#circle_" + node.data.unique_id ) // refer to the "g" element containing this level
+            .data([node]) // what does this need to be to be correct?
+                          // This works for the functions before except ".on()"
+                          // wherein it passes the wrong d3 element in most cases
+            .enter()
+            .append("svg:circle")
+            .attr("r", isInner ? 3 : 1.5)
+            .attr('stroke', "none")
+            .attr('fill', isRoot ? 'black' : (isLeaf?'red':'orange'))
+            .attr('transform', function(d)
+             {
+               return "translate(" + d.y + "," + d.x + ")";
+             })
+            .classed("node", true)
+            .classed("inner", isInner)
+            .classed("leaf", isLeaf)
+            .classed("root", isRoot)
+            .attr("pointer-events", "all") // enable mouse events to be detected even if no fill
+            .attr("id", function(n) 
+             {
+                return "circle_" + n.data.unique_id;
+             })
+            .on("click", function(d3obj) { 
+                if (debug) {
+                    console.log("walrus");
                     console.dir(d3obj);
-                    }) // isLeft = true
-                ;
-            if (debug) console.log("1... drawHierarchy " + depth + ": " + selector_str + "= " + d3.selectAll(selector_str).size() + " elements");
-            // the visual nodes are circles
-            g.selectAll( "#circle_" + node.data.unique_id ) // refer to the "g" element containing this level
-                .data([node]) // what does this need to be to be correct?
-                              // This works for the functions before except ".on()"
-                              // wherein it passes the wrong d3 element in most cases
-                .enter()
-                .append("svg:circle")
-                .attr("r", isInner ? 3 : 1.5)
-                .attr('stroke', "none")
-                .attr('fill', isRoot ? 'black' : (isLeaf?'red':'orange'))
-                .attr('transform', function(d)
-                 {
-                   return "translate(" + d.y + "," + d.x + ")";
-                 })
-                .classed("node", true)
-                .classed("inner", isInner)
-                .classed("leaf", isLeaf)
-                .classed("root", isRoot)
-                .attr("pointer-events", "all") // enable mouse events to be detected even if no fill
-                .attr("id", function(n) 
-                 {
-                    return "circle_" + n.data.unique_id;
-                 })
-                .on("click", function(d3obj) { 
-                    if (debug) {
-                        console.log("walrus");
-                        console.dir(d3obj);
-                        console.log(node);
-                    }
-                    //TODO: launch click event?
-                }) 
-                .on("mouseover", function(d3obj, i) {
-                    if (debug) console.log("mouseover " + i + " :" + node.data.unique_id);
-                    //var slctn = "#circle_" + node.data.unique_id;
-                    var slctn = "#group_" + node.data.unique_id;
-                    var obj = d3.selectAll(slctn);
-                    obj.classed("highlighted", true);
-                    if (debug) {
-                        console.log(slctn + ": " + obj.size());
-                        console.log(obj.classed("highlighted"));
-                    }
-                    //TODO: launch mouseover event instead?
-                })
-                .on("mouseout", function(d3obj) {
-                    var slctn = "#group_" + node.data.unique_id;
-                    var obj = d3.selectAll(slctn);
-                    obj.classed("highlighted", false);
-                    //TODO: launch mouseout event instead?
-                })
-                .on("click", function(d3obj) {
-                    //TODO: launch click event instead?
-                    if (orientation == 1)  // left
-                    {
-                        cophy_obj.swap_children(cophy_obj.leftTree, node.data.unique_id);
-                    }
-                    else // right
-                    {
-                        cophy_obj.swap_children(cophy_obj.rightTree, node.data.unique_id);
-                    }
-                    cophy_obj.redraw();
-                })
-                ;
-            // text elements
-            g.selectAll(selector_str)
-                .data([node])
-                .enter()
-                .append("text")
-                .attr("dx", orientation * 8)
-                .attr("dy", 3)
-                .attr('transform', function(d)
-                 {
-                   return "translate(" + d.y + "," + d.x + ")";
-                 })
-                .style("text-anchor", orientation > 0 ? "start" : "end")
-                // .style("cursor", "default") // make it not be a text cursor
-                // .attr("pointer-events", "all")
-                .text(function (d)
-                {
-                    //return id_str(d);
-                    return d.data.name.replace(/'/g, "").replace("snake", "").replace(/[SL]/, "").replace("_", "-"); // this needs to be replaced by a user-defined option
-                })
-                //.on("click", cophy_obj.highlight_from_node(true));
-
-            if (node.children) {
-                if (debug) console.log("About to draw..." + node.children);
-                for (var i = 0; i < node.children.length; i++) {
-                    if (debug) console.group([id_str(node.children[i])]);
-                    this.drawHierarchy(node.children[i], selector, orientation, depth+1);
+                    console.log(node);
                 }
+                //TODO: launch click event?
+            }) 
+            .on("mouseover", function(d3obj, i) {
+                if (debug) console.log("mouseover " + i + " :" + node.data.unique_id);
+                //var slctn = "#circle_" + node.data.unique_id;
+                var slctn = "#group_" + node.data.unique_id;
+                var obj = d3.selectAll(slctn);
+                obj.classed("highlighted", true);
+                if (debug) {
+                    console.log(slctn + ": " + obj.size());
+                    console.log(obj.classed("highlighted"));
+                }
+                //TODO: launch mouseover event instead?
+            })
+            .on("mouseout", function(d3obj) {
+                var slctn = "#group_" + node.data.unique_id;
+                var obj = d3.selectAll(slctn);
+                obj.classed("highlighted", false);
+                //TODO: launch mouseout event instead?
+            })
+            .on("click", function(d3obj) {
+                //TODO: launch click event instead?
+                if (orientation == 1)  // left
+                {
+                    cophy_obj.swap_children(cophy_obj.leftTree, node.data.unique_id);
+                }
+                else // right
+                {
+                    cophy_obj.swap_children(cophy_obj.rightTree, node.data.unique_id);
+                }
+                cophy_obj.redraw();
+            })
+            ;
+        // text elements
+        g.selectAll(selector_str)
+            .data([node])
+            .enter()
+            .append("text")
+            .attr("dx", orientation * 8)
+            .attr("dy", 3)
+            .attr('transform', function(d)
+             {
+               return "translate(" + d.y + "," + d.x + ")";
+             })
+            .style("text-anchor", orientation > 0 ? "start" : "end")
+            // .style("cursor", "default") // make it not be a text cursor
+            // .attr("pointer-events", "all")
+            .text(function (d)
+            {
+                //return id_str(d);
+                return d.data.name.replace(/'/g, "").replace("snake", "").replace(/[SL]/, "").replace("_", "-"); // this needs to be replaced by a user-defined option
+            })
+            //.on("click", cophy_obj.highlight_from_node(true));
+
+        if (node.children) {
+            if (debug) console.log("About to draw..." + node.children);
+            for (var i = 0; i < node.children.length; i++) {
+                if (debug) console.group([id_str(node.children[i])]);
+                this.drawHierarchy(node.children[i], selector, orientation, depth+1);
             }
-                
-            if (debug) console.groupEnd();
-        } // end drawHierarchy
+        }
+            
+        if (debug) console.groupEnd();
+    } // end drawHierarchy
 
     addEventListener(evt_str, f) {
         if (! this.eventListeners.hasOwnProperty(evt_str)) {
