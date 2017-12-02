@@ -497,17 +497,28 @@ class CoPhylogenyGraph {
             .attr("id", function(l) {
                 return l.source.data.unique_id + "_to_" + l.target.data.unique_id;
              })
+            .attr("pointer-events", "stroke") 
             .on("click", function(d3obj) { 
-                console.log("sealion");
+                var group_sel = "#group_" + node.data.unique_id;
+                var edge_sel = "#" + d3obj.source.data.unique_id + "_to_" + d3obj.target.data.unique_id;
+                var pth_obj = d3.selectAll(edge_sel)
+                pth_obj.classed("highlighted", true);
+                var click_evt_obj = { 
+                        'edge': edge_sel,
+                        'from': group_sel,
+                        'to': '#group_' + d3obj.target.data.unique_id
+                };
+                console.dir(click_evt_obj);
+                console.log("sealion " + edge_sel + "," + group_sel);
+                console.dir(pth_obj);
                 console.dir(d3obj);
                 }) // isLeft = true
             ;
         if (debug) console.log("1... drawHierarchy " + depth + ": " + selector_str + "= " + d3.selectAll(selector_str).size() + " elements");
         // the visual nodes are circles
         g.selectAll( "#circle_" + node.data.unique_id ) // refer to the "g" element containing this level
-            .data([node]) // what does this need to be to be correct?
-                          // This works for the functions before except ".on()"
-                          // wherein it passes the wrong d3 element in most cases
+            .data([node]) // This can pass the wrong object through d3's event mechanism ".on()" 
+                          // So in our function, we manually pass objects that we want to use.
             .enter()
             .append("svg:circle")
             .attr("r", isInner ? 3 : 1.5)
