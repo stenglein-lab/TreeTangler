@@ -556,6 +556,12 @@ class CoPhylogenyGraph {
                     console.log(obj.classed("highlighted"));
                 }
                 //TODO: launch mouseover event instead?
+                // event should include:
+                //      1) group selector,
+                //      2) upper edge selector
+                //      3) upper group target selector
+                //      4) lower edge selector
+                //      5) lower group target selector
             })
             .on("mouseout", function(d3obj) {
                 var slctn = "#group_" + node.data.unique_id;
@@ -581,12 +587,14 @@ class CoPhylogenyGraph {
             .data([node])
             .enter()
             .append("text")
-            .attr("dx", orientation * 8)
-            .attr("dy", 3)
-            .attr('transform', function(d)
-             {
-               return "translate(" + d.y + "," + d.x + ")";
-             })
+            .attr("dx", function(d) 
+            { 
+                return d.y + orientation * 8;
+            })
+            .attr("dy", function(d)
+            {
+                return d.x + 3; 
+            })
             .style("text-anchor", orientation > 0 ? "start" : "end")
             // .style("cursor", "default") // make it not be a text cursor
             // .attr("pointer-events", "all")
