@@ -488,6 +488,13 @@ class CoPhylogenyGraph {
         }
 
         // Visual edges are SVG paths
+        var make_edge_id = function(source, target) {
+            return source.data.unique_id + "_to_" + target.data.unique_id;
+        }
+        var upper=1;
+        if (node.children) {
+            if (node.children[0].y > node.children[1].y) { upper = 0; }
+        }
         g.selectAll(selector_str) // refer to the "g" element containing this level
             .data( childLinks ) // only the nuclear family
             .enter()
@@ -495,19 +502,16 @@ class CoPhylogenyGraph {
             .attr("class", "link")
             .attr("d", SVGUtils.rightAngleDiagonal())
             .attr("id", function(l) {
-                return l.source.data.unique_id + "_to_" + l.target.data.unique_id;
+                return make_edge_id(l.source, l.target);
+                //return l.source.data.unique_id + "_to_" + l.target.data.unique_id;
              })
             .attr("pointer-events", "stroke") 
             .on("click", function(d3obj) { 
                 var group_sel = "#group_" + node.data.unique_id;
-                var edge_sel = "#" + d3obj.source.data.unique_id + "_to_" + d3obj.target.data.unique_id;
+                var edge_sel = "#" + make_edge_id(d3obj.source, d3obj.target); //d3obj.source.data.unique_id + "_to_" + d3obj.target.data.unique_id;
                 var pth_obj = d3.selectAll(edge_sel)
                 pth_obj.classed("highlighted", true);
-                var click_evt_obj = { 
-                        'edge': edge_sel,
-                        'from': group_sel,
-                        'to': '#group_' + d3obj.target.data.unique_id
-                };
+                var click_evt_obj = new TreeEdgeMouseEvent(edge_sel, group_sel, '#group_' + d3obj.target.data.unique_id);
                 console.dir(click_evt_obj);
                 console.log("sealion " + edge_sel + "," + group_sel);
                 console.dir(pth_obj);
@@ -538,12 +542,22 @@ class CoPhylogenyGraph {
                 return "circle_" + n.data.unique_id;
              })
             .on("click", function(d3obj) { 
+                console.log("I am here, I am clicking, get used to it.");
                 if (debug) {
                     console.log("walrus");
                     console.dir(d3obj);
                     console.log(node);
                 }
-                //TODO: launch click event?
+                //Launch click event
+                if (node.children) {
+                    cophy_obj.dispatchEvent(new TreeNodeClickEvent(
+                        "#group_" + node.data.unique_id,
+                        "#" + make_edge_id(node, node.children[upper]),
+                        "#" + make_edge_id(node, node.children[1-upper])));
+                }
+                else {
+                    cophy_obj.dispatchEvent(new TreeNodeClickEvent("#group_" + node.data.unique_id, undefined ,undefined));
+                }
             }) 
             .on("mouseover", function(d3obj, i) {
                 if (debug) console.log("mouseover " + i + " :" + node.data.unique_id);
@@ -562,6 +576,14 @@ class CoPhylogenyGraph {
                 //      3) upper group target selector
                 //      4) lower edge selector
                 //      5) lower group target selector
+                //      6) target; the object that launched the event
+                // get upper, lower
+                var evt = new TreeNodeMouseEvent(
+                    "#group_" + node.data.unique_id,
+                    "#" + make_edge_id(node, node.children[upper]),
+                    "#" + make_edge_id(node, node.children[1-upper])
+                );
+                console.dir(evt);
             })
             .on("mouseout", function(d3obj) {
                 var slctn = "#group_" + node.data.unique_id;
@@ -623,6 +645,11 @@ class CoPhylogenyGraph {
         this.eventListeners[evt_str].push(f);
     }
     dispatchEvent(evt) {
+        var debug = true;
+        if (debug) {
+            console.log("CoPhylogeny.dispatchEvent:" + evt.type + " -----------------------------");
+            console.dir(evt);
+        }
         if (this.eventListeners.hasOwnProperty(evt.type)) {
             this.eventListeners[evt.type].forEach(
                 function(handler) {
@@ -924,3 +951,37 @@ function getNewickFile(url) {
         }
     );
 }
+function TreeNodeMouseClickEvent(g_sel,u_sel,l_sel) {
+    return TreeNodeMouseEvent("Click", g_sel,u_sel,l_sel);    
+}
+function TreeEdgeMouseClickEvent(e_sel,f_sel,t_sel) {
+    return TreeEdgeMouseEvent("Click", e_sel,f_sel,t_sel);    
+}
+function TreeNodeMouseOverEvent(g_sel,u_sel,l_sel) {
+    return TreeNodeMouseEvent("Over", g_sel,u_sel,l_sel);    
+}
+function TreeEdgeMouseOverEvent(e_sel,f_sel,t_sel) {
+    return TreeEdgeMouseEvent("Over", e_sel,f_sel,t_sel);    
+}
+function TreeNodeMouseOutEvent(g_sel,u_sel,l_sel) {
+    return TreeNodeMouseEvent("Out", g_sel,u_sel,l_sel);    
+}
+function TreeEdgeMouseOutEvent(e_sel,f_sel,t_sel) {
+    return TreeEdgeMouseEvent("Out", e_sel,f_sel,t_sel);    
+}
+// emulate the Event class for our own TreeMouseEvent
+function TreeNodeMouseEvent(subtype, g_sel, u_sel, l_sel) {
+    this.type = "TreeNodeMouse" + subtype;
+    // selector strings that can be passed to d3.selectAll
+    this.g_selector = g_sel;
+    this.upper_selector = u_sel;
+    this.lower_selector = l_sel;
+}
+function TreeEdgeMouseEvent(subtype, e_sel, f_sel, t_sel) {
+    this.type = "TreeEdgeMouse" + subtype;
+    // selector strings that can be passed to d3.selectAll
+    this.edge_selector = e_sel;
+    this.from_selector = f_sel;
+    this.to_selector = t_sel;
+}
+//TreeMouseEvent.prototype = Object.create(window.Event.prototype);
