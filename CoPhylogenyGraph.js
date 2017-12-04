@@ -507,15 +507,14 @@ class CoPhylogenyGraph {
              })
             .attr("pointer-events", "stroke") 
             .on("click", function(d3obj) { 
+                console.log("g.click");
                 var group_sel = "#group_" + node.data.unique_id;
                 var edge_sel = "#" + make_edge_id(d3obj.source, d3obj.target); //d3obj.source.data.unique_id + "_to_" + d3obj.target.data.unique_id;
                 var pth_obj = d3.selectAll(edge_sel)
                 pth_obj.classed("highlighted", true);
                 var click_evt_obj = new TreeEdgeMouseEvent(edge_sel, group_sel, '#group_' + d3obj.target.data.unique_id);
                 console.dir(click_evt_obj);
-                console.log("sealion " + edge_sel + "," + group_sel);
-                console.dir(pth_obj);
-                console.dir(d3obj);
+                cophy_obj.dispatchEvent(click_evt_obj);
                 }) // isLeft = true
             ;
         if (debug) console.log("1... drawHierarchy " + depth + ": " + selector_str + "= " + d3.selectAll(selector_str).size() + " elements");
@@ -550,6 +549,8 @@ class CoPhylogenyGraph {
                 }
                 //Launch click event
                 if (node.children) {
+                    console.log("about to dispatch event");
+                    console.dir(node.children);
                     cophy_obj.dispatchEvent(new TreeNodeClickEvent(
                         "#group_" + node.data.unique_id,
                         "#" + make_edge_id(node, node.children[upper]),
@@ -578,7 +579,7 @@ class CoPhylogenyGraph {
                 //      5) lower group target selector
                 //      6) target; the object that launched the event
                 // get upper, lower
-                var evt = new TreeNodeMouseEvent(
+                var evt = new TreeNodeMouseOverEvent(
                     "#group_" + node.data.unique_id,
                     "#" + make_edge_id(node, node.children[upper]),
                     "#" + make_edge_id(node, node.children[1-upper])
@@ -951,37 +952,60 @@ function getNewickFile(url) {
         }
     );
 }
+
+// Tree Node Mouse Events inherit TreeNodeMouseEvent
 function TreeNodeMouseClickEvent(g_sel,u_sel,l_sel) {
-    return TreeNodeMouseEvent("Click", g_sel,u_sel,l_sel);    
-}
-function TreeEdgeMouseClickEvent(e_sel,f_sel,t_sel) {
-    return TreeEdgeMouseEvent("Click", e_sel,f_sel,t_sel);    
+    this.base = TreeNodeMouseEvent;
+    this.base(g_sel,u_sel,l_sel);
+    this.type = "TreeNodeMouseClick";
 }
 function TreeNodeMouseOverEvent(g_sel,u_sel,l_sel) {
-    return TreeNodeMouseEvent("Over", g_sel,u_sel,l_sel);    
-}
-function TreeEdgeMouseOverEvent(e_sel,f_sel,t_sel) {
-    return TreeEdgeMouseEvent("Over", e_sel,f_sel,t_sel);    
+    this.base = TreeNodeMouseEvent;
+    this.base(g_sel,u_sel,l_sel);
+    this.type = "TreeNodeMouseOver";
 }
 function TreeNodeMouseOutEvent(g_sel,u_sel,l_sel) {
-    return TreeNodeMouseEvent("Out", g_sel,u_sel,l_sel);    
+    this.base = TreeNodeMouseEvent;
+    this.base(g_sel,u_sel,l_sel);
+    this.type = "TreeNodeMouseOut";
 }
-function TreeEdgeMouseOutEvent(e_sel,f_sel,t_sel) {
-    return TreeEdgeMouseEvent("Out", e_sel,f_sel,t_sel);    
-}
-// emulate the Event class for our own TreeMouseEvent
-function TreeNodeMouseEvent(subtype, g_sel, u_sel, l_sel) {
-    this.type = "TreeNodeMouse" + subtype;
+TreeNodeMouseClickEvent.prototype = new TreeNodeMouseEvent;
+TreeNodeMouseOverEvent.prototype = new TreeNodeMouseEvent;
+TreeNodeMouseOutEvent.prototype = new TreeNodeMouseEvent;
+function TreeNodeMouseEvent(g_sel, u_sel, l_sel) {
+    this.type = "TreeNodeMouse";
     // selector strings that can be passed to d3.selectAll
     this.g_selector = g_sel;
     this.upper_selector = u_sel;
     this.lower_selector = l_sel;
 }
-function TreeEdgeMouseEvent(subtype, e_sel, f_sel, t_sel) {
-    this.type = "TreeEdgeMouse" + subtype;
+TreeNodeMouseEvent.prototype = new Event("TreeNodeMouse");
+
+// Tree Edge Mouse Events inherit TreeEdgeMouseEvent
+function TreeEdgeMouseClickEvent(e_sel,f_sel,t_sel) {
+    this.base = TreeEdgeMouseEvent;
+    this.base(e_sel,f_sel,t_sel);
+    this.type = "TreeEdgeMouseClick";
+}
+function TreeEdgeMouseOverEvent(e_sel,f_sel,t_sel) {
+    this.base = TreeEdgeMouseEvent;
+    this.base(e_sel,f_sel,t_sel);
+    this.type = "TreeEdgeMouseOver";
+}
+function TreeEdgeMouseOutEvent(e_sel,f_sel,t_sel) {
+    this.base = TreeEdgeMouseEvent;
+    this.base(e_sel,f_sel,t_sel);
+    this.type = "TreeEdgeMouseOut";
+}
+TreeEdgeMouseClickEvent.prototype = new TreeEdgeMouseEvent;
+TreeEdgeMouseOverEvent.prototype = new TreeEdgeMouseEvent;
+TreeEdgeMouseOverEvent.prototype = new TreeEdgeMouseEvent;
+function TreeEdgeMouseEvent(e_sel, f_sel, t_sel) {
+    this.base = Event;
+    this.type = "TreeEdgeMouse";
     // selector strings that can be passed to d3.selectAll
     this.edge_selector = e_sel;
     this.from_selector = f_sel;
     this.to_selector = t_sel;
 }
-//TreeMouseEvent.prototype = Object.create(window.Event.prototype);
+TreeEdgeMouseEvent.prototype = new Event("TreeEdgeMouse");
