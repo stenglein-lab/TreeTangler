@@ -495,6 +495,14 @@ class CoPhylogenyGraph {
         if (node.children) {
             if (node.children[0].y > node.children[1].y) { upper = 0; }
         }
+        var configure_edge_events = function(d3obj, event_constructor) {
+            var group_sel = "#group_" + node.data.unique_id;
+            var edge_sel = "#" + make_edge_id(d3obj.source, d3obj.target); //d3obj.source.data.unique_id + "_to_" + d3obj.target.data.unique_id;
+            cophy_obj.dispatchEvent( new event_constructor(
+                    edge_sel, 
+                    group_sel, 
+                    '#group_' + d3obj.target.data.unique_id));
+        }
         g.selectAll(selector_str) // refer to the "g" element containing this level
             .data( childLinks ) // only the nuclear family
             .enter()
@@ -506,18 +514,35 @@ class CoPhylogenyGraph {
                 //return l.source.data.unique_id + "_to_" + l.target.data.unique_id;
              })
             .attr("pointer-events", "stroke") 
+            .on("mouseout", function(d3obj) { 
+                configure_edge_events(d3obj, TreeEdgeMouseOutEvent)
+            })
+            .on("mouseover", function(d3obj) { 
+                configure_edge_events(d3obj, TreeEdgeMouseOverEvent)
+            })
             .on("click", function(d3obj) { 
-                console.log("g.click");
-                var group_sel = "#group_" + node.data.unique_id;
-                var edge_sel = "#" + make_edge_id(d3obj.source, d3obj.target); //d3obj.source.data.unique_id + "_to_" + d3obj.target.data.unique_id;
-                var pth_obj = d3.selectAll(edge_sel)
+                configure_edge_events(d3obj, TreeEdgeMouseClickEvent);
+                var pth_obj = d3.selectAll("#" + make_edge_id(d3obj.source, d3obj.target))
                 pth_obj.classed("highlighted", true);
-                var click_evt_obj = new TreeEdgeMouseEvent(edge_sel, group_sel, '#group_' + d3obj.target.data.unique_id);
-                console.dir(click_evt_obj);
-                cophy_obj.dispatchEvent(click_evt_obj);
                 }) // isLeft = true
             ;
         if (debug) console.log("1... drawHierarchy " + depth + ": " + selector_str + "= " + d3.selectAll(selector_str).size() + " elements");
+
+        // this handles the event call for all node events
+        var configure_node_events = function(event_constructor) {
+            if (node.children) {
+                console.log("about to dispatch event");
+                console.dir(node.children);
+                cophy_obj.dispatchEvent(new event_constructor(
+                    "#group_" + node.data.unique_id,
+                    "#" + make_edge_id(node, node.children[upper]),
+                    "#" + make_edge_id(node, node.children[1-upper])));
+            }
+            else {
+                cophy_obj.dispatchEvent(new event_constructor("#group_" + node.data.unique_id, undefined ,undefined));
+            }
+        }
+
         // the visual nodes are circles
         g.selectAll( "#circle_" + node.data.unique_id ) // refer to the "g" element containing this level
             .data([node]) // This can pass the wrong object through d3's event mechanism ".on()" 
@@ -540,60 +565,24 @@ class CoPhylogenyGraph {
              {
                 return "circle_" + n.data.unique_id;
              })
-            .on("click", function(d3obj) { 
-                console.log("I am here, I am clicking, get used to it.");
-                if (debug) {
-                    console.log("walrus");
-                    console.dir(d3obj);
-                    console.log(node);
-                }
-                //Launch click event
-                if (node.children) {
-                    console.log("about to dispatch event");
-                    console.dir(node.children);
-                    cophy_obj.dispatchEvent(new TreeNodeClickEvent(
-                        "#group_" + node.data.unique_id,
-                        "#" + make_edge_id(node, node.children[upper]),
-                        "#" + make_edge_id(node, node.children[1-upper])));
-                }
-                else {
-                    cophy_obj.dispatchEvent(new TreeNodeClickEvent("#group_" + node.data.unique_id, undefined ,undefined));
-                }
-            }) 
             .on("mouseover", function(d3obj, i) {
                 if (debug) console.log("mouseover " + i + " :" + node.data.unique_id);
                 //var slctn = "#circle_" + node.data.unique_id;
                 var slctn = "#group_" + node.data.unique_id;
                 var obj = d3.selectAll(slctn);
                 obj.classed("highlighted", true);
-                if (debug) {
-                    console.log(slctn + ": " + obj.size());
-                    console.log(obj.classed("highlighted"));
-                }
-                //TODO: launch mouseover event instead?
-                // event should include:
-                //      1) group selector,
-                //      2) upper edge selector
-                //      3) upper group target selector
-                //      4) lower edge selector
-                //      5) lower group target selector
-                //      6) target; the object that launched the event
-                // get upper, lower
-                var evt = new TreeNodeMouseOverEvent(
-                    "#group_" + node.data.unique_id,
-                    "#" + make_edge_id(node, node.children[upper]),
-                    "#" + make_edge_id(node, node.children[1-upper])
-                );
-                console.dir(evt);
+                configure_node_events(TreeNodeMouseOverEvent);
             })
             .on("mouseout", function(d3obj) {
                 var slctn = "#group_" + node.data.unique_id;
                 var obj = d3.selectAll(slctn);
                 obj.classed("highlighted", false);
-                //TODO: launch mouseout event instead?
+                configure_node_events(TreeNodeMouseOutEvent);
             })
             .on("click", function(d3obj) {
-                //TODO: launch click event instead?
+                //Launch click event
+                configure_node_events(TreeNodeMouseClickEvent);
+                //TODO: handle inside click event?
                 if (orientation == 1)  // left
                 {
                     cophy_obj.swap_children(cophy_obj.leftTree, node.data.unique_id);
@@ -973,13 +962,11 @@ TreeNodeMouseClickEvent.prototype = new TreeNodeMouseEvent;
 TreeNodeMouseOverEvent.prototype = new TreeNodeMouseEvent;
 TreeNodeMouseOutEvent.prototype = new TreeNodeMouseEvent;
 function TreeNodeMouseEvent(g_sel, u_sel, l_sel) {
-    this.type = "TreeNodeMouse";
     // selector strings that can be passed to d3.selectAll
     this.g_selector = g_sel;
     this.upper_selector = u_sel;
     this.lower_selector = l_sel;
 }
-TreeNodeMouseEvent.prototype = new Event("TreeNodeMouse");
 
 // Tree Edge Mouse Events inherit TreeEdgeMouseEvent
 function TreeEdgeMouseClickEvent(e_sel,f_sel,t_sel) {
@@ -1001,11 +988,8 @@ TreeEdgeMouseClickEvent.prototype = new TreeEdgeMouseEvent;
 TreeEdgeMouseOverEvent.prototype = new TreeEdgeMouseEvent;
 TreeEdgeMouseOverEvent.prototype = new TreeEdgeMouseEvent;
 function TreeEdgeMouseEvent(e_sel, f_sel, t_sel) {
-    this.base = Event;
-    this.type = "TreeEdgeMouse";
     // selector strings that can be passed to d3.selectAll
     this.edge_selector = e_sel;
     this.from_selector = f_sel;
     this.to_selector = t_sel;
 }
-TreeEdgeMouseEvent.prototype = new Event("TreeEdgeMouse");
