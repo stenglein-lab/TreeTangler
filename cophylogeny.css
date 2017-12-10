@@ -32,6 +32,10 @@ path.highlighted {
     stroke-dasharray: 2,2;
 }
 
+path.rememberEdge {
+    stroke: green;
+}
+
 
 .link {
    fill: none;

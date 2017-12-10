@@ -208,6 +208,14 @@ function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2
         document.getElementById("sdfootSpan").textContent = cophylogeny_fig.currentDFoot;
     });
 
+    cophylogeny_fig.addEventListener("TreeNodeMouseClick", function(evt) {
+        console.group("main app click selector");
+        cophylogeny_fig.addPersistentClass("rememberEdge", evt.upper_selector);
+        console.log(evt.upper_selector);
+        console.log(evt.lower_selector);
+        console.groupEnd();
+    });
+
     slider.on("change", function(evt) {
         var sliderValue = evt.newValue;
         if (! isNaN(sliderValue)) {

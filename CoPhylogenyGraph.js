@@ -47,6 +47,8 @@ class CoPhylogenyGraph {
         this.leftNodeLookup = {};
         this.rightNodeLookup = {};
 
+        this.persistentClasses = {}; // add classname = [d3selector,...]
+
         // margins for SVG drawing area
         this.margin = { top: 20, right: 20, bottom: 20, left: 20 };
         this.yScaleFactor = 6;
@@ -74,6 +76,12 @@ class CoPhylogenyGraph {
         this.rightDescendants = null;
         /*******************************************/
         this.currentDFoot = 0;
+    }
+    addPersistentClass(classname, selector) {
+        if (! this.persistentClasses.hasOwnProperty(classname)) {
+            this.persistentClasses[classname] = new Array();
+        }
+        this.persistentClasses[classname].push(selector);
     }
     get svg_h() {
         return this.height - this.margin.top - this.margin.bottom;
@@ -285,7 +293,10 @@ class CoPhylogenyGraph {
                 }
         });
     }
-    addUniqueNodeIds(node, isLeft) { // traverse newick object, enumerate nodes
+    addUniqueNodeIds(node, isLeft, depth=0) { // traverse newick object, enumerate nodes
+        if (depth == 0) {
+            console.group("addUniqueNodeIds: " + (isLeft ? "left" : "right"));
+        }
         if (! node.hasOwnProperty('unique_id')) {
             if (isLeft) {
                 node['unique_id'] = "l-nd-" + this.leftTreeId;
@@ -297,15 +308,19 @@ class CoPhylogenyGraph {
                 this.rightNodeLookup[ node['unique_id'] ] = node; 
                 this.rightTreeId++;
             }
+            console.log( node['unique_id'] );
         }
         for (var key in node) {
             if (node.hasOwnProperty(key)) { // why is this here?
                 if (key == "branchset") {
                     for (var branch in node["branchset"]) {
-                        this.addUniqueNodeIds(node["branchset"][branch], isLeft);
+                        this.addUniqueNodeIds(node["branchset"][branch], isLeft, depth+1);
                     }
                 }
             }
+        }
+        if (depth == 0) {
+            console.groupEnd();
         }
     }
     getTreeStats(node, data) {
@@ -337,6 +352,19 @@ class CoPhylogenyGraph {
     }
     redraw() { 
         this.renderTrees(this.leftTree, this.rightTree, true, true);
+        this.applyPersistentClasses();
+    }
+    applyPersistentClasses() {
+        var debug = true;
+        if (debug) { console.group("applyPersistentClasses"); }
+        var cophy_obj = this;
+        for (const classname in this.persistentClasses) {
+            this.persistentClasses[classname].forEach(function(selector) {
+                if (debug) { console.log("adding " + classname + " to " + selector); }
+                cophy_obj.overall_vis.selectAll(selector).classed(classname, true);
+            });
+        }
+        if (debug) { console.groupEnd(); }
     }
     // renderTrees() called by Render() in async callback of readBothNewickURLs, 
     // or in any function that makes a change to the data and must trigger a redraw.
@@ -349,7 +377,7 @@ class CoPhylogenyGraph {
             this.getTreeStats(this.leftTree, leftTreeStats);
             console.log("leftTreeStats histogram of node degrees", leftTreeStats['degree'].length);
             console.dir(leftTreeStats);
-            this.addUniqueNodeIds(this.leftTree, true);
+            this.addUniqueNodeIds(this.leftTree, true); // only proceeds if unique_id is missing from newick node objects
             this.addUniqueNodeIds(this.rightTree, false);
 
             // shuffle
@@ -383,12 +411,7 @@ class CoPhylogenyGraph {
             this.overall_vis.selectAll("#bridge_g").remove();
             this.overall_vis.selectAll(".tree_label").remove();
         }
-        //this.convert_newick_trees_to_d3();
         this.create_d3_objects_from_newick();
-        //var tree1 = this.tree1;
-        //var tree2 = this.tree2;
-        //var tree1_nodes = this.tree1_nodes;
-        //var tree2_nodes = this.tree2_nodes;
         var tree1_edges = this.tree1_edges;
         var tree2_edges = this.tree2_edges;
 
@@ -493,7 +516,11 @@ class CoPhylogenyGraph {
         }
         var upper=1;
         if (node.children) {
-            if (node.children[0].y > node.children[1].y) { upper = 0; }
+            console.group("upper vs lower");
+            console.dir(node.children[0]);
+            console.dir(node.children[1]);
+            if (node.children[0].x > node.children[1].x) { upper = 0; } // WHY is this inverted?
+            console.groupEnd();
         }
         var configure_edge_events = function(d3obj, event_constructor) {
             var group_sel = "#group_" + node.data.unique_id;
@@ -530,16 +557,30 @@ class CoPhylogenyGraph {
 
         // this handles the event call for all node events
         var configure_node_events = function(event_constructor) {
+            if (node.data.unique_id == 'l-nd-62') {
+                console.group("configure_node_events if node == l-nd-62");
+            }
             if (node.children) {
                 console.log("about to dispatch event");
                 console.dir(node.children);
+                var upper_selector = "#" + make_edge_id(node, node.children[upper]);
+                var lower_selector = "#" + make_edge_id(node, node.children[1-upper]);
+                if (node.data.unique_id == 'l-nd-62') {
+                    console.log("upper_selector: " + upper_selector);
+                    console.log("lower_selector: " + lower_selector);
+                }
                 cophy_obj.dispatchEvent(new event_constructor(
                     "#group_" + node.data.unique_id,
-                    "#" + make_edge_id(node, node.children[upper]),
-                    "#" + make_edge_id(node, node.children[1-upper])));
+                    upper_selector,
+                    lower_selector
+                    ));
             }
             else {
                 cophy_obj.dispatchEvent(new event_constructor("#group_" + node.data.unique_id, undefined ,undefined));
+            }
+
+            if (node.data.unique_id == 'l-nd-62') {
+                console.groupEnd();
             }
         }
 
