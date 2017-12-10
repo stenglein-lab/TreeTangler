@@ -476,6 +476,24 @@ class CoPhylogenyGraph {
         var draw_event = new Event('draw');
         this.dispatchEvent(draw_event);
     } // end renderTrees
+    inspectNode(node) 
+    {
+        console.group("inspectNode");
+        var gId = "group_" + node.data.unique_id;
+        var isLeaf = !node.children;
+        var upper=1;
+        if (node.children) {
+            console.dir(node.children[0]);
+            console.dir(node.children[1]);
+            if (node.children[0].x > node.children[1].x) { upper = 0; } // WHY are coordinates inverted?
+        }
+        var upperChild = node.children[upper];
+        var lowerChild = node.children[lower];
+        console.groupEnd();
+    }
+    make_edge_id(source, target) {
+        return source.data.unique_id + "_to_" + target.data.unique_id;
+    }
     drawHierarchy(node, parentSelector, orientation=1, depth=0) 
     {
         var cophy_obj = this; // for use in subfunctions' scope
@@ -511,9 +529,6 @@ class CoPhylogenyGraph {
         }
 
         // Visual edges are SVG paths
-        var make_edge_id = function(source, target) {
-            return source.data.unique_id + "_to_" + target.data.unique_id;
-        }
         var upper=1;
         if (node.children) {
             console.group("upper vs lower");
@@ -524,7 +539,7 @@ class CoPhylogenyGraph {
         }
         var configure_edge_events = function(d3obj, event_constructor) {
             var group_sel = "#group_" + node.data.unique_id;
-            var edge_sel = "#" + make_edge_id(d3obj.source, d3obj.target); //d3obj.source.data.unique_id + "_to_" + d3obj.target.data.unique_id;
+            var edge_sel = "#" + this.make_edge_id(d3obj.source, d3obj.target); //d3obj.source.data.unique_id + "_to_" + d3obj.target.data.unique_id;
             cophy_obj.dispatchEvent( new event_constructor(
                     edge_sel, 
                     group_sel, 
@@ -537,7 +552,7 @@ class CoPhylogenyGraph {
             .attr("class", "link")
             .attr("d", SVGUtils.rightAngleDiagonal())
             .attr("id", function(l) {
-                return make_edge_id(l.source, l.target);
+                return cophy_obj.make_edge_id(l.source, l.target);
                 //return l.source.data.unique_id + "_to_" + l.target.data.unique_id;
              })
             .attr("pointer-events", "stroke") 
@@ -549,7 +564,7 @@ class CoPhylogenyGraph {
             })
             .on("click", function(d3obj) { 
                 configure_edge_events(d3obj, TreeEdgeMouseClickEvent);
-                var pth_obj = d3.selectAll("#" + make_edge_id(d3obj.source, d3obj.target))
+                var pth_obj = d3.selectAll("#" + cophy_obj.make_edge_id(d3obj.source, d3obj.target))
                 pth_obj.classed("highlighted", true);
                 }) // isLeft = true
             ;
@@ -563,8 +578,8 @@ class CoPhylogenyGraph {
             if (node.children) {
                 console.log("about to dispatch event");
                 console.dir(node.children);
-                var upper_selector = "#" + make_edge_id(node, node.children[upper]);
-                var lower_selector = "#" + make_edge_id(node, node.children[1-upper]);
+                var upper_selector = "#" + cophy_obj.make_edge_id(node, node.children[upper]);
+                var lower_selector = "#" + cophy_obj.make_edge_id(node, node.children[1-upper]);
                 if (node.data.unique_id == 'l-nd-62') {
                     console.log("upper_selector: " + upper_selector);
                     console.log("lower_selector: " + lower_selector);
