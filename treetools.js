@@ -152,6 +152,26 @@
         }
     }
     exports.detangler = function(root, standard) {
+        var data = {root: root, l1: standard}; // needed to call leaves, dfoot
+        var detangle = function(node, depth, data) {
+            var indent = "";
+            for (var i = 0; i < depth; i++) { indent += "   "; }
+            if (node.branchset) {
+                var dfoot_pre = exports.dfoot(exports.leaves(data.root), data.l1);
+                exports.swap_children(node);
+                var dfoot_post = exports.dfoot(exports.leaves(data.root), data.l1);
+                console.log(indent + dfoot_pre +" vs " + dfoot_post);
+                if (dfoot_pre < dfoot_post) {
+                    console.log(indent + "reject swap");
+                    exports.swap_children(node);
+                }
+                else {
+                    console.log(indent + "keep swap");
+                }
+            }
+        }
+
+        exports.visitPostOrder(root, detangle, 0, data);
     };
     exports.dfoot = function(nodelist, standard) {
         // Implementation of Spearman's footrule distance

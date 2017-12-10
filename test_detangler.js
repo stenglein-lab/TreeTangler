@@ -22,7 +22,8 @@ var main = function(data1, data2) {
     // keeping the configuration that has a lower dfoot.
     // The algorithm necessarily modifies the tree in-place, so
     // a copy might be a good idea.
-    var data = {root: t2, l1: l1}; // needed to call leaves, dfoot
+    treetools.detangler(t2, l1);
+    /*var data = {root: t2, l1: l1}; // needed to call leaves, dfoot
     var detangle = function(node, depth, data) {
         var indent = "";
         for (var i = 0; i < depth; i++) { indent += "   "; }
@@ -41,7 +42,7 @@ var main = function(data1, data2) {
         }
     }
 
-    treetools.visitPostOrder(t2, detangle, 0, data);
+    treetools.visitPostOrder(t2, detangle, 0, data);*/
     
     console.log("Tree 1 has " + l1.length + " leaves.");
     var l2 = treetools.leaves(t2);
