@@ -476,6 +476,15 @@ class CoPhylogenyGraph {
         var draw_event = new Event('draw');
         this.dispatchEvent(draw_event);
     } // end renderTrees
+    get_d3Node(unique_id) {
+        if (this.leftNodeLookup.hasOwnProperty(unique_id)) {
+            return this.leftNodeLookup[unique_id];
+        }
+        else if (this.rightNodeLookup.hasOwnProperty(unique_id)) {
+            return this.rightNodeLookup[unique_id];
+        }
+        return undefined;
+    }
     inspectNode(node) 
     {
         console.group("inspectNode");
