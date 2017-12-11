@@ -225,9 +225,14 @@ function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2
     });
     var launchFunction = function() {
         var l1 = TreeTools.leaves(cophylogeny_fig.leftTree);
-        console.log("GOT LAUNCHED");
+        console.group("launchFunction");
         console.dir(l1);
         d3.selectAll('svg').selectAll('#circle_r-nd-3').dispatch('mouseover');
+
+        var d3node = cophylogeny_fig.get_d3Node('r-nd-3');
+        console.log('d3node' + d3node);
+        console.dir(d3node);
+        console.groupEnd();
     }
 
     document.addEventListener('keydown', function(event) {

@@ -77,11 +77,14 @@ class CoPhylogenyGraph {
         /*******************************************/
         this.currentDFoot = 0;
     }
-    addPersistentClass(classname, selector) {
+    addPersistentClass(classname, selector, apply=true) {
         if (! this.persistentClasses.hasOwnProperty(classname)) {
             this.persistentClasses[classname] = new Array();
         }
         this.persistentClasses[classname].push(selector);
+        if (apply) {
+            this.overall_vis.selectAll(selector).classed(classname, true);
+        }
     }
     get svg_h() {
         return this.height - this.margin.top - this.margin.bottom;
