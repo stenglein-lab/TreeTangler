@@ -46,6 +46,7 @@ class CoPhylogenyGraph {
         this.userArgs = userArgs;
         this.leftNodeLookup = {};
         this.rightNodeLookup = {};
+        this.d3NodeObj = {}; // key off of unique_id
 
         this.persistentClasses = {}; // add classname = [d3selector,...]
 
@@ -480,13 +481,7 @@ class CoPhylogenyGraph {
         this.dispatchEvent(draw_event);
     } // end renderTrees
     get_d3Node(unique_id) {
-        if (this.leftNodeLookup.hasOwnProperty(unique_id)) {
-            return this.leftNodeLookup[unique_id];
-        }
-        else if (this.rightNodeLookup.hasOwnProperty(unique_id)) {
-            return this.rightNodeLookup[unique_id];
-        }
-        return undefined;
+        return this.d3NodeObj[unique_id];
     }
     inspectNode(node) 
     {
@@ -499,15 +494,20 @@ class CoPhylogenyGraph {
             console.dir(node.children[1]);
             if (node.children[0].x > node.children[1].x) { upper = 0; } // WHY are coordinates inverted?
         }
+        var lower = 1-upper;
         var upperChild = node.children[upper];
+        var upperEdgeSel = this.make_edge_id(node, upperChild);
         var lowerChild = node.children[lower];
+        var lowerEdgeSel = this.make_edge_id(node, lowerChild);
         console.groupEnd();
+        return {upper: upperChild, upperSel: upperEdgeSel, lower: lowerChild, lowerSel: lowerEdgeSel};
     }
     make_edge_id(source, target) {
         return source.data.unique_id + "_to_" + target.data.unique_id;
     }
     drawHierarchy(node, parentSelector, orientation=1, depth=0) 
     {
+        this.d3NodeObj[ node.data.unique_id ] = node;
         var cophy_obj = this; // for use in subfunctions' scope
         var debug = false;
         if (debug) console.log("drawHierachy " + depth + " --------------------------------------" + id_str(node) + ":" + ch_str(node));
