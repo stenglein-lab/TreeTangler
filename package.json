@@ -1,0 +1,29 @@
+{
+  "name": "treetangler",
+  "version": "1.0.0",
+  "description": "Cophylogeny and detangling utility",
+  "main": "app.js",
+  "dependencies": {
+    "fs": "^0.0.1-security"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stenglein-lab/TreeTangler.git"
+  },
+  "keywords": [
+    "d3",
+    "tree",
+    "phylogeny",
+    "detangler"
+  ],
+  "author": "David C. King and Mark Stenglein",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/stenglein-lab/TreeTangler/issues"
+  },
+  "homepage": "https://github.com/stenglein-lab/TreeTangler#readme"
+}
