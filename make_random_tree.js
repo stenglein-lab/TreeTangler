@@ -38,3 +38,4 @@ console.log(tree);
 //console.log('Terminal width: ' + process.stdout.columns + ', scale ' + scale);
 //treetools.print_ascii(tree, 0, scale);
 treetools.print_ascii_cladogram(tree);
+console.log( treetools.writeNewick(tree) );
