@@ -224,9 +224,7 @@ function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2
         }
     });
     var launchFunction = function() {
-        var l1 = TreeTools.leaves(cophylogeny_fig.leftTree);
         console.group("launchFunction");
-        console.dir(l1);
         d3.selectAll('svg').selectAll('#circle_r-nd-3').dispatch('mouseover');
 
         var d3node = cophylogeny_fig.get_d3Node('r-nd-3');
@@ -234,11 +232,37 @@ function render_cophylogeny(container_id, segment_id, newick_url_1, newick_url_2
         console.dir(d3node);
         console.groupEnd();
     }
+    var traceDetangler = function() {
+        console.group("traceDetangler");
+        var l1 = TreeTools.leaves(cophylogeny_fig.leftTree);
+        var rightRoot = cophylogeny_fig.rightTree;
+        var detangle = function(newickNode, depth, data) {
+            if (newickNode.branchset) {
+                var d3node = cophylogeny_fig.get_d3Node(newickNode.unique_id);
+                var d3node_struct = cophylogeny_fig.inspectNode(d3node);
+                cophylogeny_fig.addPersistentClass("rememberEdge", d3node_struct.upper_sel);
+                var dfoot_pre = TreeTools.dfoot(TreeTools.leaves(data.root), data.l1);
+                TreeTools.swap_children(newickNode);
+                var dfoot_post = TreeTools.dfoot(TreeTools.leaves(data.root), data.l1);
+                if (dfoot_pre < dfoot_post) {
+                    // unswap newick obj
+                    TreeTools.swap_children(newickNode);
+                }
+                else {
+                    // redraw with changes
+                    cophylogeny_fig.redraw()
+                }
+            }
+        }
+        TreeTools.visitPostOrder(rightRoot, detangle, 0, {root: rightRoot, l1: l1});
+        console.groupEnd();
+    
+    }
 
     document.addEventListener('keydown', function(event) {
         const keyName = event.key;
         if (keyName == ' ') {
-            launchFunction();
+            traceDetangler();
         }
     });
     
