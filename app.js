@@ -1,3 +1,7 @@
+var port = 3000;
+if (process.argv.length > 2) {
+    port = process.argv[2]; // node app port
+}
 var express = require('express');
 
 var app = express(); // express instance 
@@ -15,8 +19,8 @@ app.use( function(req,res,next) {
     next(); // required to actually send a response back
 });
 
-app.listen(3000);
+app.listen(port);
 
-console.log("Express app running on port 3000");
+console.log(`Express app running on port ${port}`);
 
 module.exports = app; // this application instance can now be used in other files, as in testing
