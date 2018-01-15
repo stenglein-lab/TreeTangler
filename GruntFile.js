@@ -4,17 +4,28 @@ module.exports = function(grunt) { // grunt instance is passed to this function 
     grunt.initConfig({
         // each key is a task
         jshint: { // syntax checking
-            files: ["*.js", "lib/tree_json.js"], // add everything here
+            files: ["*.js", "lib/*.js"], // add everything here
             options: {
                 esnext: true,
                 globals: { // to keep it from complaining about jquery
                     jQuery: true
                 }
             }
+        },
+        browserify: {
+            client: {
+                src: ["app-client.js"],
+                dest: "public/js/bundle.js"
+            }
         }
     });
 
     grunt.loadNpmTasks("grunt-contrib-jshint"); // to use jshint plugin
+    grunt.loadNpmTasks("grunt-browserify");
 
-    grunt.registerTask("default", ["jshint"]);
+
+    grunt.registerTask("js", ["browserify"]);
+    grunt.registerTask("default", ["jshint", "js"]);
+
+    
 };
