@@ -13,4 +13,10 @@ Some dev dependancies are best installed globally for developers.
 
 ### node-dev
 A utility to detect changes and restart your app.
+
 ```sudo npm install -g node-dev```
+
+### mocha
+Testing framework.
+
+```sudo npm install -g mocha```
