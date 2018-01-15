@@ -37,7 +37,7 @@ d3.hierarchy.prototype.childLinks = function() { // non-recursive generator for 
  * of a pair of phylogenetic trees that have the same leaf nodes, but different topologies.
  * Connecting lines are drawn between the leaves of both trees.
  */
-export default class CoPhylogenyGraph {
+class CoPhylogenyGraph {
     constructor(selector, width, height, userArgs = {}) {
         this.eventListeners = {};
         this.selector = selector; // canvas element in the DOM where drawing will take place
