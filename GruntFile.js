@@ -4,7 +4,7 @@ module.exports = function(grunt) { // grunt instance is passed to this function 
     grunt.initConfig({
         // each key is a task
         jshint: { // syntax checking
-            file: ["*.js"], // add everything here
+            files: ["*.js", "public/js/tree_json.js"], // add everything here
             options: {
                 esnext: true,
                 globals: { // to keep it from complaining about jquery

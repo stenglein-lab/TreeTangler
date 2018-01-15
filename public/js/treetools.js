@@ -18,7 +18,7 @@
                 }
                 stack.unshift("(");
             }
-        }
+        };
 
         var top_stack = [];
         compileNW(nw, top_stack);
@@ -47,17 +47,17 @@
                 if (! data.leaves) { data.leaves = []; }
                 data.leaves.push(node.name);
             }
-        }
+        };
         var data = {};
         exports.visitPreOrder(tree, add_name_if_leaf, 0, data);
         return data.leaves;
     };
     exports.create_node = function(arg_name, arg_children, arg_length){
         return { name: arg_name, branchset: arg_children, length: arg_length };
-    }
+    };
     exports.create_leaf = function(arg_name, arg_length) {
         return { name: arg_name, length: arg_length };
-    }
+    };
     exports.longest_path = function(subtree, path_str="", length=0) {
         var running_str = path_str + "." + subtree.name;
         var running_length = length + subtree.length;
@@ -78,7 +78,7 @@
             running_length = values[max_i][1];
         }
         return [running_str,running_length];
-    }
+    };
     exports.make_binary = function(node) {
         if (node.branchset) { 
             var n = node.branchset.length;
@@ -118,7 +118,7 @@
             var left = node.branchset[0];
             node.branchset = [right, left];
         }
-    }
+    };
     exports.print_node_traversal = function(node, depth) {
         var indent = '';
         for (var i = 0; i < depth; i++) {
@@ -133,24 +133,24 @@
         var indent = "";
         for (var i = 0; i < (scale * depth); i++) { indent += " "; }
         var edge = "";
-        for (var i = 0; i < (scale * node.length); i++) { edge += "-"; }
+        for (i = 0; i < (scale * node.length); i++) { edge += "-"; }
         console.log(indent + "+" + edge + node.name + ":" + node.length);
         if (node.branchset) {
-            for (var i = 0; i < node.branchset.length; i++) {
+            for (i = 0; i < node.branchset.length; i++) {
                 exports.print_ascii(node.branchset[i], depth+node.length, scale);
             }
         }
-    }
+    };
     exports.print_ascii_cladogram = function(node, depth=0) {
         var indent = "";
         for (var i = 0; i < depth; i++) { indent += "  "; }
         console.log(indent + "+-" + node.name + ":" + node.length);
         if (node.branchset) {
-            for (var i = 0; i < node.branchset.length; i++) {
+            for (i = 0; i < node.branchset.length; i++) {
                 exports.print_ascii_cladogram(node.branchset[i], depth+1);
             }
         }
-    }
+    };
     exports.detangler = function(root, standard) {
         var data = {root: root, l1: standard}; // needed to call leaves, dfoot
         var detangle = function(node, depth, data) {
@@ -169,7 +169,7 @@
                     console.log(indent + "keep swap");
                 }
             }
-        }
+        };
 
         exports.visitPostOrder(root, detangle, 0, data);
     };
