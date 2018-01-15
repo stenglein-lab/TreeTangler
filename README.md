@@ -20,3 +20,8 @@ A utility to detect changes and restart your app.
 Testing framework.
 
 ```sudo npm install -g mocha```
+
+### grunt command line tools
+Task runner that will run via command-line commands
+
+```sudo npm install -g grunt-cli```
