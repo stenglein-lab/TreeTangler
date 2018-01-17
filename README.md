@@ -16,12 +16,19 @@ A utility to detect changes and restart your app.
 
 ```sudo npm install -g node-dev```
 
+### grunt command line tools
+Task runner that will run via command-line commands
+
+```sudo npm install -g grunt-cli```
+
 ### mocha
 Testing framework.
 
 ```sudo npm install -g mocha```
 
-### grunt command line tools
-Task runner that will run via command-line commands
+### istanbul
+Code coverage through mocha.
 
-```sudo npm install -g grunt-cli```
+```sudo npm install -g istanbul```
+
+```istanbul cover _mocha```
