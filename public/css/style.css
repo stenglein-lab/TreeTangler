@@ -1,0 +1,37 @@
+body,html {
+    height:100%;
+    background-color: #ddd;
+}
+
+pre {
+    font-size: 8pt;
+}
+#graph {
+    margin-bottom:30px;
+}
+#fileButtonMiddle {
+    margin: auto;
+    display: block;
+}
+.right-align-button {
+    position: absolute;
+    right: 0px;
+}
+.btn-pass {
+    background-image: linear-gradient(to bottom, #F0FFFF 0, #F0F9F9 90%, #F3F3F0 100%);
+    border-color: #E2E2E0;
+    color: black;
+}
+/*.btn-success {
+background-image: linear-gradient(to bottom, #FFFFFF 0, #F0F9F9 90%, #F3F3F0 100%);
+border-color: #E2E2E0;
+color: black;
+}*/
+#ex1Slider {
+margin: auto;
+
+}
+#ex1Slider .slider-selection {
+background: #BABABA;
+}
+

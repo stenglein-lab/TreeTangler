@@ -4,13 +4,85 @@
 
     <meta name="viewport" content="minimum-scale=1.0, width=device-width, maximum-scale=1.0, user-scalable=no"/>
     <meta charset="utf-8">
-
-    <title>TreeTangler placeholder</title>
-
+    <title>TangleGram - transitional</title>
+    <meta charset="utf-8">
+    <script src="js/bundle.js"></script>
     <link rel="stylesheet" href="/css/style.css"/>
+    <link rel="stylesheet" href="css/bootstrap.slider.min.css"/>
+
 
 </head>
 <body>
-    <strong>TreeTangler placeholder</strong>
+    <!-- input buttons plus left/right margin spacers -->
+    <div class="container-fluid" id="file-buttons">
+        <div class="row"> 
+            <div class="col-md-2"> 
+                <input id="fileInputLeft" 
+                    type="file" 
+                    accept=".nw, .newick" 
+                    style="display:none" 
+                    onchange="setLeftURL(this.files)"> 
+                <button id="fileButtonLeft" 
+                    type="button" 
+                    class="btn btn-default">
+                    Left-side tree (newick) 
+                </button> 
+            </div>
+            <div class="col-md-8"> 
+                <input 
+                    id="fileInputMiddle" 
+                    type="file" 
+                    style="display:none" 
+                    onchange="processFile(this.files)"> 
+                <button 
+                    id="fileButtonMiddle" 
+                    type="button" 
+                    class="btn btn-default" 
+                    onchange="processFile(this.files)">
+                    Upload lookup file (text)
+                </button>
+            </div>
+            <div class="col-md-2"> 
+                <input 
+                    type="file" 
+                    id="fileInputRight" 
+                    accept=".nw, .newick" 
+                    style="display:none" 
+                    onchange="setRightURL(this.files)"> 
+                <button id="fileButtonRight" 
+                    type="button" 
+                    class="btn btn-default right-align-button">
+                    Right-side tree (newick) 
+                </button> 
+            </div>
+        </div><!-- end row -->
+    </div><!-- end #file-buttons -->
+
+<!-- empty containers to be populated by various figs -->
+    <div id="graph" class="container-fluid">
+        <div class="row" id="spearman-value">
+            <div class="col-md-4"> </div>
+            <div class="col-md-4">
+                Spearman's footrule distance: <span id="sdfootSpan">?</span>
+            </div>
+            <div class="col-md-4"> </div>
+        </div> <!-- end #spearman-value -->
+        <div class="row" id="spearman-slider">
+            <div class="col-md-1" id="left_container"> 
+                Vertical scale: <span id="currentVertScaleLabel">6</span><br/>
+                <input 
+                    id="ex1" 
+                    type="text" 
+                    data-slider-id='ex1Slider' 
+                    data-slider-min="1" 
+                    data-slider-max="10" 
+                    data-slider-step=".25" 
+                    data-slider-value="6" 
+                    data-slider-orientation="vertical"/>
+            </div>
+            <div class="col-md-10" id="middle_container"></div>
+            <div class="col-md-1" id="right_container"> </div>
+        </div><!-- end #spearman-slider -->
+    </div><!-- end #graph -->
 </body>
 </html>
