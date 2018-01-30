@@ -14,7 +14,6 @@ $(document).ready(function() {
     var fileButtonLeft = $("#fileButtonLeft");
     var fileInputLeft = $("#fileInputLeft");
     fileInputLeft.change(function() {
-        console.log("you are inside fileInputLeft.change");
         processFile.processFile(this.files);
     });
     fileButtonLeft.click(function() { 
@@ -23,12 +22,18 @@ $(document).ready(function() {
 
     var fileButtonMiddle = $("#fileButtonMiddle");
     var fileInputMiddle = $("#fileInputMiddle");
+    fileInputMiddle.change(function() {
+        processFile.processFile(this.files);
+    });
     fileButtonMiddle.click(function() {
         fileInputMiddle.click();
     });
 
     var fileButtonRight = $("#fileButtonRight");
     var fileInputRight = $("#fileInputRight");
+    fileInputRight.change(function() {
+        processFile.processFile(this.files);
+    });
     fileButtonRight.click(function() {
         fileInputRight.click();
     });
