@@ -2,6 +2,7 @@ $ = require('jquery');
 var bootstrap = require('bootstrap');
 var bootslider = require('bootstrap-slider');
 var cophylogeny = require('./lib/CoPhylogenyGraph');
+var processFile = require('./lib/processFile');
 var URLSearchParams = require('url-search-params');
 $(document).ready(function() {
     // URL blobs needed for newick reader
@@ -11,18 +12,25 @@ $(document).ready(function() {
     // Have the buttons "click" the inputs
     var fileButtonLeft = $("#fileButtonLeft");
     var fileInputLeft = $("#fileInputLeft");
+    fileInputLeft.change(function() {
+        console.log("you are inside fileInputLeft.change");
+        processFile.processFile(this.files);
+    });
     fileButtonLeft.click(function() { 
-        fileInputLeft.click()});
+        fileInputLeft.click();
+    });
 
     var fileButtonMiddle = $("#fileButtonMiddle");
     var fileInputMiddle = $("#fileInputMiddle");
-    fileButtonLeft.click(function() {
-        fileInputMiddle.click()});
+    fileButtonMiddle.click(function() {
+        fileInputMiddle.click();
+    });
 
     var fileButtonRight = $("#fileButtonRight");
     var fileInputRight = $("#fileInputRight");
     fileButtonRight.click(function() {
-        fileInputRight.click()});
+        fileInputRight.click();
+    });
 
     // hook into slider
     $('#ex1').slider({
