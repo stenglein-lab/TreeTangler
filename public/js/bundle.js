@@ -3,18 +3,27 @@ $ = require('jquery');
 var bootstrap = require('bootstrap');
 var bootslider = require('bootstrap-slider');
 var cophylogeny = require('./lib/CoPhylogenyGraph');
+var URLSearchParams = require('url-search-params');
 $(document).ready(function() {
     // URL blobs needed for newick reader
     var leftURL = null,
         rightURL = null;
 
     // hook into the html buttons and inputs
-    var fileButtonLeft = document.getElementById("fileButtonLeft"),
-        fileInputLeft = document.getElementById("fileInputLeft");
-    var fileButtonMiddle = document.getElementById("fileButtonMiddle"),
-        fileInputMiddle = document.getElementById("fileInputMiddle");
-    var fileButtonRight = document.getElementById("fileButtonRight"),
-        fileInputRight = document.getElementById("fileInputRight");
+    var fileButtonLeft = $("#fileButtonLeft");
+    var fileInputLeft = $("#fileInputLeft");
+    fileButtonLeft.click(function() { 
+        fileInputLeft.click()});
+
+    var fileButtonMiddle = $("#fileButtonMiddle");
+    var fileInputMiddle = $("#fileInputMiddle");
+    fileButtonLeft.click(function() {
+        fileInputMiddle.click()});
+
+    var fileButtonRight = $("#fileButtonRight");
+    var fileInputRight = $("#fileInputRight");
+    fileButtonRight.click(function() {
+        fileInputRight.click()});
 
     // hook into slider
     $('#ex1').slider({
@@ -22,9 +31,41 @@ $(document).ready(function() {
             $('#currentVertScaleLabel').text(value);
         }
     });
+
+    var user_args = {};
+    var urlparts = window.location.href.split("?");
+    console.dir(urlparts);
+    if (urlparts.length > 1) 
+    {
+        var query = new URLSearchParams(urlparts[1]);
+        if (query.has("shuffle")) {
+            user_args['shuffle'] = query.get("shuffle");
+        }
+        if (query.has("left") && query.has("right"))
+        {
+            leftURL = query.get("left");
+            rightURL = query.get("right");
+            // Show input files on the title bar
+            document.title += " " + leftURL + " vs " + rightURL;
+            // set buttons as they would be if file uploaded
+            // deactivate left button
+            fileButtonRight.addClass("btn-pass");
+            fileButtonRight.attr('disabled', 'disabled');
+            fileButtonRight.innerHTML = rightURL; // name is used in graph code
+            // deactivate middle button
+            fileButtonMiddle.addClass("btn-pass");
+            fileButtonMiddle.attr('disabled', 'disabled');
+            // deactivate right button
+            fileButtonLeft.addClass("btn-pass");
+            fileButtonLeft.attr('disabled', 'disabled');
+            fileButtonLeft.innerHTML = leftURL; // name is used in graph code
+            //render_cophylogeny('#middle_container', 'unnamed', leftURL, rightURL, 700, user_args);
+            return;
+        }
+    }
 });
 
-},{"./lib/CoPhylogenyGraph":2,"bootstrap":5,"bootstrap-slider":4,"jquery":47}],2:[function(require,module,exports){
+},{"./lib/CoPhylogenyGraph":2,"bootstrap":5,"bootstrap-slider":4,"jquery":47,"url-search-params":72}],2:[function(require,module,exports){
 /*
  * Copyright 2017 David C. King and Mark Stenglein.
  * Using ECMAScript 2015 class definition wrapper around prototype inheritance.
@@ -19057,7 +19098,7 @@ exports.xml = xml;
 exports.csv = csv;
 exports.tsv = tsv;
 
-},{"d3-collection":15,"d3-dispatch":17,"d3-dsv":19,"xmlhttprequest":75}],32:[function(require,module,exports){
+},{"d3-collection":15,"d3-dispatch":17,"d3-dsv":19,"xmlhttprequest":76}],32:[function(require,module,exports){
 // https://d3js.org/d3-scale/ Version 1.0.7. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array'), require('d3-collection'), require('d3-interpolate'), require('d3-format'), require('d3-time'), require('d3-time-format'), require('d3-color')) :
@@ -26830,7 +26871,7 @@ function validateParams (params) {
   return params
 }
 
-},{"http":56,"url":72}],44:[function(require,module,exports){
+},{"http":56,"url":73}],44:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -40767,7 +40808,7 @@ http.METHODS = [
 	'UNSUBSCRIBE'
 ]
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./lib/request":58,"./lib/response":59,"builtin-status-codes":9,"url":72,"xtend":76}],57:[function(require,module,exports){
+},{"./lib/request":58,"./lib/response":59,"builtin-status-codes":9,"url":73,"xtend":77}],57:[function(require,module,exports){
 (function (global){
 exports.fetch = isFunction(global.fetch) && isFunction(global.ReadableStream)
 
@@ -43464,7 +43505,7 @@ Writable.prototype._destroy = function (err, cb) {
   cb(err);
 };
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./_stream_duplex":61,"./internal/streams/destroy":67,"./internal/streams/stream":68,"_process":50,"core-util-is":10,"inherits":45,"process-nextick-args":49,"safe-buffer":55,"util-deprecate":74}],66:[function(require,module,exports){
+},{"./_stream_duplex":61,"./internal/streams/destroy":67,"./internal/streams/stream":68,"_process":50,"core-util-is":10,"inherits":45,"process-nextick-args":49,"safe-buffer":55,"util-deprecate":75}],66:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -43927,6 +43968,313 @@ module.exports = function (buf) {
 }
 
 },{"buffer":8}],72:[function(require,module,exports){
+(function (global){
+/*!
+Copyright (C) 2015-2017 Andrea Giammarchi - @WebReflection
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+*/
+'use strict';
+
+function URLSearchParams(query) {
+  var
+    index, key, value,
+    pairs, i, length,
+    dict = Object.create(null)
+  ;
+  this[secret] = dict;
+  if (!query) return;
+  if (typeof query === 'string') {
+    if (query.charAt(0) === '?') {
+      query = query.slice(1);
+    }
+    for (
+      pairs = query.split('&'),
+      i = 0,
+      length = pairs.length; i < length; i++
+    ) {
+      value = pairs[i];
+      index = value.indexOf('=');
+      if (-1 < index) {
+        appendTo(
+          dict,
+          decode(value.slice(0, index)),
+          decode(value.slice(index + 1))
+        );
+      } else if (value.length){
+        appendTo(
+          dict,
+          decode(value),
+          ''
+        );
+      }
+    }
+  } else {
+    if (isArray(query)) {
+      for (
+        i = 0,
+        length = query.length; i < length; i++
+      ) {
+        value = query[i];
+        appendTo(dict, value[0], value[1]);
+      }
+    } else {
+      for (key in query) {
+         appendTo(dict, key, query[key]);
+      }
+    }
+  }
+}
+
+var
+  isArray = Array.isArray,
+  URLSearchParamsProto = URLSearchParams.prototype,
+  find = /[!'\(\)~]|%20|%00/g,
+  plus = /\+/g,
+  replace = {
+    '!': '%21',
+    "'": '%27',
+    '(': '%28',
+    ')': '%29',
+    '~': '%7E',
+    '%20': '+',
+    '%00': '\x00'
+  },
+  replacer = function (match) {
+    return replace[match];
+  },
+  secret = '__URLSearchParams__:' + Math.random()
+;
+
+function appendTo(dict, name, value) {
+  if (name in dict) {
+    dict[name].push('' + value);
+  } else {
+    dict[name] = isArray(value) ? value : ['' + value];
+  }
+}
+
+function decode(str) {
+  return decodeURIComponent(str.replace(plus, ' '));
+}
+
+function encode(str) {
+  return encodeURIComponent(str).replace(find, replacer);
+}
+
+URLSearchParamsProto.append = function append(name, value) {
+  appendTo(this[secret], name, value);
+};
+
+URLSearchParamsProto.delete = function del(name) {
+  delete this[secret][name];
+};
+
+URLSearchParamsProto.get = function get(name) {
+  var dict = this[secret];
+  return name in dict ? dict[name][0] : null;
+};
+
+URLSearchParamsProto.getAll = function getAll(name) {
+  var dict = this[secret];
+  return name in dict ? dict[name].slice(0) : [];
+};
+
+URLSearchParamsProto.has = function has(name) {
+  return name in this[secret];
+};
+
+URLSearchParamsProto.set = function set(name, value) {
+  this[secret][name] = ['' + value];
+};
+
+URLSearchParamsProto.forEach = function forEach(callback, thisArg) {
+  var dict = this[secret];
+  Object.getOwnPropertyNames(dict).forEach(function(name) {
+    dict[name].forEach(function(value) {
+      callback.call(thisArg, value, name, this);
+    }, this);
+  }, this);
+};
+
+/*
+URLSearchParamsProto.toBody = function() {
+  return new Blob(
+    [this.toString()],
+    {type: 'application/x-www-form-urlencoded'}
+  );
+};
+*/
+
+URLSearchParamsProto.toJSON = function toJSON() {
+  return {};
+};
+
+URLSearchParamsProto.toString = function toString() {
+  var dict = this[secret], query = [], i, key, name, value;
+  for (key in dict) {
+    name = encode(key);
+    for (
+      i = 0,
+      value = dict[key];
+      i < value.length; i++
+    ) {
+      query.push(name + '=' + encode(value[i]));
+    }
+  }
+  return query.join('&');
+};
+
+URLSearchParams = (module.exports = global.URLSearchParams || URLSearchParams);
+
+(function (URLSearchParamsProto) {
+
+  var iterable = (function () {
+    try {
+      return !!Symbol.iterator;
+    } catch(error) {
+      return false;
+    }
+  }());
+
+  // mostly related to issue #24
+  if (!('forEach' in URLSearchParamsProto)) {
+    URLSearchParamsProto.forEach = function forEach(callback, thisArg) {
+      var names = Object.create(null);
+      this.toString()
+          .replace(/=[\s\S]*?(?:&|$)/g, '=')
+          .split('=')
+          .forEach(function (name) {
+            if (!name.length || name in names) return;
+            (names[name] = this.getAll(name)).forEach(function(value) {
+              callback.call(thisArg, value, name, this);
+            }, this);
+          }, this);
+    };
+  }
+
+  if (!('keys' in URLSearchParamsProto)) {
+    URLSearchParamsProto.keys = function keys() {
+      var items = [];
+      this.forEach(function(value, name) { items.push(name); });
+      var iterator = {
+        next: function() {
+          var value = items.shift();
+          return {done: value === undefined, value: value};
+        }
+      };
+
+      if (iterable) {
+        iterator[Symbol.iterator] = function() {
+          return iterator;
+        };
+      }
+
+      return iterator;
+    };
+  }
+
+  if (!('values' in URLSearchParamsProto)) {
+    URLSearchParamsProto.values = function values() {
+      var items = [];
+      this.forEach(function(value) { items.push(value); });
+      var iterator = {
+        next: function() {
+          var value = items.shift();
+          return {done: value === undefined, value: value};
+        }
+      };
+
+      if (iterable) {
+        iterator[Symbol.iterator] = function() {
+          return iterator;
+        };
+      }
+
+      return iterator;
+    };
+  }
+
+  if (!('entries' in URLSearchParamsProto)) {
+    URLSearchParamsProto.entries = function entries() {
+      var items = [];
+      this.forEach(function(value, name) { items.push([name, value]); });
+      var iterator = {
+        next: function() {
+          var value = items.shift();
+          return {done: value === undefined, value: value};
+        }
+      };
+
+      if (iterable) {
+        iterator[Symbol.iterator] = function() {
+          return iterator;
+        };
+      }
+
+      return iterator;
+    };
+  }
+
+  if (iterable && !(Symbol.iterator in URLSearchParamsProto)) {
+    URLSearchParamsProto[Symbol.iterator] = URLSearchParamsProto.entries;
+  }
+
+  if (!('sort' in URLSearchParamsProto)) {
+    URLSearchParamsProto.sort = function sort() {
+      var
+        entries = this.entries(),
+        entry = entries.next(),
+        done = entry.done,
+        keys = [],
+        values = Object.create(null),
+        i, key, value
+      ;
+      while (!done) {
+        value = entry.value;
+        key = value[0];
+        keys.push(key);
+        if (!(key in values)) {
+          values[key] = [];
+        }
+        values[key].push(value[1]);
+        entry = entries.next();
+        done = entry.done;
+      }
+      // not the champion in efficiency
+      // but these two bits just do the job
+      keys.sort();
+      for (i = 0; i < keys.length; i++) {
+        this.delete(keys[i]);
+      }
+      for (i = 0; i < keys.length; i++) {
+        key = keys[i];
+        this.append(key, values[key].shift());
+      }
+    };
+  }
+
+}(URLSearchParams.prototype));
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],73:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -44660,7 +45008,7 @@ Url.prototype.parseHost = function() {
   if (host) this.hostname = host;
 };
 
-},{"./util":73,"punycode":51,"querystring":54}],73:[function(require,module,exports){
+},{"./util":74,"punycode":51,"querystring":54}],74:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -44678,7 +45026,7 @@ module.exports = {
   }
 };
 
-},{}],74:[function(require,module,exports){
+},{}],75:[function(require,module,exports){
 (function (global){
 
 /**
@@ -44749,7 +45097,7 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],75:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 (function (process,Buffer){
 /**
  * Wrapper for built-in http.js to emulate the browser XMLHttpRequest object.
@@ -45373,7 +45721,7 @@ exports.XMLHttpRequest = function() {
 };
 
 }).call(this,require('_process'),require("buffer").Buffer)
-},{"_process":50,"buffer":8,"child_process":7,"fs":7,"http":56,"https":43,"url":72}],76:[function(require,module,exports){
+},{"_process":50,"buffer":8,"child_process":7,"fs":7,"http":56,"https":43,"url":73}],77:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
