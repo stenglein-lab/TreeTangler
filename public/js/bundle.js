@@ -5,6 +5,8 @@ var bootslider = require('bootstrap-slider');
 var cophylogeny = require('./lib/CoPhylogenyGraph');
 var processFile = require('./lib/processFile');
 var URLSearchParams = require('url-search-params');
+var Newick = require('newick');
+console.dir(URLSearchParams);
 $(document).ready(function() {
     // URL blobs needed for newick reader
     var leftURL = null,
@@ -14,7 +16,14 @@ $(document).ready(function() {
     var fileButtonLeft = $("#fileButtonLeft");
     var fileInputLeft = $("#fileInputLeft");
     fileInputLeft.change(function() {
-        processFile.processFile(this.files);
+        var file = this.files[0];
+        var filename = file.name;
+        // set a BLOB Left URL
+        fileButtonLeft.text(filename);
+        fileButtonLeft.removeClass(["btn-default"]);
+        fileButtonLeft.addClass(["btn-pass"]);
+        fileButtonLeft.attr("disabled","disabled");
+        leftURL = processFile.getBlobURL(file);
     });
     fileButtonLeft.click(function() { 
         fileInputLeft.click();
@@ -32,7 +41,14 @@ $(document).ready(function() {
     var fileButtonRight = $("#fileButtonRight");
     var fileInputRight = $("#fileInputRight");
     fileInputRight.change(function() {
-        processFile.processFile(this.files);
+        var file = this.files[0];
+        var filename = file.name;
+        // set a BLOB Right URL
+        fileButtonRight.text(filename);
+        fileButtonRight.removeClass(["btn-default"]);
+        fileButtonRight.addClass(["btn-pass"]);
+        fileButtonRight.attr("disabled","disabled");
+        rightURL = processFile.getBlobURL(file);
     });
     fileButtonRight.click(function() {
         fileInputRight.click();
@@ -47,12 +63,12 @@ $(document).ready(function() {
 
     var user_args = {};
     var urlparts = window.location.href.split("?");
-    console.dir(urlparts);
+
     if (urlparts.length > 1) 
     {
         var query = new URLSearchParams(urlparts[1]);
         if (query.has("shuffle")) {
-            user_args['shuffle'] = query.get("shuffle");
+            user_args.shuffle = query.get("shuffle");
         }
         if (query.has("left") && query.has("right"))
         {
@@ -78,7 +94,7 @@ $(document).ready(function() {
     }
 });
 
-},{"./lib/CoPhylogenyGraph":2,"./lib/processFile":3,"bootstrap":6,"bootstrap-slider":5,"jquery":48,"url-search-params":73}],2:[function(require,module,exports){
+},{"./lib/CoPhylogenyGraph":2,"./lib/processFile":4,"bootstrap":7,"bootstrap-slider":6,"jquery":49,"newick":50,"url-search-params":75}],2:[function(require,module,exports){
 /*
  * Copyright 2017 David C. King and Mark Stenglein.
  * Using ECMAScript 2015 class definition wrapper around prototype inheritance.
@@ -1156,7 +1172,69 @@ var CoPhylogenyGraphModule = function() {};
 module.exports = CoPhylogenyGraphModule;
 module.exports.CoPhylogenyGraph = CoPhylogenyGraph;
 
-},{"d3":42}],3:[function(require,module,exports){
+},{"d3":43}],3:[function(require,module,exports){
+/*
+ I can't get the import to work from the npm require('newick'), so here's
+ the function I need.
+*/
+parse = function (s) {
+    var ancestors = []; 
+    var tree = {}; 
+    var tokens = s.split(/\s*(;|\(|\)|,|:)\s*/);
+    for (var i = 0; i < tokens.length; i++) {
+        var token = tokens[i];
+        switch (token) {
+            case '(': // new branchset
+                let paren_subtree = {}; 
+                tree.branchset = [paren_subtree];
+                ancestors.push(tree);
+                tree = paren_subtree;
+                break;
+            case ',': // another branch
+                let comma_subtree = {}; 
+                ancestors[ancestors.length - 1].branchset.push(comma_subtree);
+                tree = comma_subtree;
+                break;
+            case ')': // optional name next
+                tree = ancestors.pop();
+                break;
+            case ':': // optional length next
+                break;
+            default:
+                var x = tokens[i - 1]; 
+                if (x == ')' || x == '(' || x == ',') {
+                    tree.name = token;
+                } else if (x == ':') {
+                    tree.length = parseFloat(token);
+                }   
+        }   
+    }   
+    return tree;
+};  
+module.exports = function() {};
+module.exports.parse = parse;
+
+},{}],4:[function(require,module,exports){
+var Newick = require('./newick');
+
+function getBlobURL(file)
+{
+    var fileURL = window.URL.createObjectURL(file);
+    return fileURL;
+}
+function processUploadedNewick(file, aftermath)
+{
+    console.log("you are inside processUploadedNewick()");
+    var reader = new FileReader();
+    reader.readAsText(file);
+    reader.onload = function(evt)
+    {
+        var filetext = evt.target.result;
+        nw = Newick.parse(filetext);
+        console.dir(nw);
+        //aftermath(nw);
+    };
+}
 function processFile(files)
 {
     console.log("you are inside processFile()");
@@ -1186,6 +1264,7 @@ function processFile(files)
             }
             line = lineGenerator.next();
         }
+        
     };
 
 }
@@ -1211,9 +1290,11 @@ class FileByLines  {
 
 module.exports = function() {};
 module.exports.processFile = processFile;
+module.exports.getBlobURL = getBlobURL;
+module.exports.processUploadedNewick = processUploadedNewick;
 
 
-},{}],4:[function(require,module,exports){
+},{"./newick":3}],5:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -1329,7 +1410,7 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 /*! =======================================================
                       VERSION  10.0.0              
 ========================================================= */
@@ -3205,7 +3286,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 	return Slider;
 });
 
-},{"jquery":48}],6:[function(require,module,exports){
+},{"jquery":49}],7:[function(require,module,exports){
 /*!
   * Bootstrap v4.0.0 (https://getbootstrap.com)
   * Copyright 2011-2018 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
@@ -7101,11 +7182,11 @@ Object.defineProperty(exports, '__esModule', { value: true });
 })));
 
 
-},{"jquery":48,"popper.js":49}],7:[function(require,module,exports){
+},{"jquery":49,"popper.js":51}],8:[function(require,module,exports){
 
-},{}],8:[function(require,module,exports){
-arguments[4][7][0].apply(exports,arguments)
-},{"dup":7}],9:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],10:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -8821,7 +8902,7 @@ function numberIsNaN (obj) {
   return obj !== obj // eslint-disable-line no-self-compare
 }
 
-},{"base64-js":4,"ieee754":45}],10:[function(require,module,exports){
+},{"base64-js":5,"ieee754":46}],11:[function(require,module,exports){
 module.exports = {
   "100": "Continue",
   "101": "Switching Protocols",
@@ -8887,7 +8968,7 @@ module.exports = {
   "511": "Network Authentication Required"
 }
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 (function (Buffer){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -8998,7 +9079,7 @@ function objectToString(o) {
 }
 
 }).call(this,{"isBuffer":require("../../is-buffer/index.js")})
-},{"../../is-buffer/index.js":47}],12:[function(require,module,exports){
+},{"../../is-buffer/index.js":48}],13:[function(require,module,exports){
 // https://d3js.org/d3-array/ Version 1.2.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -9590,7 +9671,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 // https://d3js.org/d3-axis/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -9785,7 +9866,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 // https://d3js.org/d3-brush/ Version 1.0.4. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dispatch'), require('d3-drag'), require('d3-interpolate'), require('d3-selection'), require('d3-transition')) :
@@ -10354,7 +10435,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":18,"d3-drag":19,"d3-interpolate":26,"d3-selection":34,"d3-transition":39}],15:[function(require,module,exports){
+},{"d3-dispatch":19,"d3-drag":20,"d3-interpolate":27,"d3-selection":35,"d3-transition":40}],16:[function(require,module,exports){
 // https://d3js.org/d3-chord/ Version 1.0.4. Copyright 2017 Mike Bostock.
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array'), require('d3-path')) :
@@ -10586,7 +10667,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":12,"d3-path":27}],16:[function(require,module,exports){
+},{"d3-array":13,"d3-path":28}],17:[function(require,module,exports){
 // https://d3js.org/d3-collection/ Version 1.0.4. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -10805,7 +10886,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 // https://d3js.org/d3-color/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -11330,7 +11411,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 // https://d3js.org/d3-dispatch/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -11427,7 +11508,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 // https://d3js.org/d3-drag/ Version 1.2.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dispatch'), require('d3-selection')) :
@@ -11663,7 +11744,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":18,"d3-selection":34}],20:[function(require,module,exports){
+},{"d3-dispatch":19,"d3-selection":35}],21:[function(require,module,exports){
 // https://d3js.org/d3-dsv/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -11827,7 +11908,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 // https://d3js.org/d3-ease/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -12088,7 +12169,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 // https://d3js.org/d3-force/ Version 1.1.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-quadtree'), require('d3-collection'), require('d3-dispatch'), require('d3-timer')) :
@@ -12750,7 +12831,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-collection":16,"d3-dispatch":18,"d3-quadtree":29,"d3-timer":38}],23:[function(require,module,exports){
+},{"d3-collection":17,"d3-dispatch":19,"d3-quadtree":30,"d3-timer":39}],24:[function(require,module,exports){
 // https://d3js.org/d3-format/ Version 1.2.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -13083,7 +13164,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 // https://d3js.org/d3-geo/ Version 1.9.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array')) :
@@ -16130,7 +16211,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":12}],25:[function(require,module,exports){
+},{"d3-array":13}],26:[function(require,module,exports){
 // https://d3js.org/d3-hierarchy/ Version 1.1.5. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -17419,7 +17500,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],26:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 // https://d3js.org/d3-interpolate/ Version 1.1.6. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-color')) :
@@ -17966,7 +18047,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":17}],27:[function(require,module,exports){
+},{"d3-color":18}],28:[function(require,module,exports){
 // https://d3js.org/d3-path/ Version 1.0.5. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -18109,7 +18190,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],28:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 // https://d3js.org/d3-polygon/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -18261,7 +18342,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],29:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 // https://d3js.org/d3-quadtree/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -18698,7 +18779,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],30:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 // https://d3js.org/d3-queue/ Version 3.0.7. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -18834,7 +18915,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],31:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 // https://d3js.org/d3-random/ Version 1.1.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -18951,7 +19032,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],32:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 'use strict';
 
 var XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
@@ -19168,7 +19249,7 @@ exports.xml = xml;
 exports.csv = csv;
 exports.tsv = tsv;
 
-},{"d3-collection":16,"d3-dispatch":18,"d3-dsv":20,"xmlhttprequest":77}],33:[function(require,module,exports){
+},{"d3-collection":17,"d3-dispatch":19,"d3-dsv":21,"xmlhttprequest":79}],34:[function(require,module,exports){
 // https://d3js.org/d3-scale/ Version 1.0.7. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array'), require('d3-collection'), require('d3-interpolate'), require('d3-format'), require('d3-time'), require('d3-time-format'), require('d3-color')) :
@@ -20095,7 +20176,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":12,"d3-collection":16,"d3-color":17,"d3-format":23,"d3-interpolate":26,"d3-time":37,"d3-time-format":36}],34:[function(require,module,exports){
+},{"d3-array":13,"d3-collection":17,"d3-color":18,"d3-format":24,"d3-interpolate":27,"d3-time":38,"d3-time-format":37}],35:[function(require,module,exports){
 // https://d3js.org/d3-selection/ Version 1.2.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -21074,7 +21155,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],35:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 // https://d3js.org/d3-shape/ Version 1.2.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-path')) :
@@ -23011,7 +23092,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-path":27}],36:[function(require,module,exports){
+},{"d3-path":28}],37:[function(require,module,exports){
 // https://d3js.org/d3-time-format/ Version 2.1.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-time')) :
@@ -23701,7 +23782,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-time":37}],37:[function(require,module,exports){
+},{"d3-time":38}],38:[function(require,module,exports){
 // https://d3js.org/d3-time/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -24088,7 +24169,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],38:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 // https://d3js.org/d3-timer/ Version 1.0.7. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -24239,7 +24320,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],39:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 // https://d3js.org/d3-transition/ Version 1.1.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-dispatch'), require('d3-timer'), require('d3-interpolate'), require('d3-color'), require('d3-ease')) :
@@ -25028,7 +25109,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":17,"d3-dispatch":18,"d3-ease":21,"d3-interpolate":26,"d3-selection":34,"d3-timer":38}],40:[function(require,module,exports){
+},{"d3-color":18,"d3-dispatch":19,"d3-ease":22,"d3-interpolate":27,"d3-selection":35,"d3-timer":39}],41:[function(require,module,exports){
 // https://d3js.org/d3-voronoi/ Version 1.1.2. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -26029,7 +26110,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],41:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 // https://d3js.org/d3-zoom/ Version 1.7.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dispatch'), require('d3-drag'), require('d3-interpolate'), require('d3-selection'), require('d3-transition')) :
@@ -26533,7 +26614,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":18,"d3-drag":19,"d3-interpolate":26,"d3-selection":34,"d3-transition":39}],42:[function(require,module,exports){
+},{"d3-dispatch":19,"d3-drag":20,"d3-interpolate":27,"d3-selection":35,"d3-transition":40}],43:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -26604,7 +26685,7 @@ Object.keys(d3Voronoi).forEach(function (key) { exports[key] = d3Voronoi[key]; }
 Object.keys(d3Zoom).forEach(function (key) { exports[key] = d3Zoom[key]; });
 Object.defineProperty(exports, "event", {get: function() { return d3Selection.event; }});
 
-},{"d3-array":12,"d3-axis":13,"d3-brush":14,"d3-chord":15,"d3-collection":16,"d3-color":17,"d3-dispatch":18,"d3-drag":19,"d3-dsv":20,"d3-ease":21,"d3-force":22,"d3-format":23,"d3-geo":24,"d3-hierarchy":25,"d3-interpolate":26,"d3-path":27,"d3-polygon":28,"d3-quadtree":29,"d3-queue":30,"d3-random":31,"d3-request":32,"d3-scale":33,"d3-selection":34,"d3-shape":35,"d3-time":37,"d3-time-format":36,"d3-timer":38,"d3-transition":39,"d3-voronoi":40,"d3-zoom":41}],43:[function(require,module,exports){
+},{"d3-array":13,"d3-axis":14,"d3-brush":15,"d3-chord":16,"d3-collection":17,"d3-color":18,"d3-dispatch":19,"d3-drag":20,"d3-dsv":21,"d3-ease":22,"d3-force":23,"d3-format":24,"d3-geo":25,"d3-hierarchy":26,"d3-interpolate":27,"d3-path":28,"d3-polygon":29,"d3-quadtree":30,"d3-queue":31,"d3-random":32,"d3-request":33,"d3-scale":34,"d3-selection":35,"d3-shape":36,"d3-time":38,"d3-time-format":37,"d3-timer":39,"d3-transition":40,"d3-voronoi":41,"d3-zoom":42}],44:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -26908,7 +26989,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],44:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 var http = require('http')
 var url = require('url')
 
@@ -26941,7 +27022,7 @@ function validateParams (params) {
   return params
 }
 
-},{"http":57,"url":74}],45:[function(require,module,exports){
+},{"http":59,"url":76}],46:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -27027,7 +27108,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],46:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -27052,7 +27133,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],47:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 /*!
  * Determine if an object is a Buffer
  *
@@ -27075,7 +27156,7 @@ function isSlowBuffer (obj) {
   return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
-},{}],48:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v3.2.1
  * https://jquery.com/
@@ -37330,7 +37411,382 @@ if ( !noGlobal ) {
 return jQuery;
 } );
 
-},{}],49:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
+'use strict';
+
+/**
+ * Newick format parser in JavaScript.
+ *
+ * Copyright (c) Jason Davies 2010, Thomas Sibley 2014, Kir Tribunsky 2015.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ * Example tree (from http://en.wikipedia.org/wiki/Newick_format):
+ *
+ * +--0.1--A
+ * F-----0.2-----B            +-------0.3----C
+ * +------------------0.5-----E
+ *                            +---------0.4------D
+ *
+ * Newick format:
+ * (A:0.1,B:0.2,(C:0.3,D:0.4)E:0.5)F;
+ *
+ * Converted to JSON:
+ * {
+ *   name: "F",
+ *   branchset: [
+ *     {name: "A", length: 0.1},
+ *     {name: "B", length: 0.2},
+ *     {
+ *       name: "E",
+ *       length: 0.5,
+ *       branchset: [
+ *         {name: "C", length: 0.3},
+ *         {name: "D", length: 0.4}
+ *       ]
+ *     }
+ *   ]
+ * }
+ *
+ * Converted to JSON, but with no names or lengths:
+ * {
+ *   branchset: [
+ *     {}, {}, {
+ *       branchset: [{}, {}]
+ *     }
+ *   ]
+ * }
+ */
+
+(function () {
+    /**
+     *
+     * @param {string|object} data Input data
+     * @constructor
+     */
+    function Newick(data) {
+        var self = this;
+
+        var tree = cast(data);
+
+        /**
+         * Returns a root of the tree
+         * @public
+         * @returns {string}
+         */
+        self.getRoot = function () {
+            return _getRoot(tree);
+        };
+
+        /**
+         * Depth-first search
+         * @public
+         * @param [nodeCallback]
+         * @returns {object}
+         */
+        self.dfs = function (nodeCallback) {
+            tree = _dfs(tree, nodeCallback);
+            return tree;
+        };
+
+        /**
+         * Maps each node with operation
+         * @public
+         * @param callback
+         */
+        self.map = function (callback) {
+            tree = _map(tree, callback);
+        };
+
+        /**
+         * Returns normalized tree in [0; 1]
+         * @public
+         */
+        self.normalize = function () {
+            tree = _normalize(tree);
+        };
+
+        /**
+         * Serializes tree
+         * @public
+         * @returns {string}
+         */
+        self.serialize = function () {
+            return _serialize(tree);
+        };
+
+        /**
+         * Serializes tree
+         * @public
+         * @override
+         * @return {string}
+         */
+        self.toString = function () {
+            return self.serialize();
+        };
+
+        /**
+         * Clones Newick object
+         * @public
+         * @return {Newick}
+         */
+        self.clone = function () {
+            return new Newick(tree);
+        };
+
+        /**
+         * Check if trees are equal
+         * @public
+         * @param {Newick} anotherTree
+         * @return {boolean}
+         */
+        self.equal = function (anotherTree) {
+            return self.serialize().toLowerCase() === anotherTree.serialize().toLowerCase();
+        };
+    }
+
+    /**
+     * Parse Newick string into tree-object
+     * @static
+     * @param {string} s Newick string
+     * @return {object}
+     *
+     * @example
+     * var treeString = '(A:0.1,B:0.2,(C:0.3,D:0.4)E:0.5)F;';
+     * var tree = Newick.parse(treeString);
+     */
+    Newick.parse = function (s) {
+        var ancestors = [];
+        var tree = {};
+        var tokens = s.split(/\s*(;|\(|\)|,|:)\s*/);
+        for (var i = 0; i < tokens.length; i++) {
+            var token = tokens[i];
+            switch (token) {
+                case '(': // new branchset
+                    var subtree = {};
+                    tree.branchset = [subtree];
+                    ancestors.push(tree);
+                    tree = subtree;
+                    break;
+                case ',': // another branch
+                    var subtree = {};
+                    ancestors[ancestors.length - 1].branchset.push(subtree);
+                    tree = subtree;
+                    break;
+                case ')': // optional name next
+                    tree = ancestors.pop();
+                    break;
+                case ':': // optional length next
+                    break;
+                default:
+                    var x = tokens[i - 1];
+                    if (x == ')' || x == '(' || x == ',') {
+                        tree.name = token;
+                    } else if (x == ':') {
+                        tree.length = parseFloat(token);
+                    }
+            }
+        }
+        return tree;
+    };
+
+    /**
+     * Casts tree or string to tree-object
+     * @private
+     * @param {string|object} s Newick-string or tree-object
+     * @returns {object}
+     */
+    function cast(s) {
+        if (typeof s == 'string') {
+            try {
+                s = JSON.parse(s);
+            } catch (e) {
+                s = Newick.parse(s);
+            }
+        }
+        return s;
+    }
+
+    /**
+     * Returns a root of the tree
+     * @static
+     * @param {string|object} tree Newick-string or tree-object
+     * @returns {string}
+     */
+    Newick.getRoot = function (tree) {
+        return getRoot(tree);
+    };
+
+    /**
+     * Returns a root of the tree
+     * @private
+     * @param {string|object} tree Newick-string or tree-object
+     * @returns {string}
+     */
+    function getRoot(tree) {
+        tree = cast(tree);
+        for (var i in tree) {
+            if (tree.hasOwnProperty(i) && i == 'name') {
+                return tree[i];
+            }
+        }
+    }
+
+    /**
+     * Depth-first search
+     * @static
+     * @param {string|object} tree Newick-string or tree-object
+     * @param [nodeCallback]
+     * @returns {object}
+     */
+    Newick.dfs = function (tree, nodeCallback) {
+        nodeCallback = nodeCallback || function (e) {
+                return e;
+            };
+
+        var vertex = {};
+
+        function _local_dfs(tree) {
+            var branchset = tree.branchset || [];
+            if (branchset.length !== 0) {
+                for (var i = 0; i < branchset.length; i++) {
+                    vertex[branchset[i].name] = branchset[i].length;
+                    tree.branchset[i] = nodeCallback(tree.branchset[i]);
+                    _local_dfs(branchset[i]);
+                }
+            }
+        }
+
+        tree = cast(tree);
+        _local_dfs(tree);
+        return vertex;
+    };
+
+    /**
+     * Maps each node with operation
+     * @static
+     * @param {string|object} tree Newick-string or tree-object
+     * @param {Function} callback Callback will be applied for each node
+     * @returns {object}
+     */
+    Newick.map = function (tree, callback) {
+        callback = callback || function (e) {
+                return e;
+            };
+        tree = cast(tree);
+        Newick.dfs(tree, null, callback);
+        return tree;
+    };
+
+    Newick.drown = function (s) {
+        s = cast(s);
+        function _local_drown(tree) {
+            var branchset = tree.branchset || [];
+            if (tree.hasOwnProperty('length')) {
+                var s = 0;
+                for (var i = 0; i < branchset.length; i++) {
+                    s += branchset[i].length;
+                }
+                var x = tree.length / s;
+                for (var i = 0; i < branchset.length; i++) {
+                    branchset[i].length += branchset[i].length * x;
+                }
+                if (branchset.length != 0) {
+                    tree.length = 0;
+                }
+                console.log(tree);
+            }
+            for (var i = 0; i < branchset.length; i++) {
+                _local_drown(branchset[i]);
+            }
+        }
+
+        _local_drown(s);
+        return s;
+    };
+
+    /**
+     * Returns normalized tree in [0; 1]
+     * @static
+     * @param {string|object} s Newick-string or tree-object
+     * @returns {object}
+     */
+    Newick.normalize = function (s) {
+        s = cast(s);
+        function _local_normalize(tree) {
+            var vertex = Newick.dfs(tree);
+            var total = 0;
+            for (var i in vertex) {
+                if (vertex.hasOwnProperty(i)) {
+                    total += vertex[i];
+                }
+            }
+            Newick.dfs(tree, null, function (e) {
+                e.length = (e.length) / total;
+                return e;
+            });
+            return tree;
+        }
+
+        return _local_normalize(s);
+    };
+
+    /**
+     * Serializes tree
+     * @static
+     * @param {object} tree Newick-string or tree-object
+     * @returns {string}
+     */
+    Newick.serialize = function (tree) {
+        tree = cast(tree);
+        return serialize(tree) + ";";
+    };
+
+    function serialize(node) {
+        var newick = "";
+        if (node.branchset && node.branchset.length)
+            newick += "(" + node.branchset.map(serialize).join(",") + ")";
+        if (node.name != null)
+            newick += node.name;
+        if (node.length != null)
+            newick += ":" + node.length;
+        return newick;
+    }
+
+    /**
+     * Checks if two trees are equal
+     * @param {Newick} tree1
+     * @param {Newick} tree2
+     * @return {boolean}
+     */
+    Newick.equals = function (tree1, tree2) {
+        return tree1.equal(tree2);
+    };
+
+    if (typeof window !== "undefined") {
+        window.Newick = Newick;
+    } else {
+        module.exports = Newick;
+    }
+
+})();
+},{}],51:[function(require,module,exports){
 (function (global){
 /**!
  * @fileOverview Kickass library to create and place poppers near their reference elements.
@@ -39779,7 +40235,7 @@ return Popper;
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],50:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -39826,7 +40282,7 @@ function nextTick(fn, arg1, arg2, arg3) {
 }
 
 }).call(this,require('_process'))
-},{"_process":51}],51:[function(require,module,exports){
+},{"_process":53}],53:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -40012,7 +40468,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],52:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 (function (global){
 /*! https://mths.be/punycode v1.4.1 by @mathias */
 ;(function(root) {
@@ -40549,7 +41005,7 @@ process.umask = function() { return 0; };
 }(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],53:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -40635,7 +41091,7 @@ var isArray = Array.isArray || function (xs) {
   return Object.prototype.toString.call(xs) === '[object Array]';
 };
 
-},{}],54:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -40722,13 +41178,13 @@ var objectKeys = Object.keys || function (obj) {
   return res;
 };
 
-},{}],55:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 'use strict';
 
 exports.decode = exports.parse = require('./decode');
 exports.encode = exports.stringify = require('./encode');
 
-},{"./decode":53,"./encode":54}],56:[function(require,module,exports){
+},{"./decode":55,"./encode":56}],58:[function(require,module,exports){
 /* eslint-disable node/no-deprecated-api */
 var buffer = require('buffer')
 var Buffer = buffer.Buffer
@@ -40792,7 +41248,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
   return buffer.SlowBuffer(size)
 }
 
-},{"buffer":9}],57:[function(require,module,exports){
+},{"buffer":10}],59:[function(require,module,exports){
 (function (global){
 var ClientRequest = require('./lib/request')
 var IncomingMessage = require('./lib/response')
@@ -40878,7 +41334,7 @@ http.METHODS = [
 	'UNSUBSCRIBE'
 ]
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./lib/request":59,"./lib/response":60,"builtin-status-codes":10,"url":74,"xtend":78}],58:[function(require,module,exports){
+},{"./lib/request":61,"./lib/response":62,"builtin-status-codes":11,"url":76,"xtend":80}],60:[function(require,module,exports){
 (function (global){
 exports.fetch = isFunction(global.fetch) && isFunction(global.ReadableStream)
 
@@ -40955,7 +41411,7 @@ function isFunction (value) {
 xhr = null // Help gc
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],59:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 (function (process,global,Buffer){
 var capability = require('./capability')
 var inherits = require('inherits')
@@ -41282,7 +41738,7 @@ var unsafeHeaders = [
 ]
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"./capability":58,"./response":60,"_process":51,"buffer":9,"inherits":46,"readable-stream":70,"to-arraybuffer":72}],60:[function(require,module,exports){
+},{"./capability":60,"./response":62,"_process":53,"buffer":10,"inherits":47,"readable-stream":72,"to-arraybuffer":74}],62:[function(require,module,exports){
 (function (process,global,Buffer){
 var capability = require('./capability')
 var inherits = require('inherits')
@@ -41503,14 +41959,14 @@ IncomingMessage.prototype._onXHRProgress = function () {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"./capability":58,"_process":51,"buffer":9,"inherits":46,"readable-stream":70}],61:[function(require,module,exports){
+},{"./capability":60,"_process":53,"buffer":10,"inherits":47,"readable-stream":72}],63:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],62:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -41635,7 +42091,7 @@ function forEach(xs, f) {
     f(xs[i], i);
   }
 }
-},{"./_stream_readable":64,"./_stream_writable":66,"core-util-is":11,"inherits":46,"process-nextick-args":50}],63:[function(require,module,exports){
+},{"./_stream_readable":66,"./_stream_writable":68,"core-util-is":12,"inherits":47,"process-nextick-args":52}],65:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -41683,7 +42139,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":65,"core-util-is":11,"inherits":46}],64:[function(require,module,exports){
+},{"./_stream_transform":67,"core-util-is":12,"inherits":47}],66:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -42693,7 +43149,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./_stream_duplex":62,"./internal/streams/BufferList":67,"./internal/streams/destroy":68,"./internal/streams/stream":69,"_process":51,"core-util-is":11,"events":43,"inherits":46,"isarray":61,"process-nextick-args":50,"safe-buffer":56,"string_decoder/":71,"util":7}],65:[function(require,module,exports){
+},{"./_stream_duplex":64,"./internal/streams/BufferList":69,"./internal/streams/destroy":70,"./internal/streams/stream":71,"_process":53,"core-util-is":12,"events":44,"inherits":47,"isarray":63,"process-nextick-args":52,"safe-buffer":58,"string_decoder/":73,"util":8}],67:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -42908,7 +43364,7 @@ function done(stream, er, data) {
 
   return stream.push(null);
 }
-},{"./_stream_duplex":62,"core-util-is":11,"inherits":46}],66:[function(require,module,exports){
+},{"./_stream_duplex":64,"core-util-is":12,"inherits":47}],68:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -43575,7 +44031,7 @@ Writable.prototype._destroy = function (err, cb) {
   cb(err);
 };
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./_stream_duplex":62,"./internal/streams/destroy":68,"./internal/streams/stream":69,"_process":51,"core-util-is":11,"inherits":46,"process-nextick-args":50,"safe-buffer":56,"util-deprecate":76}],67:[function(require,module,exports){
+},{"./_stream_duplex":64,"./internal/streams/destroy":70,"./internal/streams/stream":71,"_process":53,"core-util-is":12,"inherits":47,"process-nextick-args":52,"safe-buffer":58,"util-deprecate":78}],69:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -43650,7 +44106,7 @@ module.exports = function () {
 
   return BufferList;
 }();
-},{"safe-buffer":56}],68:[function(require,module,exports){
+},{"safe-buffer":58}],70:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -43723,10 +44179,10 @@ module.exports = {
   destroy: destroy,
   undestroy: undestroy
 };
-},{"process-nextick-args":50}],69:[function(require,module,exports){
+},{"process-nextick-args":52}],71:[function(require,module,exports){
 module.exports = require('events').EventEmitter;
 
-},{"events":43}],70:[function(require,module,exports){
+},{"events":44}],72:[function(require,module,exports){
 exports = module.exports = require('./lib/_stream_readable.js');
 exports.Stream = exports;
 exports.Readable = exports;
@@ -43735,7 +44191,7 @@ exports.Duplex = require('./lib/_stream_duplex.js');
 exports.Transform = require('./lib/_stream_transform.js');
 exports.PassThrough = require('./lib/_stream_passthrough.js');
 
-},{"./lib/_stream_duplex.js":62,"./lib/_stream_passthrough.js":63,"./lib/_stream_readable.js":64,"./lib/_stream_transform.js":65,"./lib/_stream_writable.js":66}],71:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":64,"./lib/_stream_passthrough.js":65,"./lib/_stream_readable.js":66,"./lib/_stream_transform.js":67,"./lib/_stream_writable.js":68}],73:[function(require,module,exports){
 'use strict';
 
 var Buffer = require('safe-buffer').Buffer;
@@ -44008,7 +44464,7 @@ function simpleWrite(buf) {
 function simpleEnd(buf) {
   return buf && buf.length ? this.write(buf) : '';
 }
-},{"safe-buffer":56}],72:[function(require,module,exports){
+},{"safe-buffer":58}],74:[function(require,module,exports){
 var Buffer = require('buffer').Buffer
 
 module.exports = function (buf) {
@@ -44037,7 +44493,7 @@ module.exports = function (buf) {
 	}
 }
 
-},{"buffer":9}],73:[function(require,module,exports){
+},{"buffer":10}],75:[function(require,module,exports){
 (function (global){
 /*!
 Copyright (C) 2015-2017 Andrea Giammarchi - @WebReflection
@@ -44344,7 +44800,7 @@ URLSearchParams = (module.exports = global.URLSearchParams || URLSearchParams);
 }(URLSearchParams.prototype));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],74:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -45078,7 +45534,7 @@ Url.prototype.parseHost = function() {
   if (host) this.hostname = host;
 };
 
-},{"./util":75,"punycode":52,"querystring":55}],75:[function(require,module,exports){
+},{"./util":77,"punycode":54,"querystring":57}],77:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -45096,7 +45552,7 @@ module.exports = {
   }
 };
 
-},{}],76:[function(require,module,exports){
+},{}],78:[function(require,module,exports){
 (function (global){
 
 /**
@@ -45167,7 +45623,7 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],77:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 (function (process,Buffer){
 /**
  * Wrapper for built-in http.js to emulate the browser XMLHttpRequest object.
@@ -45791,7 +46247,7 @@ exports.XMLHttpRequest = function() {
 };
 
 }).call(this,require('_process'),require("buffer").Buffer)
-},{"_process":51,"buffer":9,"child_process":8,"fs":8,"http":57,"https":44,"url":74}],78:[function(require,module,exports){
+},{"_process":53,"buffer":10,"child_process":9,"fs":9,"http":59,"https":45,"url":76}],80:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;

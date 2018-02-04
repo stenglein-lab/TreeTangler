@@ -4,6 +4,8 @@ var bootslider = require('bootstrap-slider');
 var cophylogeny = require('./lib/CoPhylogenyGraph');
 var processFile = require('./lib/processFile');
 var URLSearchParams = require('url-search-params');
+var Newick = require('newick');
+console.dir(URLSearchParams);
 $(document).ready(function() {
     // URL blobs needed for newick reader
     var leftURL = null,
@@ -13,7 +15,14 @@ $(document).ready(function() {
     var fileButtonLeft = $("#fileButtonLeft");
     var fileInputLeft = $("#fileInputLeft");
     fileInputLeft.change(function() {
-        processFile.processFile(this.files);
+        var file = this.files[0];
+        var filename = file.name;
+        // set a BLOB Left URL
+        fileButtonLeft.text(filename);
+        fileButtonLeft.removeClass(["btn-default"]);
+        fileButtonLeft.addClass(["btn-pass"]);
+        fileButtonLeft.attr("disabled","disabled");
+        leftURL = processFile.getBlobURL(file);
     });
     fileButtonLeft.click(function() { 
         fileInputLeft.click();
@@ -31,7 +40,14 @@ $(document).ready(function() {
     var fileButtonRight = $("#fileButtonRight");
     var fileInputRight = $("#fileInputRight");
     fileInputRight.change(function() {
-        processFile.processFile(this.files);
+        var file = this.files[0];
+        var filename = file.name;
+        // set a BLOB Right URL
+        fileButtonRight.text(filename);
+        fileButtonRight.removeClass(["btn-default"]);
+        fileButtonRight.addClass(["btn-pass"]);
+        fileButtonRight.attr("disabled","disabled");
+        rightURL = processFile.getBlobURL(file);
     });
     fileButtonRight.click(function() {
         fileInputRight.click();
@@ -46,12 +62,12 @@ $(document).ready(function() {
 
     var user_args = {};
     var urlparts = window.location.href.split("?");
-    console.dir(urlparts);
+
     if (urlparts.length > 1) 
     {
         var query = new URLSearchParams(urlparts[1]);
         if (query.has("shuffle")) {
-            user_args['shuffle'] = query.get("shuffle");
+            user_args.shuffle = query.get("shuffle");
         }
         if (query.has("left") && query.has("right"))
         {
