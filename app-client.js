@@ -5,7 +5,13 @@ var cophylogeny = require('./lib/CoPhylogenyGraph');
 var processFile = require('./lib/processFile');
 var URLSearchParams = require('url-search-params');
 var Newick = require('newick');
-console.dir(URLSearchParams);
+
+/************
+* globals
+*************/
+userArgs = {};
+
+
 $(document).ready(function() {
     // URL blobs needed for newick reader
     var leftURL = null,
@@ -100,11 +106,30 @@ $(document).ready(function() {
     }
 });
 
+function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}) {
+    var container = d3.select(selector);
+    var w = container.style("width");
+    w = parseInt(w);
+    var h = height;
+
+    // in the multi-graphs, a function "clear" was called here to reset
+
+    var cophylogeny_fig = new cophylogeny.CoPhylogenyGraph(container, w, h, userArgs);
+
+    cophylogeny_fig.tree1_name = fileButtonLeft.innerHTML;
+    console.log("name1 is " + cophylogeny_fig.tree1_name);
+    cophylogeny_fig.tree2_name = fileButtonRight.innerHTML;
+    console.log("name2 is " + cophylogeny_fig.tree2_name);
+
+    // here the left-to-right mapping document is applied, 
+    // if it exists
+}
+
 function loadData(leftURL, rightURL) {
     getNewicksAsync(leftURL, rightURL)
         .then(nwTrees => // nwTrees: newick objects
         {
-            render_cophylogeny('middle_container','unnamed', nwTrees.left, nwTrees.right, 700, user_args);
+            render_cophylogeny('#middle_container','unnamed', nwTrees.left, nwTrees.right, 700, userArgs);
         })
         .catch(reason => {
             // there was an error
@@ -116,6 +141,8 @@ function loadData(leftURL, rightURL) {
 async function getNewicksAsync(leftURL, rightURL) {
     var leftNw = await processFile.getNewickFromURL(leftURL);
     var rightNw = await processFile.getNewickFromURL(rightURL);
+    console.log("getNewicksAsync:" + leftNw);
+    console.log("getNewicksAsync:" + rightNw);
     return {left:leftNw, right:rightNw};
 }
 /* jshint ignore: end */
