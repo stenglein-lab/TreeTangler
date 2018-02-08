@@ -23,6 +23,9 @@ $(document).ready(function() {
         fileButtonLeft.addClass(["btn-pass"]);
         fileButtonLeft.attr("disabled","disabled");
         leftURL = processFile.getBlobURL(file);
+        if (rightURL) {
+            loadData(leftURL, rightURL);
+        }
     });
     fileButtonLeft.click(function() { 
         fileInputLeft.click();
@@ -48,6 +51,9 @@ $(document).ready(function() {
         fileButtonRight.addClass(["btn-pass"]);
         fileButtonRight.attr("disabled","disabled");
         rightURL = processFile.getBlobURL(file);
+        if (leftURL) {
+            loadData(leftURL, rightURL);
+        }
     });
     fileButtonRight.click(function() {
         fileInputRight.click();
@@ -88,7 +94,28 @@ $(document).ready(function() {
             fileButtonLeft.attr('disabled', 'disabled');
             fileButtonLeft.innerHTML = leftURL; // name is used in graph code
             //render_cophylogeny('#middle_container', 'unnamed', leftURL, rightURL, 700, user_args);
+            loadData(leftURL, rightURL);
             return;
         }
     }
 });
+
+function loadData(leftURL, rightURL) {
+    getNewicksAsync(leftURL, rightURL)
+        .then(nwTrees => // nwTrees: newick objects
+        {
+            render_cophylogeny('middle_container','unnamed', nwTrees.left, nwTrees.right, 700, user_args);
+        })
+        .catch(reason => {
+            // there was an error
+            console.log(reason);
+        });
+}
+/* The JSHint does not recognize async/await */
+/* jshint ignore: start */
+async function getNewicksAsync(leftURL, rightURL) {
+    var leftNw = await processFile.getNewickFromURL(leftURL);
+    var rightNw = await processFile.getNewickFromURL(rightURL);
+    return {left:leftNw, right:rightNw};
+}
+/* jshint ignore: end */
