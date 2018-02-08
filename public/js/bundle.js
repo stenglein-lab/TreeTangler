@@ -115,7 +115,7 @@ function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}
 
     // in the multi-graphs, a function "clear" was called here to reset
 
-    var cophylogeny_fig = new cophylogeny.CoPhylogenyGraph(container, w, h, userArgs);
+    var cophylogeny_fig = new cophylogeny.CoPhylogenyGraph(container, w, h, leftNw, rightNw, userArgs);
 
     cophylogeny_fig.tree1_name = fileButtonLeft.innerHTML;
     console.log("name1 is " + cophylogeny_fig.tree1_name);
@@ -191,7 +191,7 @@ d3.hierarchy.prototype.childLinks = function() { // non-recursive generator for 
  * Connecting lines are drawn between the leaves of both trees.
  */
 class CoPhylogenyGraph {
-    constructor(selector, width, height, userArgs = {}) {
+    constructor(selector, width, height, leftNw, rightNw, userArgs = {}) {
         this.eventListeners = {};
         this.selector = selector; // canvas element in the DOM where drawing will take place
         this.width = width || selector.style('width') || selector.attr('width');
@@ -210,8 +210,8 @@ class CoPhylogenyGraph {
         /* initialize some member variables ********/
         this.bridgeMap = undefined;
         // native tree objects are json objects parsed by Newick.js
-        this.leftTree = null; // these are set by renderTrees(nw1,nw2), after the read-in code completes (synchronized by render, readBothNewickURLs)
-        this.rightTree = null;
+        this.leftTree = leftNw; // previously set by async call, this is now done outside CoPhylogeny
+        this.rightTree = rightNw;
         // varables act as globals during the node naming, unique for left and right trees
         this.leftTreeId = 0;
         this.rightTreeId = 0;

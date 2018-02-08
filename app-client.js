@@ -114,7 +114,7 @@ function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}
 
     // in the multi-graphs, a function "clear" was called here to reset
 
-    var cophylogeny_fig = new cophylogeny.CoPhylogenyGraph(container, w, h, userArgs);
+    var cophylogeny_fig = new cophylogeny.CoPhylogenyGraph(container, w, h, leftNw, rightNw, userArgs);
 
     cophylogeny_fig.tree1_name = fileButtonLeft.innerHTML;
     console.log("name1 is " + cophylogeny_fig.tree1_name);
