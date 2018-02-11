@@ -116,13 +116,16 @@ function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}
 
     var cophylogeny_fig = new cophylogeny.CoPhylogenyGraph(container, w, h, leftNw, rightNw, userArgs);
 
-    cophylogeny_fig.tree1_name = fileButtonLeft.innerHTML;
+    cophylogeny_fig.tree1_name = fileButtonLeft.innerHTML; // excessive WS is coming in from the HTML
     console.log("name1 is " + cophylogeny_fig.tree1_name);
     cophylogeny_fig.tree2_name = fileButtonRight.innerHTML;
     console.log("name2 is " + cophylogeny_fig.tree2_name);
 
     // here the left-to-right mapping document is applied, 
     // if it exists
+
+    // CoPhylogenyGraph.render sets up the graph
+    cophylogeny_fig.render(leftNw, rightNw, w, h);
 }
 
 function loadData(leftURL, rightURL) {

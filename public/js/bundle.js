@@ -117,13 +117,16 @@ function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}
 
     var cophylogeny_fig = new cophylogeny.CoPhylogenyGraph(container, w, h, leftNw, rightNw, userArgs);
 
-    cophylogeny_fig.tree1_name = fileButtonLeft.innerHTML;
+    cophylogeny_fig.tree1_name = fileButtonLeft.innerHTML; // excessive WS is coming in from the HTML
     console.log("name1 is " + cophylogeny_fig.tree1_name);
     cophylogeny_fig.tree2_name = fileButtonRight.innerHTML;
     console.log("name2 is " + cophylogeny_fig.tree2_name);
 
     // here the left-to-right mapping document is applied, 
     // if it exists
+
+    // CoPhylogenyGraph.render sets up the graph
+    cophylogeny_fig.render(leftNw, rightNw, w, h);
 }
 
 function loadData(leftURL, rightURL) {
@@ -148,7 +151,7 @@ async function getNewicksAsync(leftURL, rightURL) {
 }
 /* jshint ignore: end */
 
-},{"./lib/CoPhylogenyGraph":2,"./lib/processFile":4,"bootstrap":7,"bootstrap-slider":6,"jquery":49,"newick":50,"url-search-params":75}],2:[function(require,module,exports){
+},{"./lib/CoPhylogenyGraph":2,"./lib/processFile":5,"bootstrap":8,"bootstrap-slider":7,"jquery":50,"newick":51,"url-search-params":76}],2:[function(require,module,exports){
 /*
  * Copyright 2017 David C. King and Mark Stenglein.
  * Using ECMAScript 2015 class definition wrapper around prototype inheritance.
@@ -164,6 +167,7 @@ async function getNewicksAsync(leftURL, rightURL) {
  */
 
 d3 = require('d3');
+var SVGUtils = require('./SVGUtils');
 
 /* Extension to d3.hierarchy
  * Need a serial accessor that only returns one level at a time in order to build a truly hierarchical SVG.
@@ -438,8 +442,8 @@ class CoPhylogenyGraph {
                             // match actually returns an array of results, the 2nd element is the one we want
                             var seg_genotype_number = seg_genotype[1];
                             // we'll have to cycle through colors if more than in our scheme
-                            var color_index = seg_genotype_number % SVGUtils.color_scheme().length;
-                            return SVGUtils.color_scheme()[color_index];
+                            var color_index = seg_genotype_number % SVGUtils.SVGUtils.color_scheme().length;
+                            return SVGUtils.SVGUtils.color_scheme()[color_index];
                         }
                         else
                         {
@@ -577,8 +581,8 @@ class CoPhylogenyGraph {
         // this repositions nodes based on actual branch lengths
         if (rescale) {
             // actually the scale is on x
-            var yscale = SVGUtils.scaleBranchLengths(this.leftDescendants, this.svg_w - this.margin.left - this.margin.right, false);
-            yscale = SVGUtils.scaleBranchLengths(this.rightDescendants, this.svg_w - this.margin.left - this.margin.right, true);
+            var yscale = SVGUtils.SVGUtils.scaleBranchLengths(this.leftDescendants, this.svg_w - this.margin.left - this.margin.right, false);
+            yscale = SVGUtils.SVGUtils.scaleBranchLengths(this.rightDescendants, this.svg_w - this.margin.left - this.margin.right, true);
         }
 
         // shift everything down and right for the margins
@@ -605,7 +609,7 @@ class CoPhylogenyGraph {
         .text(this.tree2_name);
 
         // a fxn to create right angled edges connecting nodes
-        var diagonal = SVGUtils.rightAngleDiagonal();
+        var diagonal = SVGUtils.SVGUtils.rightAngleDiagonal();
         var cophy_obj = this;
         var id_str = function(node) {
             if (node) {
@@ -717,7 +721,7 @@ class CoPhylogenyGraph {
             .enter()
             .append("path")
             .attr("class", "link")
-            .attr("d", SVGUtils.rightAngleDiagonal())
+            .attr("d", SVGUtils.SVGUtils.rightAngleDiagonal())
             .attr("id", function(l) {
                 return cophy_obj.make_edge_id(l.source, l.target);
                 //return l.source.data.unique_id + "_to_" + l.target.data.unique_id;
@@ -882,7 +886,8 @@ class CoPhylogenyGraph {
     }
     
     // render(): called externally in tanglegram.js by render_cophylogeny(container,segment_id,newick_url_1,newick_url_2,height)
-    render(leftTreeURL, rightTreeURL) {
+    // asynchronous call has been moved outside of this function, operate on parsed newick objects
+    render(leftNw, rightNw) {
         // create an SVG canvas area
         this.overall_vis = this.selector.append("svg")
           .attr("width", this.svg_w)
@@ -912,8 +917,11 @@ class CoPhylogenyGraph {
             .attr("stop-color", "#F3F3F0")
             .attr("stop-opacity", ".5");
 
+        this.make_binary(leftNw);
+        this.make_binary(rightNw);
+        this.renderTrees(leftNw, rightNw);
         // since d3.text is asynchronous, handle through async/Promise construct
-        readBothNewickURLs(leftTreeURL, rightTreeURL)
+        /*readBothNewickURLs(leftTreeURL, rightTreeURL)
             .then(v => {
                 console.dir(v);
                 this.make_binary(v.nw1);
@@ -926,6 +934,7 @@ class CoPhylogenyGraph {
                 console.log(reason);
                 //console.log(reason.statusText + ": " + reason.responseURL);
             });
+        */
     }
     /* once the SVG tree has objects...
      * The following functions apply changes to the cophy object SVG
@@ -1226,7 +1235,172 @@ var CoPhylogenyGraphModule = function() {};
 module.exports = CoPhylogenyGraphModule;
 module.exports.CoPhylogenyGraph = CoPhylogenyGraph;
 
-},{"d3":43}],3:[function(require,module,exports){
+},{"./SVGUtils":3,"d3":44}],3:[function(require,module,exports){
+/*
+ * Static functions for drawing SVG elements
+ */
+class SVGUtils {
+    static color_scheme() { return  ["#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a","#b15928"]; }
+    // several functions copied from:
+    // from: https://gist.github.com/kueda/1036776
+    // Copyright (c) 2013, Ken-ichi Ueda
+    static rightAngleDiagonal()
+    {
+        var projection = function (d)
+        {
+            return [d.y, d.x];
+        }
+        var path = function (pathData)
+        {
+            return "M" + pathData[0] + ' ' + pathData[1] + " " + pathData[2];
+        }
+
+        function diagonal(diagonalPath, i)
+        {
+            var source = diagonalPath.source,
+                target = diagonalPath.target,
+                midpointX = (source.x + target.x) / 2,
+                midpointY = (source.y + target.y) / 2,
+                pathData = [source,
+                    {
+                        x: target.x,
+                        y: source.y
+                    },
+                    target
+                ];
+            pathData = pathData.map(projection);
+            return path(pathData)
+        }
+        diagonal.projection = function (x)
+        {
+            if (!arguments.length) return projection;
+            projection = x;
+            return diagonal;
+        };
+        diagonal.path = function (x)
+        {
+            if (!arguments.length) return path;
+            path = x;
+            return diagonal;
+        };
+        // this function returns a function
+        return diagonal;
+    }
+
+    static scaleBranchLengthsToWidth(nodes, width, inverted)
+    {
+        function visitPreOrder(root, callback)
+        {
+            callback(root)
+            if (root.children)
+            {
+                for (var i = root.children.length - 1; i >= 0; i--)
+                {
+                    visitPreOrder(root.children[i], callback)
+                };
+            }
+        }
+        function nodeSum(node) {
+            // rootdist is total distance from root node
+            //node.rootDist = (node.parent ? node.parent.rootDist : 0) + (node.length || 0);
+            if (node.parent) {
+                //console.log("nodeSum: node has parent:" + node.parent.rootDist);
+                //console.log("nodeSum: node.length:" + node.data.length);
+                node.rootDist = node.parent.rootDist + (node.data.length || 0);
+            }
+            else {
+                //console.log("nodeSum: node has no parent, use node.length || 0");
+                node.rootDist = node.data.length || 0;
+            }
+        }
+        visitPreOrder(nodes[0], nodeSum);
+        // an array of the root dists corresponding to nodes array
+        // map creates a new array based on other array and function 
+        var rootDists = nodes.map(function(n)
+        {
+            return n.rootDist;
+        });
+        var y_range = [0, width ]; // --> draw the tree all the way to "width"
+        if (inverted)
+        {
+            y_range = [width, 0]; // --> horizontally reflected
+        }
+        var yscale = d3.scaleLinear()
+            .domain([0, d3.max(rootDists)])
+            .range(y_range);
+
+        // here, we actually scale the tree node positions
+        // according to the actual branch lengths
+        visitPreOrder(nodes[0], function(node)
+        {
+            node.y = yscale(node.rootDist)
+        });
+        return yscale
+    } // end scaleBranchLengthsToWidth
+
+    // this function adjusts node positions (node y values) based on their branch lengths
+    static scaleBranchLengths(nodes, w, inverted)
+    {
+        //console.log("------------- scaleBranchLengths ------------");
+        // Visit all nodes and adjust y pos with distance metric
+        function visitPreOrder(root, callback)
+        {
+            callback(root)
+            if (root.children)
+            {
+                for (var i = root.children.length - 1; i >= 0; i--)
+                {
+                    visitPreOrder(root.children[i], callback)
+                };
+            }
+        }
+        function nodeSum(node) {
+            // rootdist is total distance from root node
+            //node.rootDist = (node.parent ? node.parent.rootDist : 0) + (node.length || 0);
+            if (node.parent) {
+                //console.log("nodeSum: node has parent:" + node.parent.rootDist);
+                //console.log("nodeSum: node.length:" + node.data.length);
+                node.rootDist = node.parent.rootDist + (node.data.length || 0);
+            }
+            else {
+                //console.log("nodeSum: node has no parent, use node.length || 0");
+                node.rootDist = node.data.length || 0;
+            }
+        }
+        visitPreOrder(nodes[0], nodeSum);
+
+        // an array of the root dists corresponding to nodes array
+        // map creates a new array based on other array and function 
+        var rootDists = nodes.map(function(n)
+        {
+            return n.rootDist;
+        });
+        //console.log(rootDists);
+        // var y_range = [0, (w / 3)]; // --> draw the tree on 1st 1/3 of the svg canvas
+        var y_range = [0, (w * 0.37)]; // --> draw the tree on 1st 37% of the svg canvas
+        //var y_range = [0, (w)]; // --> draw the tree on 1st 37% of the svg canvas
+        if (inverted)
+        {
+            // y_range = [w, (w * 2 / 3)]; // --> draw the tree vertically reflected on last 1/3 of the svg canvas
+            y_range = [w, (w * 0.63)]; // --> draw the tree vertically reflected on last 37% of the svg canvas
+        }
+        var yscale = d3.scaleLinear()
+            .domain([0, d3.max(rootDists)])
+            .range(y_range);
+        // here, we actually scale the tree node positions
+        // according to the actual branch lengths
+        visitPreOrder(nodes[0], function(node)
+        {
+            node.y = yscale(node.rootDist)
+        });
+        return yscale
+    } // end scaleBranchLengths
+} // end SVGUtils
+var SVGUtilsModule = function() {};
+module.exports = SVGUtilsModule;
+module.exports.SVGUtils = SVGUtils;
+
+},{}],4:[function(require,module,exports){
 /*
  I can't get the import to work from the npm require('newick'), so here's
  the function I need.
@@ -1268,7 +1442,7 @@ parse = function (s) {
 module.exports = function() {};
 module.exports.parse = parse;
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 var Newick = require('./newick');
 
 function getBlobURL(file)
@@ -1364,6 +1538,13 @@ function getNewickFromURL(url) {
 **/
     return new Promise(
         (resolve,reject) => {
+            console.log(`about to try URL: ${url}`);
+            console.dir(window);
+            // figure out a fully qualified URL here so it doesn't get
+            // lost in the depths of some library
+            url = window.location.origin + "/" + url;
+            console.log(`about to try URL: ${url}`);
+
             d3.text( url, function(error, parsed_text) {
                 if (error) {
                     console.log("rejecting: " + error); //  "rejecting [XMLHttpRequest]"
@@ -1393,7 +1574,7 @@ module.exports.processUploadedNewick = processUploadedNewick;
 module.exports.getNewickFromURL = getNewickFromURL;
 
 
-},{"./newick":3}],5:[function(require,module,exports){
+},{"./newick":4}],6:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -1509,7 +1690,7 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 /*! =======================================================
                       VERSION  10.0.0              
 ========================================================= */
@@ -3385,7 +3566,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 	return Slider;
 });
 
-},{"jquery":49}],7:[function(require,module,exports){
+},{"jquery":50}],8:[function(require,module,exports){
 /*!
   * Bootstrap v4.0.0 (https://getbootstrap.com)
   * Copyright 2011-2018 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
@@ -7281,11 +7462,11 @@ Object.defineProperty(exports, '__esModule', { value: true });
 })));
 
 
-},{"jquery":49,"popper.js":51}],8:[function(require,module,exports){
+},{"jquery":50,"popper.js":52}],9:[function(require,module,exports){
 
-},{}],9:[function(require,module,exports){
-arguments[4][8][0].apply(exports,arguments)
-},{"dup":8}],10:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],11:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -9001,7 +9182,7 @@ function numberIsNaN (obj) {
   return obj !== obj // eslint-disable-line no-self-compare
 }
 
-},{"base64-js":5,"ieee754":46}],11:[function(require,module,exports){
+},{"base64-js":6,"ieee754":47}],12:[function(require,module,exports){
 module.exports = {
   "100": "Continue",
   "101": "Switching Protocols",
@@ -9067,7 +9248,7 @@ module.exports = {
   "511": "Network Authentication Required"
 }
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 (function (Buffer){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -9178,7 +9359,7 @@ function objectToString(o) {
 }
 
 }).call(this,{"isBuffer":require("../../is-buffer/index.js")})
-},{"../../is-buffer/index.js":48}],13:[function(require,module,exports){
+},{"../../is-buffer/index.js":49}],14:[function(require,module,exports){
 // https://d3js.org/d3-array/ Version 1.2.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -9770,7 +9951,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 // https://d3js.org/d3-axis/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -9965,7 +10146,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 // https://d3js.org/d3-brush/ Version 1.0.4. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dispatch'), require('d3-drag'), require('d3-interpolate'), require('d3-selection'), require('d3-transition')) :
@@ -10534,7 +10715,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":19,"d3-drag":20,"d3-interpolate":27,"d3-selection":35,"d3-transition":40}],16:[function(require,module,exports){
+},{"d3-dispatch":20,"d3-drag":21,"d3-interpolate":28,"d3-selection":36,"d3-transition":41}],17:[function(require,module,exports){
 // https://d3js.org/d3-chord/ Version 1.0.4. Copyright 2017 Mike Bostock.
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array'), require('d3-path')) :
@@ -10766,7 +10947,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":13,"d3-path":28}],17:[function(require,module,exports){
+},{"d3-array":14,"d3-path":29}],18:[function(require,module,exports){
 // https://d3js.org/d3-collection/ Version 1.0.4. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -10985,7 +11166,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 // https://d3js.org/d3-color/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -11510,7 +11691,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 // https://d3js.org/d3-dispatch/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -11607,7 +11788,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 // https://d3js.org/d3-drag/ Version 1.2.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dispatch'), require('d3-selection')) :
@@ -11843,7 +12024,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":19,"d3-selection":35}],21:[function(require,module,exports){
+},{"d3-dispatch":20,"d3-selection":36}],22:[function(require,module,exports){
 // https://d3js.org/d3-dsv/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -12007,7 +12188,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 // https://d3js.org/d3-ease/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -12268,7 +12449,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 // https://d3js.org/d3-force/ Version 1.1.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-quadtree'), require('d3-collection'), require('d3-dispatch'), require('d3-timer')) :
@@ -12930,7 +13111,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-collection":17,"d3-dispatch":19,"d3-quadtree":30,"d3-timer":39}],24:[function(require,module,exports){
+},{"d3-collection":18,"d3-dispatch":20,"d3-quadtree":31,"d3-timer":40}],25:[function(require,module,exports){
 // https://d3js.org/d3-format/ Version 1.2.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -13263,7 +13444,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],25:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 // https://d3js.org/d3-geo/ Version 1.9.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array')) :
@@ -16310,7 +16491,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":13}],26:[function(require,module,exports){
+},{"d3-array":14}],27:[function(require,module,exports){
 // https://d3js.org/d3-hierarchy/ Version 1.1.5. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -17599,7 +17780,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],27:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 // https://d3js.org/d3-interpolate/ Version 1.1.6. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-color')) :
@@ -18146,7 +18327,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":18}],28:[function(require,module,exports){
+},{"d3-color":19}],29:[function(require,module,exports){
 // https://d3js.org/d3-path/ Version 1.0.5. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -18289,7 +18470,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],29:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 // https://d3js.org/d3-polygon/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -18441,7 +18622,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],30:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 // https://d3js.org/d3-quadtree/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -18878,7 +19059,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],31:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 // https://d3js.org/d3-queue/ Version 3.0.7. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -19014,7 +19195,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],32:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 // https://d3js.org/d3-random/ Version 1.1.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -19131,7 +19312,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],33:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 'use strict';
 
 var XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
@@ -19348,7 +19529,7 @@ exports.xml = xml;
 exports.csv = csv;
 exports.tsv = tsv;
 
-},{"d3-collection":17,"d3-dispatch":19,"d3-dsv":21,"xmlhttprequest":79}],34:[function(require,module,exports){
+},{"d3-collection":18,"d3-dispatch":20,"d3-dsv":22,"xmlhttprequest":80}],35:[function(require,module,exports){
 // https://d3js.org/d3-scale/ Version 1.0.7. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array'), require('d3-collection'), require('d3-interpolate'), require('d3-format'), require('d3-time'), require('d3-time-format'), require('d3-color')) :
@@ -20275,7 +20456,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":13,"d3-collection":17,"d3-color":18,"d3-format":24,"d3-interpolate":27,"d3-time":38,"d3-time-format":37}],35:[function(require,module,exports){
+},{"d3-array":14,"d3-collection":18,"d3-color":19,"d3-format":25,"d3-interpolate":28,"d3-time":39,"d3-time-format":38}],36:[function(require,module,exports){
 // https://d3js.org/d3-selection/ Version 1.2.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -21254,7 +21435,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],36:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 // https://d3js.org/d3-shape/ Version 1.2.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-path')) :
@@ -23191,7 +23372,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-path":28}],37:[function(require,module,exports){
+},{"d3-path":29}],38:[function(require,module,exports){
 // https://d3js.org/d3-time-format/ Version 2.1.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-time')) :
@@ -23881,7 +24062,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-time":38}],38:[function(require,module,exports){
+},{"d3-time":39}],39:[function(require,module,exports){
 // https://d3js.org/d3-time/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -24268,7 +24449,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],39:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 // https://d3js.org/d3-timer/ Version 1.0.7. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -24419,7 +24600,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],40:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 // https://d3js.org/d3-transition/ Version 1.1.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-dispatch'), require('d3-timer'), require('d3-interpolate'), require('d3-color'), require('d3-ease')) :
@@ -25208,7 +25389,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":18,"d3-dispatch":19,"d3-ease":22,"d3-interpolate":27,"d3-selection":35,"d3-timer":39}],41:[function(require,module,exports){
+},{"d3-color":19,"d3-dispatch":20,"d3-ease":23,"d3-interpolate":28,"d3-selection":36,"d3-timer":40}],42:[function(require,module,exports){
 // https://d3js.org/d3-voronoi/ Version 1.1.2. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -26209,7 +26390,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],42:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 // https://d3js.org/d3-zoom/ Version 1.7.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dispatch'), require('d3-drag'), require('d3-interpolate'), require('d3-selection'), require('d3-transition')) :
@@ -26713,7 +26894,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":19,"d3-drag":20,"d3-interpolate":27,"d3-selection":35,"d3-transition":40}],43:[function(require,module,exports){
+},{"d3-dispatch":20,"d3-drag":21,"d3-interpolate":28,"d3-selection":36,"d3-transition":41}],44:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -26784,7 +26965,7 @@ Object.keys(d3Voronoi).forEach(function (key) { exports[key] = d3Voronoi[key]; }
 Object.keys(d3Zoom).forEach(function (key) { exports[key] = d3Zoom[key]; });
 Object.defineProperty(exports, "event", {get: function() { return d3Selection.event; }});
 
-},{"d3-array":13,"d3-axis":14,"d3-brush":15,"d3-chord":16,"d3-collection":17,"d3-color":18,"d3-dispatch":19,"d3-drag":20,"d3-dsv":21,"d3-ease":22,"d3-force":23,"d3-format":24,"d3-geo":25,"d3-hierarchy":26,"d3-interpolate":27,"d3-path":28,"d3-polygon":29,"d3-quadtree":30,"d3-queue":31,"d3-random":32,"d3-request":33,"d3-scale":34,"d3-selection":35,"d3-shape":36,"d3-time":38,"d3-time-format":37,"d3-timer":39,"d3-transition":40,"d3-voronoi":41,"d3-zoom":42}],44:[function(require,module,exports){
+},{"d3-array":14,"d3-axis":15,"d3-brush":16,"d3-chord":17,"d3-collection":18,"d3-color":19,"d3-dispatch":20,"d3-drag":21,"d3-dsv":22,"d3-ease":23,"d3-force":24,"d3-format":25,"d3-geo":26,"d3-hierarchy":27,"d3-interpolate":28,"d3-path":29,"d3-polygon":30,"d3-quadtree":31,"d3-queue":32,"d3-random":33,"d3-request":34,"d3-scale":35,"d3-selection":36,"d3-shape":37,"d3-time":39,"d3-time-format":38,"d3-timer":40,"d3-transition":41,"d3-voronoi":42,"d3-zoom":43}],45:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -27088,7 +27269,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],45:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 var http = require('http')
 var url = require('url')
 
@@ -27121,7 +27302,7 @@ function validateParams (params) {
   return params
 }
 
-},{"http":59,"url":76}],46:[function(require,module,exports){
+},{"http":60,"url":77}],47:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -27207,7 +27388,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],47:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -27232,7 +27413,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],48:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 /*!
  * Determine if an object is a Buffer
  *
@@ -27255,7 +27436,7 @@ function isSlowBuffer (obj) {
   return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
-},{}],49:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v3.2.1
  * https://jquery.com/
@@ -37510,7 +37691,7 @@ if ( !noGlobal ) {
 return jQuery;
 } );
 
-},{}],50:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 'use strict';
 
 /**
@@ -37885,7 +38066,7 @@ return jQuery;
     }
 
 })();
-},{}],51:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 (function (global){
 /**!
  * @fileOverview Kickass library to create and place poppers near their reference elements.
@@ -40334,7 +40515,7 @@ return Popper;
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],52:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -40381,7 +40562,7 @@ function nextTick(fn, arg1, arg2, arg3) {
 }
 
 }).call(this,require('_process'))
-},{"_process":53}],53:[function(require,module,exports){
+},{"_process":54}],54:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -40567,7 +40748,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],54:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 (function (global){
 /*! https://mths.be/punycode v1.4.1 by @mathias */
 ;(function(root) {
@@ -41104,7 +41285,7 @@ process.umask = function() { return 0; };
 }(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],55:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -41190,7 +41371,7 @@ var isArray = Array.isArray || function (xs) {
   return Object.prototype.toString.call(xs) === '[object Array]';
 };
 
-},{}],56:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -41277,13 +41458,13 @@ var objectKeys = Object.keys || function (obj) {
   return res;
 };
 
-},{}],57:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 'use strict';
 
 exports.decode = exports.parse = require('./decode');
 exports.encode = exports.stringify = require('./encode');
 
-},{"./decode":55,"./encode":56}],58:[function(require,module,exports){
+},{"./decode":56,"./encode":57}],59:[function(require,module,exports){
 /* eslint-disable node/no-deprecated-api */
 var buffer = require('buffer')
 var Buffer = buffer.Buffer
@@ -41347,7 +41528,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
   return buffer.SlowBuffer(size)
 }
 
-},{"buffer":10}],59:[function(require,module,exports){
+},{"buffer":11}],60:[function(require,module,exports){
 (function (global){
 var ClientRequest = require('./lib/request')
 var IncomingMessage = require('./lib/response')
@@ -41433,7 +41614,7 @@ http.METHODS = [
 	'UNSUBSCRIBE'
 ]
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./lib/request":61,"./lib/response":62,"builtin-status-codes":11,"url":76,"xtend":80}],60:[function(require,module,exports){
+},{"./lib/request":62,"./lib/response":63,"builtin-status-codes":12,"url":77,"xtend":81}],61:[function(require,module,exports){
 (function (global){
 exports.fetch = isFunction(global.fetch) && isFunction(global.ReadableStream)
 
@@ -41510,7 +41691,7 @@ function isFunction (value) {
 xhr = null // Help gc
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],61:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 (function (process,global,Buffer){
 var capability = require('./capability')
 var inherits = require('inherits')
@@ -41837,7 +42018,7 @@ var unsafeHeaders = [
 ]
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"./capability":60,"./response":62,"_process":53,"buffer":10,"inherits":47,"readable-stream":72,"to-arraybuffer":74}],62:[function(require,module,exports){
+},{"./capability":61,"./response":63,"_process":54,"buffer":11,"inherits":48,"readable-stream":73,"to-arraybuffer":75}],63:[function(require,module,exports){
 (function (process,global,Buffer){
 var capability = require('./capability')
 var inherits = require('inherits')
@@ -42058,14 +42239,14 @@ IncomingMessage.prototype._onXHRProgress = function () {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"./capability":60,"_process":53,"buffer":10,"inherits":47,"readable-stream":72}],63:[function(require,module,exports){
+},{"./capability":61,"_process":54,"buffer":11,"inherits":48,"readable-stream":73}],64:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],64:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -42190,7 +42371,7 @@ function forEach(xs, f) {
     f(xs[i], i);
   }
 }
-},{"./_stream_readable":66,"./_stream_writable":68,"core-util-is":12,"inherits":47,"process-nextick-args":52}],65:[function(require,module,exports){
+},{"./_stream_readable":67,"./_stream_writable":69,"core-util-is":13,"inherits":48,"process-nextick-args":53}],66:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -42238,7 +42419,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":67,"core-util-is":12,"inherits":47}],66:[function(require,module,exports){
+},{"./_stream_transform":68,"core-util-is":13,"inherits":48}],67:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -43248,7 +43429,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./_stream_duplex":64,"./internal/streams/BufferList":69,"./internal/streams/destroy":70,"./internal/streams/stream":71,"_process":53,"core-util-is":12,"events":44,"inherits":47,"isarray":63,"process-nextick-args":52,"safe-buffer":58,"string_decoder/":73,"util":8}],67:[function(require,module,exports){
+},{"./_stream_duplex":65,"./internal/streams/BufferList":70,"./internal/streams/destroy":71,"./internal/streams/stream":72,"_process":54,"core-util-is":13,"events":45,"inherits":48,"isarray":64,"process-nextick-args":53,"safe-buffer":59,"string_decoder/":74,"util":9}],68:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -43463,7 +43644,7 @@ function done(stream, er, data) {
 
   return stream.push(null);
 }
-},{"./_stream_duplex":64,"core-util-is":12,"inherits":47}],68:[function(require,module,exports){
+},{"./_stream_duplex":65,"core-util-is":13,"inherits":48}],69:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -44130,7 +44311,7 @@ Writable.prototype._destroy = function (err, cb) {
   cb(err);
 };
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./_stream_duplex":64,"./internal/streams/destroy":70,"./internal/streams/stream":71,"_process":53,"core-util-is":12,"inherits":47,"process-nextick-args":52,"safe-buffer":58,"util-deprecate":78}],69:[function(require,module,exports){
+},{"./_stream_duplex":65,"./internal/streams/destroy":71,"./internal/streams/stream":72,"_process":54,"core-util-is":13,"inherits":48,"process-nextick-args":53,"safe-buffer":59,"util-deprecate":79}],70:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -44205,7 +44386,7 @@ module.exports = function () {
 
   return BufferList;
 }();
-},{"safe-buffer":58}],70:[function(require,module,exports){
+},{"safe-buffer":59}],71:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -44278,10 +44459,10 @@ module.exports = {
   destroy: destroy,
   undestroy: undestroy
 };
-},{"process-nextick-args":52}],71:[function(require,module,exports){
+},{"process-nextick-args":53}],72:[function(require,module,exports){
 module.exports = require('events').EventEmitter;
 
-},{"events":44}],72:[function(require,module,exports){
+},{"events":45}],73:[function(require,module,exports){
 exports = module.exports = require('./lib/_stream_readable.js');
 exports.Stream = exports;
 exports.Readable = exports;
@@ -44290,7 +44471,7 @@ exports.Duplex = require('./lib/_stream_duplex.js');
 exports.Transform = require('./lib/_stream_transform.js');
 exports.PassThrough = require('./lib/_stream_passthrough.js');
 
-},{"./lib/_stream_duplex.js":64,"./lib/_stream_passthrough.js":65,"./lib/_stream_readable.js":66,"./lib/_stream_transform.js":67,"./lib/_stream_writable.js":68}],73:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":65,"./lib/_stream_passthrough.js":66,"./lib/_stream_readable.js":67,"./lib/_stream_transform.js":68,"./lib/_stream_writable.js":69}],74:[function(require,module,exports){
 'use strict';
 
 var Buffer = require('safe-buffer').Buffer;
@@ -44563,7 +44744,7 @@ function simpleWrite(buf) {
 function simpleEnd(buf) {
   return buf && buf.length ? this.write(buf) : '';
 }
-},{"safe-buffer":58}],74:[function(require,module,exports){
+},{"safe-buffer":59}],75:[function(require,module,exports){
 var Buffer = require('buffer').Buffer
 
 module.exports = function (buf) {
@@ -44592,7 +44773,7 @@ module.exports = function (buf) {
 	}
 }
 
-},{"buffer":10}],75:[function(require,module,exports){
+},{"buffer":11}],76:[function(require,module,exports){
 (function (global){
 /*!
 Copyright (C) 2015-2017 Andrea Giammarchi - @WebReflection
@@ -44899,7 +45080,7 @@ URLSearchParams = (module.exports = global.URLSearchParams || URLSearchParams);
 }(URLSearchParams.prototype));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],76:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -45633,7 +45814,7 @@ Url.prototype.parseHost = function() {
   if (host) this.hostname = host;
 };
 
-},{"./util":77,"punycode":54,"querystring":57}],77:[function(require,module,exports){
+},{"./util":78,"punycode":55,"querystring":58}],78:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -45651,7 +45832,7 @@ module.exports = {
   }
 };
 
-},{}],78:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 (function (global){
 
 /**
@@ -45722,7 +45903,7 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],79:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 (function (process,Buffer){
 /**
  * Wrapper for built-in http.js to emulate the browser XMLHttpRequest object.
@@ -46346,7 +46527,7 @@ exports.XMLHttpRequest = function() {
 };
 
 }).call(this,require('_process'),require("buffer").Buffer)
-},{"_process":53,"buffer":10,"child_process":9,"fs":9,"http":59,"https":45,"url":76}],80:[function(require,module,exports){
+},{"_process":54,"buffer":11,"child_process":10,"fs":10,"http":60,"https":46,"url":77}],81:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
