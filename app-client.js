@@ -1,7 +1,8 @@
 $ = require('jquery');
 var bootstrap = require('bootstrap');
 var bootslider = require('bootstrap-slider');
-var cophylogeny = require('./lib/CoPhylogenyGraph');
+//var cophylogeny = require('./lib/CoPhylogenyGraph');
+var cophylogeny = require('./lib/cophylogeny');
 var processFile = require('./lib/processFile');
 var URLSearchParams = require('url-search-params');
 var Newick = require('newick');
@@ -114,7 +115,7 @@ function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}
 
     // in the multi-graphs, a function "clear" was called here to reset
 
-    var cophylogeny_fig = new cophylogeny.CoPhylogenyGraph(container, w, h, leftNw, rightNw, userArgs);
+    var cophylogeny_fig = new cophylogeny(container, w, h, leftNw, rightNw, userArgs);
 
     cophylogeny_fig.tree1_name = fileButtonLeft.innerHTML; // excessive WS is coming in from the HTML
     console.log("name1 is " + cophylogeny_fig.tree1_name);
