@@ -1,7 +1,6 @@
 $ = require('jquery');
 var bootstrap = require('bootstrap');
 var bootslider = require('bootstrap-slider');
-//var cophylogeny = require('./lib/CoPhylogenyGraph');
 var cophylogeny = require('./lib/cophylogeny');
 var processFile = require('./lib/processFile');
 var URLSearchParams = require('url-search-params');
