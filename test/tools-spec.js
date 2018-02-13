@@ -30,7 +30,7 @@ describe("Module: newick", function(){
 describe("Module: treetools", function(){
 
     describe("writeNewick()", function(){
-        it("prints the newick format for a newick.js parsed object", function(){
+        it("prints a tree in newick format", function(){
             
             // gotten by :
             // $ node
