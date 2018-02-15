@@ -7,7 +7,7 @@ var nw = require("../lib/newick");
 
 describe("Module: newick", function(){
     it("parses a newick-format string", function() {
-        var tree = nw.parse('((B:6.0,(A:5.0,C:3.0)i0:5.0)i1:4.0,D:15.0)simple-tree:10;') // contents of public/simple-tree.newick
+        var tree = nw.parse('((B:6.0,(A:5.0,C:3.0)i0:5.0)i1:4.0,D:15.0)simple-tree:10;'); // contents of public/simple-tree.newick
         var expected_tree = { "branchset": [
             {
               "name": "i1", "branchset": [
@@ -46,3 +46,4 @@ describe("Module: treetools", function(){
         });
     });
 });
+
