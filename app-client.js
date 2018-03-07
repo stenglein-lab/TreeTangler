@@ -131,9 +131,14 @@ function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}
 
     // here the left-to-right mapping document is applied, 
     // if it exists
+    // add an updater (listener) for the dfoot measurement
+    cophylogeny_fig.addEventListener("draw", function() {
+        document.getElementById("sdfootSpan").textContent = cophylogeny_fig.currentDFoot;
+    });
 
     // CoPhylogenyGraph.render sets up the graph
     cophylogeny_fig.render(leftNw, rightNw, w, h);
+
 }
 
 function loadData(leftURL, rightURL) {

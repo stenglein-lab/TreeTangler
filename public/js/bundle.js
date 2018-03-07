@@ -74,7 +74,6 @@ $(document).ready(function() {
     });
     slider.on("change", function(evt) {
         var sliderValue = evt.value.newValue;
-        console.log("I have received a change event, and am going to redraw");
         console.dir(evt);
         if (! isNaN(sliderValue)) {
             cophylogeny_fig.yScaleFactor = sliderValue;
@@ -133,9 +132,14 @@ function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}
 
     // here the left-to-right mapping document is applied, 
     // if it exists
+    // add an updater (listener) for the dfoot measurement
+    cophylogeny_fig.addEventListener("draw", function() {
+        document.getElementById("sdfootSpan").textContent = cophylogeny_fig.currentDFoot;
+    });
 
     // CoPhylogenyGraph.render sets up the graph
     cophylogeny_fig.render(leftNw, rightNw, w, h);
+
 }
 
 function loadData(leftURL, rightURL) {
@@ -612,11 +616,11 @@ module.exports.SVGUtils = SVGUtils;
             // Visual edges are SVG paths
             var upper=1;
             if (node.children) {
-                console.group("upper vs lower");
-                console.dir(node.children[0]);
-                console.dir(node.children[1]);
+                //console.group("upper vs lower");
+                //console.dir(node.children[0]);
+                //console.dir(node.children[1]);
                 if (node.children[0].x > node.children[1].x) { upper = 0; } // WHY is this inverted?
-                console.groupEnd();
+                //console.groupEnd();
             }
             var configure_edge_events = function(d3obj, event_constructor) {
                 var group_sel = "#group_" + node.data.unique_id;
@@ -843,7 +847,6 @@ module.exports.SVGUtils = SVGUtils;
     CoPhylogenyGraph.prototype.redraw = function() {
         this.renderTrees(this.leftTree, this.rightTree, true, true);
         this.applyPersistentClasses();
-        console.log("i am redrawing now");
     };
     CoPhylogenyGraph.prototype.applyPersistentClasses = function() {
         var cophy_obj = this;
@@ -858,7 +861,7 @@ module.exports.SVGUtils = SVGUtils;
             });  
         };   
     };
-    CoPhylogenyGraph.prototype.renderTrees = function(leftTree, rightTree, rescale = true, redraw = true) { 
+    CoPhylogenyGraph.prototype.renderTrees = function(leftTree, rightTree, rescale = true, redraw = true) {
         // json format trees, processed from newick style text files by Newick.js.
         this.leftTree = leftTree;
         this.rightTree = rightTree;
@@ -1030,9 +1033,9 @@ module.exports.SVGUtils = SVGUtils;
             return 1;
         };
         CoPhylogenyGraph.prototype.addUniqueNodeIds = function(node, isLeft, depth=0) { // traverse newick object, enumerate nodes
-            if (depth == 0) { 
+            /*if (depth == 0) { 
                 console.group("addUniqueNodeIds: " + (isLeft ? "left" : "right"));
-            }    
+            }*/
             if (! node.hasOwnProperty('unique_id')) {
                 if (isLeft) {
                     node.unique_id = "l-nd-" + this.leftTreeId;
@@ -1044,7 +1047,7 @@ module.exports.SVGUtils = SVGUtils;
                     this.rightNodeLookup[ node.unique_id ] = node; 
                     this.rightTreeId++;
                 }    
-                console.log( node.unique_id );
+                /*console.log( node.unique_id );*/
             }    
             for (var key in node) {
                 if (node.hasOwnProperty(key)) { // why is this here?
@@ -1055,9 +1058,9 @@ module.exports.SVGUtils = SVGUtils;
                     }    
                 }    
             }    
-            if (depth == 0) { 
+            /*if (depth == 0) { 
                 console.groupEnd();
-            }    
+            }*/
         };
         // from formalized Tanglegram notations in 
         // Venkatachalam B, Apple J, St. John K, Gusfield D. 
