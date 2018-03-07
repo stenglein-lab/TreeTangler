@@ -73,7 +73,6 @@ $(document).ready(function() {
     });
     slider.on("change", function(evt) {
         var sliderValue = evt.value.newValue;
-        console.log("I have received a change event, and am going to redraw");
         console.dir(evt);
         if (! isNaN(sliderValue)) {
             cophylogeny_fig.yScaleFactor = sliderValue;
