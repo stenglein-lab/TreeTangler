@@ -67,6 +67,7 @@ $(document).ready(function() {
 
     // hook into slider
     var slider = $('#ex1').slider({
+        reversed: true,
         formatter: function(value) {
             $('#currentVertScaleLabel').text(value);
         }
