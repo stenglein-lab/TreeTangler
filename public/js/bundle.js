@@ -67,10 +67,19 @@ $(document).ready(function() {
     });
 
     // hook into slider
-    $('#ex1').slider({
+    var slider = $('#ex1').slider({
         formatter: function(value) {
             $('#currentVertScaleLabel').text(value);
         }
+    });
+    slider.on("change", function(evt) {
+        var sliderValue = evt.value.newValue;
+        console.log("I have received a change event, and am going to redraw");
+        console.dir(evt);
+        if (! isNaN(sliderValue)) {
+            cophylogeny_fig.yScaleFactor = sliderValue;
+            cophylogeny_fig.redraw();
+        }   
     });
 
     var user_args = {};
@@ -106,7 +115,7 @@ $(document).ready(function() {
         }
     }
 });
-
+cophylogeny_fig = null;
 function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}) {
     var container = d3.select(selector);
     var w = container.style("width");
@@ -115,7 +124,7 @@ function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}
 
     // in the multi-graphs, a function "clear" was called here to reset
 
-    var cophylogeny_fig = new cophylogeny(container, w, h, leftNw, rightNw, userArgs);
+    cophylogeny_fig = new cophylogeny(container, w, h, leftNw, rightNw, userArgs);
 
     cophylogeny_fig.tree1_name = fileButtonLeft.innerHTML; // excessive WS is coming in from the HTML
     console.log("name1 is " + cophylogeny_fig.tree1_name);
@@ -246,12 +255,11 @@ class SVGUtils {
         var projection = function (d)
         {
             return [d.y, d.x];
-        }
+        };
         var path = function (pathData)
         {
             return "M" + pathData[0] + ' ' + pathData[1] + " " + pathData[2];
-        }
-
+        };
         function diagonal(diagonalPath, i)
         {
             var source = diagonalPath.source,
@@ -266,7 +274,7 @@ class SVGUtils {
                     target
                 ];
             pathData = pathData.map(projection);
-            return path(pathData)
+            return path(pathData);
         }
         diagonal.projection = function (x)
         {
@@ -288,13 +296,13 @@ class SVGUtils {
     {
         function visitPreOrder(root, callback)
         {
-            callback(root)
+            callback(root);
             if (root.children)
             {
                 for (var i = root.children.length - 1; i >= 0; i--)
                 {
-                    visitPreOrder(root.children[i], callback)
-                };
+                    visitPreOrder(root.children[i], callback);
+                }
             }
         }
         function nodeSum(node) {
@@ -330,9 +338,9 @@ class SVGUtils {
         // according to the actual branch lengths
         visitPreOrder(nodes[0], function(node)
         {
-            node.y = yscale(node.rootDist)
+            node.y = yscale(node.rootDist);
         });
-        return yscale
+        return yscale;
     } // end scaleBranchLengthsToWidth
 
     // this function adjusts node positions (node y values) based on their branch lengths
@@ -342,13 +350,13 @@ class SVGUtils {
         // Visit all nodes and adjust y pos with distance metric
         function visitPreOrder(root, callback)
         {
-            callback(root)
+            callback(root);
             if (root.children)
             {
                 for (var i = root.children.length - 1; i >= 0; i--)
                 {
-                    visitPreOrder(root.children[i], callback)
-                };
+                    visitPreOrder(root.children[i], callback);
+                }
             }
         }
         function nodeSum(node) {
@@ -388,9 +396,9 @@ class SVGUtils {
         // according to the actual branch lengths
         visitPreOrder(nodes[0], function(node)
         {
-            node.y = yscale(node.rootDist)
+            node.y = yscale(node.rootDist);
         });
-        return yscale
+        return yscale;
     } // end scaleBranchLengths
 } // end SVGUtils
 var SVGUtilsModule = function() {};
@@ -832,6 +840,24 @@ module.exports.SVGUtils = SVGUtils;
 },{}],9:[function(require,module,exports){
 (function() {
   exports = module.exports = function(CoPhylogenyGraph) {
+    CoPhylogenyGraph.prototype.redraw = function() {
+        this.renderTrees(this.leftTree, this.rightTree, true, true);
+        this.applyPersistentClasses();
+        console.log("i am redrawing now");
+    };
+    CoPhylogenyGraph.prototype.applyPersistentClasses = function() {
+        var cophy_obj = this;
+        for (const classname in this.persistentClasses) {
+            classD3Obj(classname, this.persistentClasses[classname]);
+        }    
+        //  ^ separated a nested function because of: 
+        //  | jshint: Functions declared within loops referencing an outer scoped variable may lead to confusing semantics.
+        classD3Obj = function(classname, selectors) {
+            selectors.forEach(function(selector) {
+                cophy_obj.overall_vis.selectAll(selector).classed(classname, true);
+            });  
+        };   
+    };
     CoPhylogenyGraph.prototype.renderTrees = function(leftTree, rightTree, rescale = true, redraw = true) { 
         // json format trees, processed from newick style text files by Newick.js.
         this.leftTree = leftTree;
@@ -939,7 +965,7 @@ module.exports.SVGUtils = SVGUtils;
         this.currentDFoot = this.dfoot();
         var draw_event = new Event('draw');
         this.dispatchEvent(draw_event);
-    } // end renderTrees
+    };// end renderTrees
     // render(): called externally in tanglegram.js by render_cophylogeny(container,segment_id,newick_url_1,newick_url_2,height)
     // asynchronous call has been moved outside of this function, operate on parsed newick objects
     CoPhylogenyGraph.prototype.render = function(leftNw, rightNw) {
@@ -1066,7 +1092,7 @@ module.exports.SVGUtils = SVGUtils;
                 traverse(this.rightHierarchy, return_name_if_leaf, leafArray);
             }
             return leafArray;
-        }
+        };
         CoPhylogenyGraph.prototype.dfoot = function() {
             // Implementation of Spearman's footrule distance
             // Defined as the sum of the distance of ranks of the respective lists of leaves.
@@ -1078,7 +1104,7 @@ module.exports.SVGUtils = SVGUtils;
                 sum += Math.abs(i - leftArray.indexOf( rightArray[i] ));
             }
             return sum;
-        }
+        };
         // called by renderTrees()
         CoPhylogenyGraph.prototype.create_d3_objects_from_newick = function() {
             var debug_create_d3_objects_from_newick = false; // can be made to retrieve value from global settings
@@ -1142,7 +1168,7 @@ module.exports.SVGUtils = SVGUtils;
             this.tree1_edges = this.leftHierarchy.links(); // d3 "edges"
             console.dir(this.tree1_edges);
             this.tree2_edges = this.rightHierarchy.links();
-        } // create_d3_objects_from_newick
+        };// create_d3_objects_from_newick
     };// end module.exports enclosure
 })();
 

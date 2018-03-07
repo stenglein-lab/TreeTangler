@@ -66,10 +66,19 @@ $(document).ready(function() {
     });
 
     // hook into slider
-    $('#ex1').slider({
+    var slider = $('#ex1').slider({
         formatter: function(value) {
             $('#currentVertScaleLabel').text(value);
         }
+    });
+    slider.on("change", function(evt) {
+        var sliderValue = evt.value.newValue;
+        console.log("I have received a change event, and am going to redraw");
+        console.dir(evt);
+        if (! isNaN(sliderValue)) {
+            cophylogeny_fig.yScaleFactor = sliderValue;
+            cophylogeny_fig.redraw();
+        }   
     });
 
     var user_args = {};
@@ -105,7 +114,7 @@ $(document).ready(function() {
         }
     }
 });
-
+cophylogeny_fig = null;
 function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}) {
     var container = d3.select(selector);
     var w = container.style("width");
@@ -114,7 +123,7 @@ function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}
 
     // in the multi-graphs, a function "clear" was called here to reset
 
-    var cophylogeny_fig = new cophylogeny(container, w, h, leftNw, rightNw, userArgs);
+    cophylogeny_fig = new cophylogeny(container, w, h, leftNw, rightNw, userArgs);
 
     cophylogeny_fig.tree1_name = fileButtonLeft.innerHTML; // excessive WS is coming in from the HTML
     console.log("name1 is " + cophylogeny_fig.tree1_name);
