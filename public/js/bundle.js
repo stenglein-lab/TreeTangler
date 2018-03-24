@@ -453,6 +453,7 @@ module.exports.SVGUtils = SVGUtils;
 })();
 
 },{}],6:[function(require,module,exports){
+//CoPhylogeny = require('../../CoPhylogeny');
 (function() {
     /* Extension to d3.hierarchy
      * Need a serial accessor that only returns one level at a time in order to build a truly hierarchical SVG.
@@ -643,13 +644,13 @@ module.exports.SVGUtils = SVGUtils;
                  })
                 .attr("pointer-events", "stroke") 
                 .on("mouseout", function(d3obj) { 
-                    configure_edge_events(d3obj, TreeEdgeMouseOutEvent);
+                    configure_edge_events(d3obj, CoPhylogenyGraph.TreeEdgeMouseOutEvent);
                 })
                 .on("mouseover", function(d3obj) { 
-                    configure_edge_events(d3obj, TreeEdgeMouseOverEvent);
+                    configure_edge_events(d3obj, CoPhylogenyGraph.TreeEdgeMouseOverEvent);
                 })
                 .on("click", function(d3obj) { 
-                    configure_edge_events(d3obj, TreeEdgeMouseClickEvent);
+                    configure_edge_events(d3obj, CoPhylogenyGraph.TreeEdgeMouseClickEvent);
                     var pth_obj = d3.selectAll("#" + cophy_obj.make_edge_id(d3obj.source, d3obj.target));
                     pth_obj.classed("highlighted", true);
                     }) // isLeft = true
@@ -714,17 +715,17 @@ module.exports.SVGUtils = SVGUtils;
                     var slctn = "#group_" + node.data.unique_id;
                     var obj = d3.selectAll(slctn);
                     obj.classed("highlighted", true);
-                    configure_node_events(TreeNodeMouseOverEvent);
+                    configure_node_events(CoPhylogenyGraph.prototype.TreeNodeMouseOverEvent);
                 })
                 .on("mouseout", function(d3obj) {
                     var slctn = "#group_" + node.data.unique_id;
                     var obj = d3.selectAll(slctn);
                     obj.classed("highlighted", false);
-                    configure_node_events(TreeNodeMouseOutEvent);
+                    configure_node_events(CoPhylogenyGraph.prototype.TreeNodeMouseOutEvent);
                 })
                 .on("click", function(d3obj) {
                     //Launch click event
-                    configure_node_events(TreeNodeMouseClickEvent);
+                    configure_node_events(CoPhylogenyGraph.prototype.TreeNodeMouseClickEvent);
                     //TODO: handle inside click event?
                     if (orientation == 1)  // left
                     {
@@ -805,6 +806,22 @@ module.exports.SVGUtils = SVGUtils;
                    this.eventListeners[evt.type].splice(ix,1);
                 }
             }
+        };
+        CoPhylogenyGraph.prototype.TreeNodeMouseEvent = function(g_sel, u_sel, l_sel) {
+            // selector strings that can be passed to d3.selectAll
+            this.g_selector = g_sel;
+            this.upper_selector = u_sel;
+            this.lower_selector = l_sel;
+        };
+        CoPhylogenyGraph.prototype.TreeNodeMouseOverEvent = function(g_sel, u_sel, l_sel) {
+            this.base = CoPhylogenyGraph.prototype.TreeNodeMouseEvent;
+            this.base(g_sel,u_sel,l_sel);
+            this.type = "TreeNodeMouseOver";
+        };
+        CoPhylogenyGraph.prototype.TreeNodeMouseClickEvent = function(g_sel, u_sel, l_sel) {
+            this.base = CoPhylogenyGraph.prototype.TreeNodeMouseEvent;
+            this.base(g_sel,u_sel,l_sel);
+            this.type = "TreeNodeMouseClick";
         };
     }; // end exports enclosure
 })();
