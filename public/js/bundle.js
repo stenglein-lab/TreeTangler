@@ -259,7 +259,7 @@ class SVGUtils {
         var step = maxVal/n;
         var outarray = Array();
         for (var i = 0; i <= n; i++) {
-            hexval = '#';
+            var hexval = '#';
             blue = Math.round(maxVal - i * step);        
             hexval += (blue < 16 ? '0' : '') + blue.toString(16);
             hexval += (green < 16 ? '0' : '') + green.toString(16);
@@ -512,9 +512,6 @@ module.exports.SVGUtils = SVGUtils;
                     return false;
                 }
                 var leftNodeName = String(leftNode.data.name);
-                console.log("what kind of string is leftNodeName?");
-                console.log(typeof leftNode.data.name);
-                console.log(typeof leftNodeName);
                 // determine matching method
                 if (undefined === cophy_obj.bridgeMap){
                     rightNode = cophy_obj.findNode("right", leftNodeName);
@@ -577,14 +574,13 @@ module.exports.SVGUtils = SVGUtils;
                         {
                             // TODO: separate out bridge line coloring function to something
                             // TODO: there needs to be a BLUE/RED gradient defined somewhere once for this function to reference
-                            console.log("you are inside the bridging function max:" + cophy_obj.dfoot_max);
-                            console.log("cophy_obj.dfoot_obj:" + cophy_obj.dfoot_obj);
-                            console.dir(cophy_obj.dfoot_obj);
+                            //console.log("you are inside the bridging function max:" + leftNodeName + "(" + cophy_obj.dfoot_obj[leftNodeName] + ") =>" + cophy_obj.dfoot_color_scale[ cophy_obj.dfoot_obj[leftNodeName] ]);
+                            return cophy_obj.dfoot_color_scale[ cophy_obj.dfoot_obj[leftNodeName] ];
                             // that can be passed down from top level.
                             //
                             // code block below is meaningful for Mark's genotypes specified by node names
                             // color bridging lines by genotype
-                            var seg_genotype = leftNodeName.match(/[SL]([0-9]+)/);
+                            /*var seg_genotype = leftNodeName.match(/[SL]([0-9]+)/);
                             if (seg_genotype)
                             {
                                 // match actually returns an array of results, the 2nd element is the one we want
@@ -597,7 +593,7 @@ module.exports.SVGUtils = SVGUtils;
                             else
                             {
                                 return "#d3d3d3"; // == "lightgrey" --> d3, ha ha
-                            }
+                            }*/
                         })
                         // .on("click", highlight_toggle);
                         .on("click", cophy_obj.highlight_from_node());
@@ -1156,10 +1152,15 @@ module.exports.SVGUtils = SVGUtils;
                 max = Math.max(max, dif);
                 sum += dif;
             }
+            /*
+            For the purpose of a blue/red gradient in the bridging lines
+            */
             this.dfoot_obj = obj;
             this.dfoot_min = min;
             this.dfoot_max = max;
             this.dfoot_sum = sum;
+            var nlevels = max - min + 1;
+            this.dfoot_color_scale = SVGUtils.SVGUtils.blueToRed(nlevels).reverse();
             console.log(this.dfoot_obj);
             return sum;
         };
