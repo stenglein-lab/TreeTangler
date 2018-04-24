@@ -252,6 +252,23 @@ async function getNewicksAsync(leftURL, rightURL) {
  */
 class SVGUtils {
     static color_scheme() { return  ["#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a","#b15928"]; }
+    static blueToRed(n, green = 0) {
+        var maxVal = 255;
+        var blue = maxVal;
+        var red = 0;
+        var step = maxVal/n;
+        var outarray = Array();
+        for (var i = 0; i <= n; i++) {
+            hexval = '#';
+            blue = Math.round(maxVal - i * step);        
+            hexval += (blue < 16 ? '0' : '') + blue.toString(16);
+            hexval += (green < 16 ? '0' : '') + green.toString(16);
+            red = maxVal - blue;
+            hexval += (red < 16 ? '0' : '') + red.toString(16);
+            outarray.push(hexval);
+        }
+        return outarray;
+    }
     // several functions copied from:
     // from: https://gist.github.com/kueda/1036776
     // Copyright (c) 2013, Ken-ichi Ueda
@@ -495,6 +512,9 @@ module.exports.SVGUtils = SVGUtils;
                     return false;
                 }
                 var leftNodeName = String(leftNode.data.name);
+                console.log("what kind of string is leftNodeName?");
+                console.log(typeof leftNode.data.name);
+                console.log(typeof leftNodeName);
                 // determine matching method
                 if (undefined === cophy_obj.bridgeMap){
                     rightNode = cophy_obj.findNode("right", leftNodeName);
@@ -551,11 +571,15 @@ module.exports.SVGUtils = SVGUtils;
                     var line_connect = cophy_obj.bridge_g.append("path")
                         .attr("d", lineFunction(nodePair_spline_coords))
                         .attr("class", "bridge")
-                        .attr("id", leftNodeName)
+                        .attr("id", leftNodeName.replace(new RegExp(' ','g'),'_') + "_bridge")
                         .attr("pointer-events", "stroke") // only clicking on stroke works
                         .attr("stroke", function (d, i)
                         {
                             // TODO: separate out bridge line coloring function to something
+                            // TODO: there needs to be a BLUE/RED gradient defined somewhere once for this function to reference
+                            console.log("you are inside the bridging function max:" + cophy_obj.dfoot_max);
+                            console.log("cophy_obj.dfoot_obj:" + cophy_obj.dfoot_obj);
+                            console.dir(cophy_obj.dfoot_obj);
                             // that can be passed down from top level.
                             //
                             // code block below is meaningful for Mark's genotypes specified by node names
@@ -567,6 +591,7 @@ module.exports.SVGUtils = SVGUtils;
                                 var seg_genotype_number = seg_genotype[1];
                                 // we'll have to cycle through colors if more than in our scheme
                                 var color_index = seg_genotype_number % SVGUtils.SVGUtils.color_scheme().length;
+                                console.log("making the seg_genotype stroke function");
                                 return SVGUtils.SVGUtils.color_scheme()[color_index];
                             }
                             else
@@ -982,8 +1007,8 @@ module.exports.SVGUtils = SVGUtils;
         console.log("------done right drawingHierarchy-------");
 
         // draw bridging lines
-        this.drawBridgingLines();
         this.currentDFoot = this.dfoot();
+        this.drawBridgingLines();
         var draw_event = new Event('draw');
         this.dispatchEvent(draw_event);
     };// end renderTrees
@@ -1121,9 +1146,21 @@ module.exports.SVGUtils = SVGUtils;
             var leftArray = this.leaves(0);
             var rightArray = this.leaves(1);
             var sum = 0;
+            var obj = {};
+            var min = Number.MAX_SAFE_INTEGER;
+            var max = Number.MIN_SAFE_INTEGER;
             for (var i = 0; i < leftArray.length; i++) {
-                sum += Math.abs(i - leftArray.indexOf( rightArray[i] ));
+                var dif = Math.abs(i - leftArray.indexOf( rightArray[i] ));
+                obj[rightArray[i]] = dif;
+                min = Math.min(min, dif);
+                max = Math.max(max, dif);
+                sum += dif;
             }
+            this.dfoot_obj = obj;
+            this.dfoot_min = min;
+            this.dfoot_max = max;
+            this.dfoot_sum = sum;
+            console.log(this.dfoot_obj);
             return sum;
         };
         // called by renderTrees()
