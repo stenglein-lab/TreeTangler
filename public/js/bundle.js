@@ -150,7 +150,7 @@ function loadData(leftURL, rightURL) {
             render_cophylogeny('#middle_container','unnamed', nwTrees.left, nwTrees.right, 700, userArgs);
         })
         .catch(reason => {
-            // there was an error
+            console.log("There was an error loading the trees.");
             console.log(reason);
         });
 }
@@ -1374,7 +1374,11 @@ function getNewickFromURL(url) {
             console.dir(window);
             // figure out a fully qualified URL here so it doesn't get
             // lost in the depths of some library
-            url = window.location.origin + "/" + url;
+            var blobsearch = url.search("blob");
+            console.log(`search ${url} for blob: ${blobsearch}`);
+            if (url.search("blob") == -1) {
+                url = window.location.origin + "/" + url;
+            }
             console.log(`about to try URL: ${url}`);
 
             d3.text(url)

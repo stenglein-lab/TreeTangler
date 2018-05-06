@@ -149,7 +149,7 @@ function loadData(leftURL, rightURL) {
             render_cophylogeny('#middle_container','unnamed', nwTrees.left, nwTrees.right, 700, userArgs);
         })
         .catch(reason => {
-            // there was an error
+            console.log("There was an error loading the trees.");
             console.log(reason);
         });
 }
