@@ -30,6 +30,19 @@
                 </button> 
             </div>
             <div class="col-md-8"> 
+                <div class="dropdown">
+                    <button class="btn btn-secondary dropdown-toggle" 
+                            type="button" 
+                            id="dropdownMenuButton" 
+                            data-toggle="dropdown" 
+                            aria-haspopup="true" aria-expanded="false">
+                        Examples
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                        <a class="dropdown-item" href="/?left=l_tree.newick&right=z_tree.newick">l_tree versus z_tree</a>
+                        <a class="dropdown-item" href="/?left=gp_tree.newick&right=np_tree.newick">GP versus NP</a>
+                    </div>
+                </div>
                 <input 
                     id="fileInputMiddle" 
                     type="file" 
