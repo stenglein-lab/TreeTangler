@@ -17,44 +17,29 @@
 <body>
     <!-- input buttons plus left/right margin spacers -->
     <div class="container-fluid" id="file-buttons">
-        <div class="row"> 
-            <div class="col-md-2"> 
-                <input id="fileInputLeft" 
-                    type="file" 
-                    accept=".nw, .newick" 
-                    style="display:none" > <!-- hidden element for file upload -->
-                <button id="fileButtonLeft" 
-                    type="button" 
-                    class="btn btn-default">
-                    Left-side tree (newick) 
-                </button> 
-            </div>
-            <div class="col-md-8"> 
-                <div class="dropdown">
-                    <button class="btn btn-secondary dropdown-toggle" 
-                            type="button" 
-                            id="dropdownMenuButton" 
-                            data-toggle="dropdown" 
-                            aria-haspopup="true" aria-expanded="false">
-                        Examples
-                    </button>
-                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                        <a class="dropdown-item" href="/?left=l_tree.newick&right=z_tree.newick">l_tree versus z_tree</a>
-                        <a class="dropdown-item" href="/?left=gp_tree.newick&right=np_tree.newick">GP versus NP</a>
-                    </div>
-                </div>
-                <input 
-                    id="fileInputMiddle" 
-                    type="file" 
-                    style="display:none" > <!-- hidden element for file upload -->
-                <button 
-                    id="fileButtonMiddle" 
-                    type="button" 
-                    class="btn btn-default" >
-                    Upload lookup file (text)
-                </button>
-            </div>
-            <div class="col-md-2"> 
+        <div class="row">
+            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand" href="#">Menu</a>
+<div class="btn-group" role="group" aria-label="Basic example">
+            <input id="fileInputLeft" 
+                type="file" 
+                accept=".nw, .newick" 
+                style="display:none" > <!-- hidden element for file upload -->
+            <button id="fileButtonLeft" 
+                type="button" 
+                class="btn btn-secondary">
+                Left-side tree (newick) 
+            </button> 
+            <input 
+                id="fileInputMiddle" 
+                type="file" 
+                style="display:none" > <!-- hidden element for file upload -->
+            <button 
+                id="fileButtonMiddle" 
+                type="button" 
+                class="btn btn-secondary" >
+                Upload lookup file (text)
+            </button>
                 <input 
                     type="file" 
                     id="fileInputRight" 
@@ -62,9 +47,54 @@
                     style="display:none">  <!-- hidden element for file upload -->
                 <button id="fileButtonRight" 
                     type="button" 
-                    class="btn btn-default right-align-button">
+                    class="btn btn-secondary ">
                     Right-side tree (newick) 
                 </button> 
+</div><!-- end button group -->
+
+<div class="collapse navbar-collapse" id="navbarSupportedContent">
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item">
+        <a class="nav-link" href="#">Help</a>
+      </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  Actions
+                </a>
+                <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                  <a class="dropdown-item" href="#">Action</a>
+                  <a class="dropdown-item" href="#">Another action</a>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item" href="/">Reset App</a>
+                </div>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  Example Trees
+                </a>
+                <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                  <a class="dropdown-item" href="/?left=l_tree.newick&right=z_tree.newick">l_tree versus z_tree</a>
+                  <a class="dropdown-item" href="/?left=gp_tree.newick&right=np_tree.newick">GP versus NP</a>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item" href="#">Something else here</a>
+                </div>
+              </li>
+      <li class="nav-item">
+        <a class="nav-link" id="svglink" href="#">Export SVG</a>
+      </li>
+      </ul>
+</div>
+
+            </nav>
+        </div>
+        <div class="row"> 
+            <div class="col-md-2"> 
+            </div>
+            <div class="col-md-8"> 
+                <div>
+                </div>
+            </div>
+            <div class="col-md-2"> 
             </div>
         </div><!-- end row -->
     </div><!-- end #file-buttons -->

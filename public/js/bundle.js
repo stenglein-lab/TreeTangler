@@ -14,6 +14,11 @@ userArgs = {};
 
 
 $(document).ready(function() {
+
+    $('#svglink').on("click", function() {
+        console.log("here I am going to export SVG");
+        SVGExport();
+    });
     // URL blobs needed for newick reader
     var leftURL = null,
         rightURL = null;
@@ -164,6 +169,19 @@ async function getNewicksAsync(leftURL, rightURL) {
     return {left:leftNw, right:rightNw};
 }
 /* jshint ignore: end */
+
+function SVGExport() {
+    //get svg element.
+    var svgData = $("#cophy-graph")[0].outerHTML;
+    var svgBlob = new Blob([svgData], {type:"image/svg+xml;charset=utf-8"});
+    var svgUrl = URL.createObjectURL(svgBlob);
+    var downloadLink = document.createElement("a");
+    downloadLink.href = svgUrl;
+    downloadLink.download = "newesttree.svg";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+}
 
 },{"./lib/cophylogeny":2,"./lib/processFile":12,"bootstrap":14,"bootstrap-slider":13,"jquery":47,"newick":48,"url-search-params":50}],2:[function(require,module,exports){
 // this class organization is suggested by
@@ -1013,6 +1031,7 @@ module.exports.SVGUtils = SVGUtils;
     CoPhylogenyGraph.prototype.render = function(leftNw, rightNw) {
         // create an SVG canvas area
         this.overall_vis = this.selector.append("svg")
+          .attr("id", "cophy-graph")
           .attr("width", this.svg_w)
           .attr("height", this.svg_h)
           .attr("transform", "translate(" + this.margin.left + ", " + this.margin.top + ")") ;
