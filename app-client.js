@@ -13,6 +13,11 @@ userArgs = {};
 
 
 $(document).ready(function() {
+
+    $('#svglink').on("click", function() {
+        console.log("here I am going to export SVG");
+        SVGExport();
+    });
     // URL blobs needed for newick reader
     var leftURL = null,
         rightURL = null;
@@ -163,3 +168,16 @@ async function getNewicksAsync(leftURL, rightURL) {
     return {left:leftNw, right:rightNw};
 }
 /* jshint ignore: end */
+
+function SVGExport() {
+    //get svg element.
+    var svgData = $("#cophy-graph")[0].outerHTML;
+    var svgBlob = new Blob([svgData], {type:"image/svg+xml;charset=utf-8"});
+    var svgUrl = URL.createObjectURL(svgBlob);
+    var downloadLink = document.createElement("a");
+    downloadLink.href = svgUrl;
+    downloadLink.download = "newesttree.svg";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+}
