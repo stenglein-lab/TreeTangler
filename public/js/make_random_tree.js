@@ -20,6 +20,16 @@ var shuffle = function(array) {
 
       return array;
 }
+const DESC = "Create a tree with nleafs leaves, recursively bisecting (with random split point) an array until completely binary.";
+var PROGPATH = process.argv[1];
+var parts = PROGPATH.split("/");
+var PROGNAME = parts[parts.length-1]
+if (process.argv.length < 3) {
+    console.log(DESC);
+    console.log("USAGE: node " + PROGNAME + " nleafs");
+    process.exit(1)
+}
+
 var n_leaves = +process.argv[2];
 console.log(n_leaves);
 // create a tree of n_leaves leaves, with a single grouping node
