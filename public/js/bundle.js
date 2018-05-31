@@ -533,7 +533,12 @@ module.exports.SVGUtils = SVGUtils;
                 // determine matching method
                 if (undefined === cophy_obj.bridgeMap){
                     rightNode = cophy_obj.findNode("right", leftNodeName);
-                    rightNodeName = rightNode.data.name;
+                    if (undefined === rightNode) {
+                        console.log("unable to find a match in RIGHT for " + leftNodeName);
+                    }
+                    else {
+                        rightNodeName = rightNode.data.name;
+                    }
                 }
                 else {
                     rightNodeName = cophy_obj.bridgeMap.get(leftNodeName);
