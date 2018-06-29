@@ -1,5 +1,0 @@
-mammal  furry
-turtle  shelled
-rayfinfish rayfin
-frog hopper
-salamander pollywog
