@@ -1,2 +1,3 @@
 #!/bin/bash
-node app 8888
+port=${1:-8000}
+node app $port
