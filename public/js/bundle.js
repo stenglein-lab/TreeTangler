@@ -183,7 +183,7 @@ function SVGExport() {
     document.body.removeChild(downloadLink);
 }
 
-},{"./lib/cophylogeny":2,"./lib/processFile":12,"bootstrap":14,"bootstrap-slider":13,"jquery":47,"newick":48,"url-search-params":185}],2:[function(require,module,exports){
+},{"./lib/cophylogeny":2,"./lib/processFile":12,"bootstrap":15,"bootstrap-slider":14,"jquery":62,"newick":63,"url-search-params":200}],2:[function(require,module,exports){
 // this class organization is suggested by
 // http://geekswithblogs.net/shaunxu/archive/2016/03/07/define-a-class-in-multiple-files-in-node.js.aspx
 (function () {
@@ -264,7 +264,7 @@ function SVGExport() {
 
 })();
 
-},{"./src/SVGUtils":3,"./src/cophylogeny-addPersistentClass":4,"./src/cophylogeny-compat":5,"./src/cophylogeny-draw":6,"./src/cophylogeny-events":7,"./src/cophylogeny-inspect":8,"./src/cophylogeny-render":9,"./src/cophylogeny-treemods":10,"d3":46}],3:[function(require,module,exports){
+},{"./src/SVGUtils":3,"./src/cophylogeny-addPersistentClass":4,"./src/cophylogeny-compat":5,"./src/cophylogeny-draw":6,"./src/cophylogeny-events":7,"./src/cophylogeny-inspect":8,"./src/cophylogeny-render":9,"./src/cophylogeny-treemods":10,"d3":60}],3:[function(require,module,exports){
 /*
  * Static functions for drawing SVG elements
  */
@@ -524,7 +524,8 @@ module.exports.SVGUtils = SVGUtils;
         };
         CoPhylogenyGraph.prototype.drawBridgingLines = function() {
             var cophy_obj = this;
-            var right_tree_names = cophy_obj.leaves("right");
+            var right_tree_names = cophy_obj.leaves(1);
+            if (right_tree_names.length == 0) { throw new Error("NO RIGHT_TREE NAMES"); }
             cophy_obj.leftDescendants.forEach(function (leftNode)
             {
                 var rightNode,rightNodeName;
@@ -536,9 +537,9 @@ module.exports.SVGUtils = SVGUtils;
                 // determine matching method
                 if (undefined === cophy_obj.bridgeMap){
                     // find the closest-matching right-tree name
+                    //console.log("bestMatch for left{" + leftNodeName + "} versus ");
                     bestMatch = stringSimilarity.findBestMatch(leftNodeName, right_tree_names).bestMatch.target;
-                    //console.log("bestMatch for left{" + leftNodeName + "} = " + bestMatch);
-
+                    //console.dir(bestMatch);
 
                     //rightNode = cophy_obj.findNode("right", leftNodeName);
                     rightNode = cophy_obj.findNode("right", bestMatch);
@@ -609,8 +610,8 @@ module.exports.SVGUtils = SVGUtils;
                             // TODO: separate out bridge line coloring function to something
                             // TODO: there needs to be a BLUE/RED gradient defined somewhere once for this function to reference
                             //console.log("you are inside the bridging function max:" + rightNodeName + "(" + cophy_obj.dfoot_obj[rightNodeName] + ") =>" + cophy_obj.dfoot_color_scale[ cophy_obj.dfoot_obj[rightNodeName] ]);
-                            //console.dir(cophy_obj.dfoot_obj);
-                            return cophy_obj.dfoot_color_scale[ cophy_obj.dfoot_obj[rightNodeName] ];
+                            console.dir(rightNodeName + ":" + cophy_obj.dfoot_obj.diffs[rightNodeName]);
+                            return cophy_obj.dfoot_color_scale[ cophy_obj.dfoot_obj.diffs[rightNodeName] ];
                             // that can be passed down from top level.
                             //
                             // code block below is meaningful for Mark's genotypes specified by node names
@@ -681,8 +682,9 @@ module.exports.SVGUtils = SVGUtils;
                 //console.groupEnd();
             }
             var configure_edge_events = function(d3obj, event_constructor) {
+                console.dir(event_constructor);
                 var group_sel = "#group_" + node.data.unique_id;
-                var edge_sel = "#" + this.make_edge_id(d3obj.source, d3obj.target); //d3obj.source.data.unique_id + "_to_" + d3obj.target.data.unique_id;
+                var edge_sel = "#" + cophy_obj.make_edge_id(d3obj.source, d3obj.target); //d3obj.source.data.unique_id + "_to_" + d3obj.target.data.unique_id;
                 cophy_obj.dispatchEvent( new event_constructor(
                         edge_sel, 
                         group_sel, 
@@ -832,7 +834,7 @@ module.exports.SVGUtils = SVGUtils;
     }; //end exports enclosure
 })();
 
-},{"d3":46,"string-similarity":50}],7:[function(require,module,exports){
+},{"d3":60,"string-similarity":65}],7:[function(require,module,exports){
 (function() {
     exports = module.exports = function(CoPhylogenyGraph) {
         CoPhylogenyGraph.prototype.addEventListener = function(evt_str, f) {
@@ -940,6 +942,7 @@ module.exports.SVGUtils = SVGUtils;
         this.leftTree = leftTree;
         this.rightTree = rightTree;
         if (redraw) {
+            // good place to invoke treetools here
             var leftTreeStats = {};
             this.getTreeStats(this.leftTree, leftTreeStats);
             console.log("leftTreeStats histogram of node degrees", leftTreeStats.degree.length);
@@ -1085,65 +1088,48 @@ module.exports.SVGUtils = SVGUtils;
 },{}],10:[function(require,module,exports){
 (function() {
     exports = module.exports = function(CoPhylogenyGraph) {
+        var treetools = require('cophy-treetools');
         CoPhylogenyGraph.prototype.swap_children = function(json, target) {
-            var node, children;
-            if (json == this.leftTree) {
-                console.log("left json[" + this.leftNodeLookup.hasOwnProperty(target) + "]:" + json);
-                node = this.leftNodeLookup[target];
-                children = node.branchset;
-            }
-            else {
-                console.log("right json[" + this.rightNodeLookup.hasOwnProperty(target) + "]:" + json);
-                node = this.rightNodeLookup[target];
-                children = node.branchset;
-            }
-            var n = children.length;
-            for (var i = 0; i < n/2; i++) {
-                var j = n - i - 1;
-                var tmp = children[i];
-                children[i] = children[j];
-                children[j] = tmp;
-            }
-            node.branchset = children;
+            var node = json == this.leftTree ? this.leftNodeLookup[target] : this.rightNodeLookup[target];
+            console.dir(this);
+            if (!node) { throw new Error("failed to find " + target + " in node lookup for tree:" + (json == this.leftTree ? "left" : "right")); }
+            treetools.swap_children(node);
             return 1;
         };
-        CoPhylogenyGraph.prototype.addUniqueNodeIds = function(node, isLeft, depth=0) { // traverse newick object, enumerate nodes
-            /*if (depth == 0) { 
-                console.group("addUniqueNodeIds: " + (isLeft ? "left" : "right"));
-            }*/
-            if (! node.hasOwnProperty('unique_id')) {
-                if (isLeft) {
-                    node.unique_id = "l-nd-" + this.leftTreeId;
-                    this.leftNodeLookup[ node.unique_id ] = node; 
-                    this.leftTreeId++;
-                }    
-                else {
-                    node.unique_id = "r-nd-" + this.rightTreeId;
-                    this.rightNodeLookup[ node.unique_id ] = node; 
-                    this.rightTreeId++;
-                }    
-                /*console.log( node.unique_id );*/
-            }    
-            for (var key in node) {
-                if (node.hasOwnProperty(key)) { // why is this here?
-                    if (key == "branchset") {
-                        for (var branch in node.branchset) {
-                            this.addUniqueNodeIds(node.branchset[branch], isLeft, depth+1);
-                        }    
-                    }    
-                }    
-            }    
-            /*if (depth == 0) { 
-                console.groupEnd();
-            }*/
+        CoPhylogenyGraph.prototype.addUniqueNodeIds = function(tree, isLeft, depth=0) { // traverse newick object, enumerate nodes
+            if (isLeft) 
+                { this.leftNodeLookup =  treetools.index_and_enumerate(tree, "l-nd-", "unique_id");}
+            else
+                { this.rightNodeLookup = treetools.index_and_enumerate(tree, "r-nd-", "unique_id");}
         };
         // from formalized Tanglegram notations in 
         // Venkatachalam B, Apple J, St. John K, Gusfield D. 
         // Untangling tanglegrams: Comparing trees by their drawings. 
         // IEEE/ACM Trans Comput Biol Bioinforma. 2010;7(4):588-597. doi:10.1109/TCBB.2010.57.
         CoPhylogenyGraph.prototype.leaves = function(i) { // i in {0,1}, let's also allow "left" or "right"
-            var traverse = function(root, callback, arr)
+            
+            if ((i === 0) || (i === "left")) 
             {
+                var l = treetools.leaf_names(this.leftTree);
+                if (l.length < 2) {
+                    console.dir(this.leftHierarchy);
+                    throw new Error("leftLeaf names is suspect");
+                }
+                return l;
+            }
+            else
+            {
+                var r = treetools.leaf_names(this.rightTree);
+                if (r.length < 2) {
+                    console.dir(this.rightHierarchy);
+                    throw new Error("rightLeaf names is suspect");
+                }
+                return r;
+            }
+            throw new Error("end of leaves()");
+        };
+        CoPhylogenyGraph.prototype.d3leaves = function(i) {
+            var traverse = function(root, callback, arr) {
                 var v = callback(root);
                 if (v != null) { arr.push(v); }
                 if (root.children)
@@ -1177,28 +1163,18 @@ module.exports.SVGUtils = SVGUtils;
             // No ranking system is predefined, so use the order of the left leaves as the ranks.
             var leftArray = this.leaves(0);
             var rightArray = this.leaves(1);
-            var sum = 0;
-            var obj = {};
-            var min = Number.MAX_SAFE_INTEGER;
-            var max = Number.MIN_SAFE_INTEGER;
-            for (var i = 0; i < leftArray.length; i++) {
-                var dif = Math.abs(i - leftArray.indexOf( rightArray[i] ));
-                obj[rightArray[i]] = dif;
-                min = Math.min(min, dif);
-                max = Math.max(max, dif);
-                sum += dif;
-            }
+            var obj = treetools.local_dfoot(leftArray, rightArray);
             /*
             For the purpose of a blue/red gradient in the bridging lines
             */
             this.dfoot_obj = obj;
-            this.dfoot_min = min;
-            this.dfoot_max = max;
-            this.dfoot_sum = sum;
-            var nlevels = max - min + 1;
+            this.dfoot_min = obj.min;
+            this.dfoot_max = obj.max;
+            this.dfoot_sum = obj.sum;
+            var nlevels = obj.max - obj.min + 1;
             this.dfoot_color_scale = SVGUtils.SVGUtils.blueToRed(nlevels).reverse();
             console.log(this.dfoot_obj);
-            return sum;
+            return obj.sum;
         };
         // called by renderTrees()
         CoPhylogenyGraph.prototype.create_d3_objects_from_newick = function() {
@@ -1267,7 +1243,7 @@ module.exports.SVGUtils = SVGUtils;
     };// end module.exports enclosure
 })();
 
-},{}],11:[function(require,module,exports){
+},{"cophy-treetools":23}],11:[function(require,module,exports){
 /*
  I can't get the import to work from the npm require('newick'), so here's
  the function I need.
@@ -1447,7 +1423,55 @@ module.exports.processUploadedNewick = processUploadedNewick;
 module.exports.getNewickFromURL = getNewickFromURL;
 
 
-},{"./newick":11,"d3":46}],13:[function(require,module,exports){
+},{"./newick":11,"d3":60}],13:[function(require,module,exports){
+var freetree = require('freetree');
+var c0 = String.fromCharCode(9500);
+var c1 = String.fromCharCode(9472);
+var c2 = String.fromCharCode(9492);
+var c3 = String.fromCharCode(9474);
+
+function generate(str) {
+    var levels = [];
+    var settings = {
+        leadingChar: str[0]
+    };
+    var tree = freetree.parse(str, settings);
+    return _generate(tree, true, levels);
+}
+
+function compose(tree, end, levels) {
+    var i, ret = '\r\n';
+    var c = end ? c2 : c0;
+
+    if (tree.level == 0) {
+        return tree.value;
+    }
+
+    for (i = 1; i < tree.level; ++i) {
+        ret += levels[i] ? ' ' : c3
+        ret += '  ';
+    }
+
+    return ret + c + c1 + ' ' + tree.value;
+}
+
+function _generate(tree, end, levels) {
+    var last;
+    var result = compose(tree, end, levels);
+
+    if (tree.nodes) {
+        last = tree.nodes.length - 1;
+        tree.nodes.forEach(function(subTree, index) {
+            levels[subTree.level] = index == last;
+            result += _generate(subTree, index == last, levels);
+        });
+    }
+
+    return result;
+}
+
+exports.generate = generate;
+},{"freetree":61}],14:[function(require,module,exports){
 /*! =======================================================
                       VERSION  10.0.2              
 ========================================================= */
@@ -3327,9 +3351,9 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 	return Slider;
 });
 
-},{"jquery":47}],14:[function(require,module,exports){
+},{"jquery":62}],15:[function(require,module,exports){
 /*!
-  * Bootstrap v4.1.1 (https://getbootstrap.com/)
+  * Bootstrap v4.1.2 (https://getbootstrap.com/)
   * Copyright 2011-2018 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
   * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
   */
@@ -3400,7 +3424,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.1): util.js
+   * Bootstrap (v4.1.2): util.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -3477,8 +3501,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         }
 
         try {
-          var $selector = $$$1(document).find(selector);
-          return $selector.length > 0 ? selector : null;
+          return document.querySelector(selector) ? selector : null;
         } catch (err) {
           return null;
         }
@@ -3533,7 +3556,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.1): alert.js
+   * Bootstrap (v4.1.2): alert.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -3545,7 +3568,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'alert';
-    var VERSION = '4.1.1';
+    var VERSION = '4.1.2';
     var DATA_KEY = 'bs.alert';
     var EVENT_KEY = "." + DATA_KEY;
     var DATA_API_KEY = '.data-api';
@@ -3608,7 +3631,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         var parent = false;
 
         if (selector) {
-          parent = $$$1(selector)[0];
+          parent = document.querySelector(selector);
         }
 
         if (!parent) {
@@ -3708,7 +3731,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.1): button.js
+   * Bootstrap (v4.1.2): button.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -3720,7 +3743,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'button';
-    var VERSION = '4.1.1';
+    var VERSION = '4.1.2';
     var DATA_KEY = 'bs.button';
     var EVENT_KEY = "." + DATA_KEY;
     var DATA_API_KEY = '.data-api';
@@ -3765,14 +3788,14 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         var rootElement = $$$1(this._element).closest(Selector.DATA_TOGGLE)[0];
 
         if (rootElement) {
-          var input = $$$1(this._element).find(Selector.INPUT)[0];
+          var input = this._element.querySelector(Selector.INPUT);
 
           if (input) {
             if (input.type === 'radio') {
-              if (input.checked && $$$1(this._element).hasClass(ClassName.ACTIVE)) {
+              if (input.checked && this._element.classList.contains(ClassName.ACTIVE)) {
                 triggerChangeEvent = false;
               } else {
-                var activeElement = $$$1(rootElement).find(Selector.ACTIVE)[0];
+                var activeElement = rootElement.querySelector(Selector.ACTIVE);
 
                 if (activeElement) {
                   $$$1(activeElement).removeClass(ClassName.ACTIVE);
@@ -3785,7 +3808,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
                 return;
               }
 
-              input.checked = !$$$1(this._element).hasClass(ClassName.ACTIVE);
+              input.checked = !this._element.classList.contains(ClassName.ACTIVE);
               $$$1(input).trigger('change');
             }
 
@@ -3795,7 +3818,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         }
 
         if (addAriaPressed) {
-          this._element.setAttribute('aria-pressed', !$$$1(this._element).hasClass(ClassName.ACTIVE));
+          this._element.setAttribute('aria-pressed', !this._element.classList.contains(ClassName.ACTIVE));
         }
 
         if (triggerChangeEvent) {
@@ -3872,7 +3895,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.1): carousel.js
+   * Bootstrap (v4.1.2): carousel.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -3884,7 +3907,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'carousel';
-    var VERSION = '4.1.1';
+    var VERSION = '4.1.2';
     var DATA_KEY = 'bs.carousel';
     var EVENT_KEY = "." + DATA_KEY;
     var DATA_API_KEY = '.data-api';
@@ -3963,7 +3986,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         this.touchTimeout = null;
         this._config = this._getConfig(config);
         this._element = $$$1(element)[0];
-        this._indicatorsElement = $$$1(this._element).find(Selector.INDICATORS)[0];
+        this._indicatorsElement = this._element.querySelector(Selector.INDICATORS);
 
         this._addEventListeners();
       } // Getters
@@ -3997,7 +4020,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
           this._isPaused = true;
         }
 
-        if ($$$1(this._element).find(Selector.NEXT_PREV)[0]) {
+        if (this._element.querySelector(Selector.NEXT_PREV)) {
           Util.triggerTransitionEnd(this._element);
           this.cycle(true);
         }
@@ -4024,7 +4047,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
       _proto.to = function to(index) {
         var _this = this;
 
-        this._activeElement = $$$1(this._element).find(Selector.ACTIVE_ITEM)[0];
+        this._activeElement = this._element.querySelector(Selector.ACTIVE_ITEM);
 
         var activeIndex = this._getItemIndex(this._activeElement);
 
@@ -4130,7 +4153,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
       };
 
       _proto._getItemIndex = function _getItemIndex(element) {
-        this._items = $$$1.makeArray($$$1(element).parent().find(Selector.ITEM));
+        this._items = element && element.parentNode ? [].slice.call(element.parentNode.querySelectorAll(Selector.ITEM)) : [];
         return this._items.indexOf(element);
       };
 
@@ -4155,7 +4178,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
       _proto._triggerSlideEvent = function _triggerSlideEvent(relatedTarget, eventDirectionName) {
         var targetIndex = this._getItemIndex(relatedTarget);
 
-        var fromIndex = this._getItemIndex($$$1(this._element).find(Selector.ACTIVE_ITEM)[0]);
+        var fromIndex = this._getItemIndex(this._element.querySelector(Selector.ACTIVE_ITEM));
 
         var slideEvent = $$$1.Event(Event.SLIDE, {
           relatedTarget: relatedTarget,
@@ -4169,7 +4192,8 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
       _proto._setActiveIndicatorElement = function _setActiveIndicatorElement(element) {
         if (this._indicatorsElement) {
-          $$$1(this._indicatorsElement).find(Selector.ACTIVE).removeClass(ClassName.ACTIVE);
+          var indicators = [].slice.call(this._indicatorsElement.querySelectorAll(Selector.ACTIVE));
+          $$$1(indicators).removeClass(ClassName.ACTIVE);
 
           var nextIndicator = this._indicatorsElement.children[this._getItemIndex(element)];
 
@@ -4182,7 +4206,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
       _proto._slide = function _slide(direction, element) {
         var _this3 = this;
 
-        var activeElement = $$$1(this._element).find(Selector.ACTIVE_ITEM)[0];
+        var activeElement = this._element.querySelector(Selector.ACTIVE_ITEM);
 
         var activeElementIndex = this._getItemIndex(activeElement);
 
@@ -4348,11 +4372,13 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
     $$$1(document).on(Event.CLICK_DATA_API, Selector.DATA_SLIDE, Carousel._dataApiClickHandler);
     $$$1(window).on(Event.LOAD_DATA_API, function () {
-      $$$1(Selector.DATA_RIDE).each(function () {
-        var $carousel = $$$1(this);
+      var carousels = [].slice.call(document.querySelectorAll(Selector.DATA_RIDE));
+
+      for (var i = 0, len = carousels.length; i < len; i++) {
+        var $carousel = $$$1(carousels[i]);
 
         Carousel._jQueryInterface.call($carousel, $carousel.data());
-      });
+      }
     });
     /**
      * ------------------------------------------------------------------------
@@ -4373,7 +4399,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.1): collapse.js
+   * Bootstrap (v4.1.2): collapse.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -4385,7 +4411,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'collapse';
-    var VERSION = '4.1.1';
+    var VERSION = '4.1.2';
     var DATA_KEY = 'bs.collapse';
     var EVENT_KEY = "." + DATA_KEY;
     var DATA_API_KEY = '.data-api';
@@ -4433,14 +4459,17 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         this._isTransitioning = false;
         this._element = element;
         this._config = this._getConfig(config);
-        this._triggerArray = $$$1.makeArray($$$1("[data-toggle=\"collapse\"][href=\"#" + element.id + "\"]," + ("[data-toggle=\"collapse\"][data-target=\"#" + element.id + "\"]")));
-        var tabToggles = $$$1(Selector.DATA_TOGGLE);
+        this._triggerArray = $$$1.makeArray(document.querySelectorAll("[data-toggle=\"collapse\"][href=\"#" + element.id + "\"]," + ("[data-toggle=\"collapse\"][data-target=\"#" + element.id + "\"]")));
+        var toggleList = [].slice.call(document.querySelectorAll(Selector.DATA_TOGGLE));
 
-        for (var i = 0; i < tabToggles.length; i++) {
-          var elem = tabToggles[i];
+        for (var i = 0, len = toggleList.length; i < len; i++) {
+          var elem = toggleList[i];
           var selector = Util.getSelectorFromElement(elem);
+          var filterElement = [].slice.call(document.querySelectorAll(selector)).filter(function (foundElem) {
+            return foundElem === element;
+          });
 
-          if (selector !== null && $$$1(selector).filter(element).length > 0) {
+          if (selector !== null && filterElement.length > 0) {
             this._selector = selector;
 
             this._triggerArray.push(elem);
@@ -4481,7 +4510,9 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         var activesData;
 
         if (this._parent) {
-          actives = $$$1.makeArray($$$1(this._parent).find(Selector.ACTIVES).filter("[data-parent=\"" + this._config.parent + "\"]"));
+          actives = [].slice.call(this._parent.querySelectorAll(Selector.ACTIVES)).filter(function (elem) {
+            return elem.getAttribute('data-parent') === _this._config.parent;
+          });
 
           if (actives.length === 0) {
             actives = null;
@@ -4516,7 +4547,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         $$$1(this._element).removeClass(ClassName.COLLAPSE).addClass(ClassName.COLLAPSING);
         this._element.style[dimension] = 0;
 
-        if (this._triggerArray.length > 0) {
+        if (this._triggerArray.length) {
           $$$1(this._triggerArray).removeClass(ClassName.COLLAPSED).attr('aria-expanded', true);
         }
 
@@ -4557,14 +4588,15 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         this._element.style[dimension] = this._element.getBoundingClientRect()[dimension] + "px";
         Util.reflow(this._element);
         $$$1(this._element).addClass(ClassName.COLLAPSING).removeClass(ClassName.COLLAPSE).removeClass(ClassName.SHOW);
+        var triggerArrayLength = this._triggerArray.length;
 
-        if (this._triggerArray.length > 0) {
-          for (var i = 0; i < this._triggerArray.length; i++) {
+        if (triggerArrayLength > 0) {
+          for (var i = 0; i < triggerArrayLength; i++) {
             var trigger = this._triggerArray[i];
             var selector = Util.getSelectorFromElement(trigger);
 
             if (selector !== null) {
-              var $elem = $$$1(selector);
+              var $elem = $$$1([].slice.call(document.querySelectorAll(selector)));
 
               if (!$elem.hasClass(ClassName.SHOW)) {
                 $$$1(trigger).addClass(ClassName.COLLAPSED).attr('aria-expanded', false);
@@ -4625,11 +4657,12 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
             parent = this._config.parent[0];
           }
         } else {
-          parent = $$$1(this._config.parent)[0];
+          parent = document.querySelector(this._config.parent);
         }
 
         var selector = "[data-toggle=\"collapse\"][data-parent=\"" + this._config.parent + "\"]";
-        $$$1(parent).find(selector).each(function (i, element) {
+        var children = [].slice.call(parent.querySelectorAll(selector));
+        $$$1(children).each(function (i, element) {
           _this3._addAriaAndCollapsedClass(Collapse._getTargetFromElement(element), [element]);
         });
         return parent;
@@ -4639,7 +4672,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         if (element) {
           var isOpen = $$$1(element).hasClass(ClassName.SHOW);
 
-          if (triggerArray.length > 0) {
+          if (triggerArray.length) {
             $$$1(triggerArray).toggleClass(ClassName.COLLAPSED, !isOpen).attr('aria-expanded', isOpen);
           }
         }
@@ -4648,7 +4681,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
       Collapse._getTargetFromElement = function _getTargetFromElement(element) {
         var selector = Util.getSelectorFromElement(element);
-        return selector ? $$$1(selector)[0] : null;
+        return selector ? document.querySelector(selector) : null;
       };
 
       Collapse._jQueryInterface = function _jQueryInterface(config) {
@@ -4706,7 +4739,8 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
       var $trigger = $$$1(this);
       var selector = Util.getSelectorFromElement(this);
-      $$$1(selector).each(function () {
+      var selectors = [].slice.call(document.querySelectorAll(selector));
+      $$$1(selectors).each(function () {
         var $target = $$$1(this);
         var data = $target.data(DATA_KEY);
         var config = data ? 'toggle' : $trigger.data();
@@ -4733,7 +4767,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.1): dropdown.js
+   * Bootstrap (v4.1.2): dropdown.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -4745,7 +4779,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'dropdown';
-    var VERSION = '4.1.1';
+    var VERSION = '4.1.2';
     var DATA_KEY = 'bs.dropdown';
     var EVENT_KEY = "." + DATA_KEY;
     var DATA_API_KEY = '.data-api';
@@ -4954,14 +4988,16 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         if (!this._menu) {
           var parent = Dropdown._getParentFromElement(this._element);
 
-          this._menu = $$$1(parent).find(Selector.MENU)[0];
+          if (parent) {
+            this._menu = parent.querySelector(Selector.MENU);
+          }
         }
 
         return this._menu;
       };
 
       _proto._getPlacement = function _getPlacement() {
-        var $parentDropdown = $$$1(this._element).parent();
+        var $parentDropdown = $$$1(this._element.parentNode);
         var placement = AttachmentMap.BOTTOM; // Handle dropup
 
         if ($parentDropdown.hasClass(ClassName.DROPUP)) {
@@ -5049,15 +5085,19 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
           return;
         }
 
-        var toggles = $$$1.makeArray($$$1(Selector.DATA_TOGGLE));
+        var toggles = [].slice.call(document.querySelectorAll(Selector.DATA_TOGGLE));
 
-        for (var i = 0; i < toggles.length; i++) {
+        for (var i = 0, len = toggles.length; i < len; i++) {
           var parent = Dropdown._getParentFromElement(toggles[i]);
 
           var context = $$$1(toggles[i]).data(DATA_KEY);
           var relatedTarget = {
             relatedTarget: toggles[i]
           };
+
+          if (event && event.type === 'click') {
+            relatedTarget.clickEvent = event;
+          }
 
           if (!context) {
             continue;
@@ -5097,7 +5137,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         var selector = Util.getSelectorFromElement(element);
 
         if (selector) {
-          parent = $$$1(selector)[0];
+          parent = document.querySelector(selector);
         }
 
         return parent || element.parentNode;
@@ -5129,7 +5169,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
         if (!isActive && (event.which !== ESCAPE_KEYCODE || event.which !== SPACE_KEYCODE) || isActive && (event.which === ESCAPE_KEYCODE || event.which === SPACE_KEYCODE)) {
           if (event.which === ESCAPE_KEYCODE) {
-            var toggle = $$$1(parent).find(Selector.DATA_TOGGLE)[0];
+            var toggle = parent.querySelector(Selector.DATA_TOGGLE);
             $$$1(toggle).trigger('focus');
           }
 
@@ -5137,7 +5177,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
           return;
         }
 
-        var items = $$$1(parent).find(Selector.VISIBLE_ITEMS).get();
+        var items = [].slice.call(parent.querySelectorAll(Selector.VISIBLE_ITEMS));
 
         if (items.length === 0) {
           return;
@@ -5215,7 +5255,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.1): modal.js
+   * Bootstrap (v4.1.2): modal.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -5227,7 +5267,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'modal';
-    var VERSION = '4.1.1';
+    var VERSION = '4.1.2';
     var DATA_KEY = 'bs.modal';
     var EVENT_KEY = "." + DATA_KEY;
     var DATA_API_KEY = '.data-api';
@@ -5271,8 +5311,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
       DATA_TOGGLE: '[data-toggle="modal"]',
       DATA_DISMISS: '[data-dismiss="modal"]',
       FIXED_CONTENT: '.fixed-top, .fixed-bottom, .is-fixed, .sticky-top',
-      STICKY_CONTENT: '.sticky-top',
-      NAVBAR_TOGGLER: '.navbar-toggler'
+      STICKY_CONTENT: '.sticky-top'
       /**
        * ------------------------------------------------------------------------
        * Class Definition
@@ -5287,7 +5326,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
       function Modal(element, config) {
         this._config = this._getConfig(config);
         this._element = element;
-        this._dialog = $$$1(element).find(Selector.DIALOG)[0];
+        this._dialog = element.querySelector(Selector.DIALOG);
         this._backdrop = null;
         this._isShown = false;
         this._isBodyOverflowing = false;
@@ -5544,7 +5583,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
           this._backdrop.className = ClassName.BACKDROP;
 
           if (animate) {
-            $$$1(this._backdrop).addClass(animate);
+            this._backdrop.classList.add(animate);
           }
 
           $$$1(this._backdrop).appendTo(document.body);
@@ -5638,23 +5677,19 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         if (this._isBodyOverflowing) {
           // Note: DOMNode.style.paddingRight returns the actual value or '' if not set
           //   while $(DOMNode).css('padding-right') returns the calculated value or 0 if not set
-          // Adjust fixed content padding
-          $$$1(Selector.FIXED_CONTENT).each(function (index, element) {
-            var actualPadding = $$$1(element)[0].style.paddingRight;
+          var fixedContent = [].slice.call(document.querySelectorAll(Selector.FIXED_CONTENT));
+          var stickyContent = [].slice.call(document.querySelectorAll(Selector.STICKY_CONTENT)); // Adjust fixed content padding
+
+          $$$1(fixedContent).each(function (index, element) {
+            var actualPadding = element.style.paddingRight;
             var calculatedPadding = $$$1(element).css('padding-right');
             $$$1(element).data('padding-right', actualPadding).css('padding-right', parseFloat(calculatedPadding) + _this9._scrollbarWidth + "px");
           }); // Adjust sticky content margin
 
-          $$$1(Selector.STICKY_CONTENT).each(function (index, element) {
-            var actualMargin = $$$1(element)[0].style.marginRight;
+          $$$1(stickyContent).each(function (index, element) {
+            var actualMargin = element.style.marginRight;
             var calculatedMargin = $$$1(element).css('margin-right');
             $$$1(element).data('margin-right', actualMargin).css('margin-right', parseFloat(calculatedMargin) - _this9._scrollbarWidth + "px");
-          }); // Adjust navbar-toggler margin
-
-          $$$1(Selector.NAVBAR_TOGGLER).each(function (index, element) {
-            var actualMargin = $$$1(element)[0].style.marginRight;
-            var calculatedMargin = $$$1(element).css('margin-right');
-            $$$1(element).data('margin-right', actualMargin).css('margin-right', parseFloat(calculatedMargin) + _this9._scrollbarWidth + "px");
           }); // Adjust body padding
 
           var actualPadding = document.body.style.paddingRight;
@@ -5665,15 +5700,15 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
       _proto._resetScrollbar = function _resetScrollbar() {
         // Restore fixed content padding
-        $$$1(Selector.FIXED_CONTENT).each(function (index, element) {
+        var fixedContent = [].slice.call(document.querySelectorAll(Selector.FIXED_CONTENT));
+        $$$1(fixedContent).each(function (index, element) {
           var padding = $$$1(element).data('padding-right');
+          $$$1(element).removeData('padding-right');
+          element.style.paddingRight = padding ? padding : '';
+        }); // Restore sticky content
 
-          if (typeof padding !== 'undefined') {
-            $$$1(element).css('padding-right', padding).removeData('padding-right');
-          }
-        }); // Restore sticky content and navbar-toggler margin
-
-        $$$1(Selector.STICKY_CONTENT + ", " + Selector.NAVBAR_TOGGLER).each(function (index, element) {
+        var elements = [].slice.call(document.querySelectorAll("" + Selector.STICKY_CONTENT));
+        $$$1(elements).each(function (index, element) {
           var margin = $$$1(element).data('margin-right');
 
           if (typeof margin !== 'undefined') {
@@ -5682,10 +5717,8 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         }); // Restore body padding
 
         var padding = $$$1(document.body).data('padding-right');
-
-        if (typeof padding !== 'undefined') {
-          $$$1(document.body).css('padding-right', padding).removeData('padding-right');
-        }
+        $$$1(document.body).removeData('padding-right');
+        document.body.style.paddingRight = padding ? padding : '';
       };
 
       _proto._getScrollbarWidth = function _getScrollbarWidth() {
@@ -5750,7 +5783,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
       var selector = Util.getSelectorFromElement(this);
 
       if (selector) {
-        target = $$$1(selector)[0];
+        target = document.querySelector(selector);
       }
 
       var config = $$$1(target).data(DATA_KEY) ? 'toggle' : _objectSpread({}, $$$1(target).data(), $$$1(this).data());
@@ -5793,7 +5826,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.1): tooltip.js
+   * Bootstrap (v4.1.2): tooltip.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -5805,7 +5838,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'tooltip';
-    var VERSION = '4.1.1';
+    var VERSION = '4.1.2';
     var DATA_KEY = 'bs.tooltip';
     var EVENT_KEY = "." + DATA_KEY;
     var JQUERY_NO_CONFLICT = $$$1.fn[NAME];
@@ -6015,7 +6048,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
           var attachment = this._getAttachment(placement);
 
           this.addAttachmentClass(attachment);
-          var container = this.config.container === false ? document.body : $$$1(this.config.container);
+          var container = this.config.container === false ? document.body : $$$1(document).find(this.config.container);
           $$$1(tip).data(this.constructor.DATA_KEY, this);
 
           if (!$$$1.contains(this.element.ownerDocument.documentElement, this.tip)) {
@@ -6154,9 +6187,9 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
       };
 
       _proto.setContent = function setContent() {
-        var $tip = $$$1(this.getTipElement());
-        this.setElementContent($tip.find(Selector.TOOLTIP_INNER), this.getTitle());
-        $tip.removeClass(ClassName.FADE + " " + ClassName.SHOW);
+        var tip = this.getTipElement();
+        this.setElementContent($$$1(tip.querySelectorAll(Selector.TOOLTIP_INNER)), this.getTitle());
+        $$$1(tip).removeClass(ClassName.FADE + " " + ClassName.SHOW);
       };
 
       _proto.setElementContent = function setElementContent($element, content) {
@@ -6349,15 +6382,18 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         var $tip = $$$1(this.getTipElement());
         var tabClass = $tip.attr('class').match(BSCLS_PREFIX_REGEX);
 
-        if (tabClass !== null && tabClass.length > 0) {
+        if (tabClass !== null && tabClass.length) {
           $tip.removeClass(tabClass.join(''));
         }
       };
 
-      _proto._handlePopperPlacementChange = function _handlePopperPlacementChange(data) {
+      _proto._handlePopperPlacementChange = function _handlePopperPlacementChange(popperData) {
+        var popperInstance = popperData.instance;
+        this.tip = popperInstance.popper;
+
         this._cleanTipClass();
 
-        this.addAttachmentClass(this._getAttachment(data.placement));
+        this.addAttachmentClass(this._getAttachment(popperData.placement));
       };
 
       _proto._fixTransition = function _fixTransition() {
@@ -6460,7 +6496,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.1): popover.js
+   * Bootstrap (v4.1.2): popover.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -6472,7 +6508,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'popover';
-    var VERSION = '4.1.1';
+    var VERSION = '4.1.2';
     var DATA_KEY = 'bs.popover';
     var EVENT_KEY = "." + DATA_KEY;
     var JQUERY_NO_CONFLICT = $$$1.fn[NAME];
@@ -6657,7 +6693,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.1): scrollspy.js
+   * Bootstrap (v4.1.2): scrollspy.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -6669,7 +6705,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'scrollspy';
-    var VERSION = '4.1.1';
+    var VERSION = '4.1.2';
     var DATA_KEY = 'bs.scrollspy';
     var EVENT_KEY = "." + DATA_KEY;
     var DATA_API_KEY = '.data-api';
@@ -6751,13 +6787,13 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         this._offsets = [];
         this._targets = [];
         this._scrollHeight = this._getScrollHeight();
-        var targets = $$$1.makeArray($$$1(this._selector));
+        var targets = [].slice.call(document.querySelectorAll(this._selector));
         targets.map(function (element) {
           var target;
           var targetSelector = Util.getSelectorFromElement(element);
 
           if (targetSelector) {
-            target = $$$1(targetSelector)[0];
+            target = document.querySelector(targetSelector);
           }
 
           if (target) {
@@ -6854,7 +6890,9 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
           return;
         }
 
-        for (var i = this._offsets.length; i--;) {
+        var offsetLength = this._offsets.length;
+
+        for (var i = offsetLength; i--;) {
           var isActiveTarget = this._activeTarget !== this._targets[i] && scrollTop >= this._offsets[i] && (typeof this._offsets[i + 1] === 'undefined' || scrollTop < this._offsets[i + 1]);
 
           if (isActiveTarget) {
@@ -6874,7 +6912,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         queries = queries.map(function (selector) {
           return selector + "[data-target=\"" + target + "\"]," + (selector + "[href=\"" + target + "\"]");
         });
-        var $link = $$$1(queries.join(','));
+        var $link = $$$1([].slice.call(document.querySelectorAll(queries.join(','))));
 
         if ($link.hasClass(ClassName.DROPDOWN_ITEM)) {
           $link.closest(Selector.DROPDOWN).find(Selector.DROPDOWN_TOGGLE).addClass(ClassName.ACTIVE);
@@ -6895,7 +6933,8 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
       };
 
       _proto._clear = function _clear() {
-        $$$1(this._selector).filter(Selector.ACTIVE).removeClass(ClassName.ACTIVE);
+        var nodes = [].slice.call(document.querySelectorAll(this._selector));
+        $$$1(nodes).filter(Selector.ACTIVE).removeClass(ClassName.ACTIVE);
       }; // Static
 
 
@@ -6942,9 +6981,10 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
 
     $$$1(window).on(Event.LOAD_DATA_API, function () {
-      var scrollSpys = $$$1.makeArray($$$1(Selector.DATA_SPY));
+      var scrollSpys = [].slice.call(document.querySelectorAll(Selector.DATA_SPY));
+      var scrollSpysLength = scrollSpys.length;
 
-      for (var i = scrollSpys.length; i--;) {
+      for (var i = scrollSpysLength; i--;) {
         var $spy = $$$1(scrollSpys[i]);
 
         ScrollSpy._jQueryInterface.call($spy, $spy.data());
@@ -6969,7 +7009,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.1): tab.js
+   * Bootstrap (v4.1.2): tab.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -6981,7 +7021,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'tab';
-    var VERSION = '4.1.1';
+    var VERSION = '4.1.2';
     var DATA_KEY = 'bs.tab';
     var EVENT_KEY = "." + DATA_KEY;
     var DATA_API_KEY = '.data-api';
@@ -7063,7 +7103,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         }
 
         if (selector) {
-          target = $$$1(selector)[0];
+          target = document.querySelector(selector);
         }
 
         this._activate(this._element, listElement);
@@ -7145,7 +7185,8 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
           var dropdownElement = $$$1(element).closest(Selector.DROPDOWN)[0];
 
           if (dropdownElement) {
-            $$$1(dropdownElement).find(Selector.DROPDOWN_TOGGLE).addClass(ClassName.ACTIVE);
+            var dropdownToggleList = [].slice.call(dropdownElement.querySelectorAll(Selector.DROPDOWN_TOGGLE));
+            $$$1(dropdownToggleList).addClass(ClassName.ACTIVE);
           }
 
           element.setAttribute('aria-expanded', true);
@@ -7217,7 +7258,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.1): index.js
+   * Bootstrap (v4.1.2): index.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -7256,7 +7297,778 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 })));
 
 
-},{"jquery":47,"popper.js":49}],15:[function(require,module,exports){
+},{"jquery":62,"popper.js":64}],16:[function(require,module,exports){
+
+},{}],17:[function(require,module,exports){
+(function() {
+    traversal = require("./traversal");
+    treetools = {};
+
+    treetools.create_node = function(arg_name, arg_children, arg_length){
+        return { name: arg_name, branchset: arg_children, length: arg_length };
+    };
+    treetools.create_leaf = function(arg_name, arg_length) {
+        return { name: arg_name, length: arg_length };
+    };
+    treetools.index_and_enumerate = function(tree, id_prefix, fieldname="unique_id", traversal_fnx=treetools.visitPreOrder) {
+        // id_prefix  is something like "node_"
+        // this function extends the tree object to include fieldname, 
+        // and returns an object of references keyed off of that name
+        var counter = 0; // increase as we visit nodes in the tree
+        var nodeLookup = {}; // maintain a reference to the nodes based on template string + counter 
+        var data = { counter, nodeLookup };
+        traversal_fnx(tree,
+
+            function(node, depth, data) {
+                if (! node.hasOwnProperty(fieldname)) {
+                    tag = id_prefix + data.counter++;
+                    node[fieldname] = tag;    
+                }
+                data.nodeLookup[ node[fieldname] ] = node;
+            },
+            0, // starting depth is zero
+            data
+        );
+        return data.nodeLookup
+    };
+    treetools.make_binary = function(node) {
+        if (node.branchset) {
+            var n = node.branchset.length;
+            if (n > 2) {
+                var i = n/2;
+                var leftArray = node.branchset.slice(0,i);
+                var rightArray = node.branchset.slice(i);
+
+                var node_left = leftArray.length == 1 ?  leftArray[0] : treetools.create_node(node.name + "_left", leftArray, 0);
+                var node_right = rightArray.length == 1 ?  rightArray[0] : treetools.create_node(node.name + "_right", rightArray, 0);
+                node.branchset = [node_left, node_right];
+            }
+            treetools.make_binary(node.branchset[0]);
+            treetools.make_binary(node.branchset[1]);
+        }
+    };
+    treetools.make_random_binary = function(node) {
+        if (node.branchset) {
+            var n = node.branchset.length;
+            if (n > 2) {
+                var i = Math.ceil(Math.random() * (n-1)); // for the slice to work, i must be within exclusive range (0,n)
+                var leftArray = node.branchset.slice(0,i);
+                var rightArray = node.branchset.slice(i);
+
+                var node_left = leftArray.length == 1 ?  leftArray[0] : treetools.create_node(node.name + "_left", leftArray, 0);
+                var node_right = rightArray.length == 1 ?  rightArray[0] : treetools.create_node(node.name + "_right", rightArray, 0);
+                node.branchset = [node_left, node_right];
+            }
+            treetools.make_random_binary(node.branchset[0]);
+            treetools.make_random_binary(node.branchset[1]);
+        }
+    };
+    treetools.swap_children = function(node) {
+        // requires binary
+        if (node.branchset) {
+            var right = node.branchset[1];
+            var left = node.branchset[0];
+            node.branchset = [right, left];
+        }
+    };
+    module.exports = treetools;
+})();
+
+},{"./traversal":19}],18:[function(require,module,exports){
+(function() {
+    function extend(obj, src) {
+        Object.keys(src).forEach(function(key) { obj[key] = src[key]; }); 
+        return obj;
+    }
+    treetools = {};
+    treetools = extend(treetools, require('./traversal'));
+    treetools = extend(treetools, require('./edit'));
+    module.exports = treetools;
+})();
+
+},{"./edit":17,"./traversal":19}],19:[function(require,module,exports){
+(function() {
+    treetools = {};
+    treetools.depth = function(root) {
+        if (! root.branchset) return 0;
+        var depths = [];
+        for (branch_i in root.branchset) {
+            depths.append( treetools.depth( root.branchset[branch_i] ) );
+        }
+        return Math.max(depths) + 1;
+    }
+    treetools.visitPreOrder = function(root, callback, depth=0, data={}) {
+        if (root) { callback(root, depth, data); }
+        if (root.branchset) {
+            for (var i = 0; i < root.branchset.length; i++) {
+                treetools.visitPreOrder(root.branchset[i], callback, depth+1,data);
+            }   
+        }   
+    };  
+    treetools.visitPostOrder = function(root, callback, depth=0, data={}) {
+        if (root.branchset) {
+            for (var i = 0; i < root.branchset.length; i++) {
+                treetools.visitPostOrder(root.branchset[i], callback, depth+1,data);
+            }   
+        }   
+        if (root) { callback(root, depth, data); }
+    }; 
+    /***** NOT TESTED *************/
+    treetools.visitDepthOrder = function(root, callback, targetDepth=0, currentDepth=0, data={}) {
+        // only execute callback at targetDepth 
+        if (root) {
+            if (targetDepth == currentDepth) {
+                callback(root,currentDepth,data);
+            }
+            else if (root.branchset) {
+                for (var i = 0; i < root.branchset.length; i++) {
+                    treetools.visitDepthOrder(root.branchset[i], callback, targetDepth, currentDepth+1, data);
+                }
+            }
+        }
+    }
+    module.exports = treetools;
+})();
+
+},{}],20:[function(require,module,exports){
+(function() {
+    builders = require('../builders');
+    writer = require('../read-write');
+    treetools = {};
+
+    // from formalized Tanglegram notations in 
+    // Venkatachalam B, Apple J, St. John K, Gusfield D. 
+    // Untangling tanglegrams: Comparing trees by their drawings. 
+    // IEEE/ACM Trans Comput Biol Bioinforma. 2010;7(4):588-597. doi:10.1109/TCBB.2010.57.
+    treetools.detangler = function(root, standard) {
+        var data = {root: root, l1: standard}; // needed to call leaves, dfoot
+        var detangle = function(node, depth, data) {
+            if (node.branchset) {
+                var dfoot_pre = treetools.dfoot(treetools.leaf_names(data.root), data.l1);
+                treetools.swap_children(node);
+                var dfoot_post = treetools.dfoot(treetools.leaf_names(data.root), data.l1);
+                if (dfoot_pre < dfoot_post) {
+                    treetools.swap_children(node); // swaps it back
+                    console.error("No swap needed for children of %s", node.name);
+                }
+                else {
+                    console.error("Swapping children of %s", node.name); // retain swap
+                }
+            }
+        };
+
+        builders.visitPostOrder(root, detangle, 0, data);
+    };
+    treetools.dfoot = function(nodelist, standard) {
+        // Implementation of Spearman's footrule distance
+        // Defined as the sum of the distance of ranks of the respective lists of leaves (names).
+        // No ranking system is predefined, so use the order of the left leaves as the ranks.
+        var sum = 0;
+        for (var i = 0; i < nodelist.length; i++) {
+            sum += Math.abs(i - nodelist.indexOf( standard[i] ));
+        }
+        return sum;
+    };
+    treetools.local_dfoot = function(nodelist, standard) {
+        var sum = 0;
+        var obj = {};
+        var min = Number.MAX_SAFE_INTEGER;
+        var max = Number.MIN_SAFE_INTEGER;
+        for (var i = 0; i < nodelist.length; i++) {
+            var dif = Math.abs(i - nodelist.indexOf( standard[i] ));
+            sum += dif;
+            min = Math.min(min,dif);
+            max = Math.max(max,dif);
+            obj[ standard[i] ] = dif;
+        }
+        return { sum: sum, diffs: obj, min: min, max: max };
+    }
+    module.exports = treetools;
+})();
+
+
+},{"../builders":18,"../read-write":26}],21:[function(require,module,exports){
+(function() {
+    traversal = require('../builders');
+    treetools = {};
+    treetools.longest_path = function(subtree, path_str="", length=0) {
+        var running_str = path_str + "." + subtree.name;
+        var running_length = length + subtree.length;
+        if (subtree.branchset) {
+            var values = [];
+            var max_i = 0;
+            for (var i = 0; i < subtree.branchset.length; i++) {
+                var v = treetools.longest_path( subtree.branchset[i], running_str, running_length );
+                values.push(v);
+                if (v[1] > values[max_i][1]) {
+                    max_i = i;
+                }
+            }
+            // max of all children
+            running_str = values[max_i][0];
+            running_length = values[max_i][1];
+        }
+        return [running_str,running_length];
+    };
+    treetools.leaf_names = function(tree) {
+        var add_name_if_leaf = function(node, depth, data) {
+            if (! node.branchset) {
+                if (! data.leaves) { data.leaves = []; }
+                data.leaves.push(node.name);
+            }
+        };
+        var data = {};
+        traversal.visitPreOrder(tree, add_name_if_leaf, 0, data);
+        if (data.leaves.length == 0) throw new Error("leaf_names has empty result");
+        return data.leaves;
+    };
+    treetools.leaves = function(tree) {
+        var add_name_if_leaf = function(node, depth, data) {
+            if (! node.branchset) {
+                if (! data.leaves) { data.leaves = []; }
+                data.leaves.push(node);
+            }
+        };
+        var data = {};
+        traversal.visitPreOrder(tree, add_name_if_leaf, 0, data);
+        return data.leaves;
+    };
+    module.exports = treetools;
+})();
+
+},{"../builders":18}],22:[function(require,module,exports){
+(function() {
+    function extend(obj, src) {
+        Object.keys(src).forEach(function(key) { obj[key] = src[key]; }); 
+        return obj;
+    }
+    treetools = {};
+    treetools = extend(treetools, require('./detangler'));
+    treetools = extend(treetools, require('./general'));
+    module.exports = treetools;
+})();
+
+
+},{"./detangler":20,"./general":21}],23:[function(require,module,exports){
+(function() { // hide namespace from global
+    function extend(obj, src) {
+        Object.keys(src).forEach(function(key) { obj[key] = src[key]; });
+        return obj;
+    }
+    treetools = {}
+    treetools = extend(treetools, require('./read-write'));
+    treetools = extend(treetools, require('./functions'));
+    treetools = extend(treetools, require('./builders'));
+    module.exports = treetools;
+
+})();
+
+},{"./builders":18,"./functions":22,"./read-write":26}],24:[function(require,module,exports){
+(function webpackUniversalModuleDefinition(root, factory) {
+	if(typeof exports === 'object' && typeof module === 'object')
+		module.exports = factory();
+	else if(typeof define === 'function' && define.amd)
+		define([], factory);
+	else if(typeof exports === 'object')
+		exports["NewickJS"] = factory();
+	else
+		root["NewickJS"] = factory();
+})(this, function() {
+return /******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+/******/
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId]) {
+/******/ 			return installedModules[moduleId].exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			i: moduleId,
+/******/ 			l: false,
+/******/ 			exports: {}
+/******/ 		};
+/******/
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/
+/******/ 		// Flag the module as loaded
+/******/ 		module.l = true;
+/******/
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/
+/******/
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+/******/
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+/******/
+/******/ 	// define getter function for harmony exports
+/******/ 	__webpack_require__.d = function(exports, name, getter) {
+/******/ 		if(!__webpack_require__.o(exports, name)) {
+/******/ 			Object.defineProperty(exports, name, {
+/******/ 				configurable: false,
+/******/ 				enumerable: true,
+/******/ 				get: getter
+/******/ 			});
+/******/ 		}
+/******/ 	};
+/******/
+/******/ 	// getDefaultExport function for compatibility with non-harmony modules
+/******/ 	__webpack_require__.n = function(module) {
+/******/ 		var getter = module && module.__esModule ?
+/******/ 			function getDefault() { return module['default']; } :
+/******/ 			function getModuleExports() { return module; };
+/******/ 		__webpack_require__.d(getter, 'a', getter);
+/******/ 		return getter;
+/******/ 	};
+/******/
+/******/ 	// Object.prototype.hasOwnProperty.call
+/******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
+/******/
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
+/******/
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(__webpack_require__.s = 1);
+/******/ })
+/************************************************************************/
+/******/ ([
+/* 0 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__parse__ = __webpack_require__(3);
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "parse", function() { return __WEBPACK_IMPORTED_MODULE_0__parse__["a"]; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__cast__ = __webpack_require__(4);
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "cast", function() { return __WEBPACK_IMPORTED_MODULE_1__cast__["a"]; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__getRoot__ = __webpack_require__(5);
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "getRoot", function() { return __WEBPACK_IMPORTED_MODULE_2__getRoot__["a"]; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__serialize__ = __webpack_require__(6);
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "serialize", function() { return __WEBPACK_IMPORTED_MODULE_3__serialize__["a"]; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__dfs__ = __webpack_require__(7);
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "dfs", function() { return __WEBPACK_IMPORTED_MODULE_4__dfs__["a"]; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__map__ = __webpack_require__(8);
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "map", function() { return __WEBPACK_IMPORTED_MODULE_5__map__["a"]; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__normalize__ = __webpack_require__(9);
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "normalize", function() { return __WEBPACK_IMPORTED_MODULE_6__normalize__["a"]; });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/***/ }),
+/* 1 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__Newick__ = __webpack_require__(2);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__tools__ = __webpack_require__(0);
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "Newick", function() { return __WEBPACK_IMPORTED_MODULE_0__Newick__["a"]; });
+/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "NewickTools", function() { return __WEBPACK_IMPORTED_MODULE_1__tools__; });
+
+
+
+
+
+/***/ }),
+/* 2 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__tools__ = __webpack_require__(0);
+
+
+class Newick {
+    constructor(data) {
+        this.getRoot = () => __WEBPACK_IMPORTED_MODULE_0__tools__["getRoot"](this.tree);
+
+        this.dfs = callback => __WEBPACK_IMPORTED_MODULE_0__tools__["dfs"](this.tree, callback);
+
+        this.map = callback => {
+            this.tree = __WEBPACK_IMPORTED_MODULE_0__tools__["map"](this.tree, callback);
+        };
+
+        this.normalize = () => __WEBPACK_IMPORTED_MODULE_0__tools__["normalize"](this.tree);
+
+        this.serialize = () => __WEBPACK_IMPORTED_MODULE_0__tools__["serialize"](this.tree);
+
+        this.toString = () => this.serialize();
+
+        this.clone = () => new Newick(this.tree);
+
+        this.equal = anotherTree => this.serialize().toLowerCase() === anotherTree.serialize().toLowerCase();
+
+        this.parse = string => __WEBPACK_IMPORTED_MODULE_0__tools__["parse"](string);
+
+        this.tree = __WEBPACK_IMPORTED_MODULE_0__tools__["cast"](data);
+    }
+
+}
+
+/* harmony default export */ __webpack_exports__["a"] = (Newick);
+
+/***/ }),
+/* 3 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+const parse = s => {
+    let ancestors = [];
+    let tree = {};
+    let tokens = s.split(/\s*([;(),:])\s*/);
+    let subtree;
+    for (let i = 0; i < tokens.length; i++) {
+        let token = tokens[i];
+        switch (token) {
+            case '(':
+                // new branchset
+                subtree = {};
+                tree.branchset = [subtree];
+                ancestors.push(tree);
+                tree = subtree;
+                break;
+            case ',':
+                // another branch
+                subtree = {};
+                ancestors[ancestors.length - 1].branchset.push(subtree);
+                tree = subtree;
+                break;
+            case ')':
+                // optional name next
+                tree = ancestors.pop();
+                break;
+            case ':':
+                // optional length next
+                break;
+            default:
+                let x = tokens[i - 1];
+                if (x === ')' || x === '(' || x === ',') {
+                    tree.name = token;
+                } else if (x === ':') {
+                    tree.length = parseFloat(token);
+                }
+        }
+    }
+    return tree;
+};
+
+/* harmony default export */ __webpack_exports__["a"] = (parse);
+
+/***/ }),
+/* 4 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0____ = __webpack_require__(0);
+
+
+/**
+ * Casts tree or string to tree-object
+ * @private
+ * @param {string|object} s Newick-string or tree-object
+ * @returns {object} Tree-object
+ */
+const cast = s => {
+    if (typeof s === 'string') {
+        try {
+            s = JSON.parse(s);
+        } catch (e) {
+            s = __WEBPACK_IMPORTED_MODULE_0____["parse"](s);
+        }
+    }
+
+    return s;
+};
+
+/* harmony default export */ __webpack_exports__["a"] = (cast);
+
+/***/ }),
+/* 5 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0____ = __webpack_require__(0);
+
+
+/**
+ * Returns a root of the tree
+ * @private
+ * @param {string|object} tree Newick-string or tree-object
+ * @returns {string}
+ */
+const getRoot = tree => {
+    tree = __WEBPACK_IMPORTED_MODULE_0____["cast"](tree);
+    for (let i in tree) {
+        if (tree.hasOwnProperty(i) && i === 'name') {
+            return tree[i];
+        }
+    }
+};
+
+/* harmony default export */ __webpack_exports__["a"] = (getRoot);
+
+/***/ }),
+/* 6 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+const serialize = node => {
+    let newick = '';
+
+    if (node.branchset && node.branchset.length) {
+        newick += `(${node.branchset.map(serialize).join(',')})`;
+    }
+
+    if (node.name) {
+        newick += node.name;
+    }
+
+    if (node.length) {
+        newick += `:${node.length}`;
+    }
+
+    return newick;
+};
+
+/* harmony default export */ __webpack_exports__["a"] = (node => `${serialize(node)};`);
+
+/***/ }),
+/* 7 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0____ = __webpack_require__(0);
+
+
+const dfs = (tree, nodeCallback) => {
+    nodeCallback = nodeCallback || function (e) {
+        return e;
+    };
+
+    let vertex = {};
+
+    function _local_dfs(tree) {
+        let branchset = tree.branchset || [];
+        if (branchset.length !== 0) {
+            for (let i = 0; i < branchset.length; i++) {
+                vertex[branchset[i].name] = branchset[i].length;
+                tree.branchset[i] = nodeCallback(tree.branchset[i]);
+                _local_dfs(branchset[i]);
+            }
+        }
+    }
+
+    tree = __WEBPACK_IMPORTED_MODULE_0____["cast"](tree);
+    _local_dfs(tree);
+    return vertex;
+};
+
+/* harmony default export */ __webpack_exports__["a"] = (dfs);
+
+/***/ }),
+/* 8 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0____ = __webpack_require__(0);
+
+
+const map = (tree, callback) => {
+    callback = callback || function (e) {
+        return e;
+    };
+    tree = __WEBPACK_IMPORTED_MODULE_0____["cast"](tree);
+    __WEBPACK_IMPORTED_MODULE_0____["dfs"](tree, null, callback);
+    return tree;
+};
+
+/* harmony default export */ __webpack_exports__["a"] = (map);
+
+/***/ }),
+/* 9 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0____ = __webpack_require__(0);
+
+
+const normalize = s => {
+    s = __WEBPACK_IMPORTED_MODULE_0____["cast"](s);
+    function _local_normalize(tree) {
+        let vertex = __WEBPACK_IMPORTED_MODULE_0____["dfs"](tree);
+        let total = 0;
+        for (let i in vertex) {
+            if (vertex.hasOwnProperty(i)) {
+                total += vertex[i];
+            }
+        }
+        __WEBPACK_IMPORTED_MODULE_0____["dfs"](tree, null, function (e) {
+            e.length = e.length / total;
+            return e;
+        });
+        return tree;
+    }
+
+    return _local_normalize(s);
+};
+
+/* harmony default export */ __webpack_exports__["a"] = (normalize);
+
+/***/ })
+/******/ ]);
+});
+},{}],25:[function(require,module,exports){
+var dist = require('./dist/')
+
+module.exports = dist
+
+},{"./dist/":24}],26:[function(require,module,exports){
+(function() { // hide namespace from global
+    function extend(obj, src) {
+        Object.keys(src).forEach(function(key) { obj[key] = src[key]; }); 
+        return obj;
+    }   
+    treetools = {};
+    treetools = extend(treetools, require('./parse'));
+    treetools = extend(treetools, require('./write'));
+    module.exports = treetools;
+})();
+
+},{"./parse":27,"./write":28}],27:[function(require,module,exports){
+(function() { // hide namespace from global
+    Newick = require('newick').Newick;
+    fs = require('fs');
+
+    treetools = {}; // object to export
+    treetools.parse = function(newick_str) {
+        return new Newick(newick_str).tree;
+    }
+
+    treetools.parseFile = function(filename) {
+        return treetools.parse( String(fs.readFileSync(filename)) );
+    }
+
+    treetools.parseFileAsync = function(filename, success_f, error_f) {
+        fs.readFile(filename, 'utf8', function(err,data) {
+            if (err) {
+                console.error("parseFile: unable to read file '" + filename + "'. Error: " + err);
+                error_f(error);
+                return null;
+            }
+            success_f(treetools.parse(data));
+        });
+    }
+    module.exports = treetools;
+
+})();
+
+},{"fs":16,"newick":25}],28:[function(require,module,exports){
+(function() { // shield global namespace
+    treetools = require('../index');
+    treetools.toString = function(nw) {
+        
+        // gather names, values recursively
+        var compileNW = function(node, stack)
+        {   
+            stack.unshift(node.name + ":" + node.length);
+    
+            if (node.branchset)
+            {   
+                stack.unshift(")");
+                for (var i = node.branchset.length - 1; i >= 0 ; i--)
+                {   
+                    var branch = node.branchset[i];
+                    compileNW(branch, stack);
+                    if (i > 0)
+                    {   
+                        stack.unshift(',');
+                    }   
+                }   
+                stack.unshift("(");
+            }   
+        };  
+
+        var top_stack = []; 
+        compileNW(nw, top_stack);
+        var nw_str = top_stack.join('') + ';';
+        return nw_str;
+    };  
+    treetools.writeFile = function(filename, nw, error_f) {
+        fs.writeFile(filename, treetools.toString(nw), 'utf-8', error_f);
+    };
+    
+    treetools.to_bullet_tree = function(tree) {
+        /* From ascii-tree: bullet string has to look like this:
+            #root node
+            ##node1
+            ###node11
+            ##node2
+        */
+        var d = {};
+        d.bullet_str = '';
+        var line_ending = "\r\n"; // from a windows developer?
+        treetools.visitPreOrder(
+            tree, 
+            function(node, depth, data) {
+                // function executed at each node to for bullet format
+                var indent='#';
+                for (var i=0; i < depth; i++) { indent += '#'; }
+                data.bullet_str += indent + node.name + line_ending; // was str_so_far passed by value or by reference?
+            },
+            0,
+            d
+        );
+        return d.bullet_str;
+    };
+    var asciitree = require('ascii-tree');
+    treetools.to_ascii = function(newick) { // currently unscaled
+        var bullet = treetools.to_bullet_tree(newick);
+        var ascii = asciitree.generate(bullet);
+        return ascii;
+    };
+    treetools.print_ascii = function(tree) {
+        console.log( treetools.to_ascii(tree) );
+    }
+    treetools.print_ascii_error = function(tree) {
+        console.error( treetools.to_ascii(tree) );
+    }
+    treetools.print_ascii_old = function(node, depth=0, scale = 1) { // depth is the length from node to root
+        var indent = ""; 
+        for (var i = 0; i < (scale * depth); i++) { indent += " "; }
+        var edge = ""; 
+        for (i = 0; i < (scale * node.length); i++) { edge += "-"; }
+        console.log(indent + "+" + edge + node.name + ":" + node.length);
+        if (node.branchset) {
+            for (i = 0; i < node.branchset.length; i++) {
+                treetools.print_ascii(node.branchset[i], depth+node.length, scale);
+            }   
+        }   
+    };
+
+    module.exports = treetools;
+
+})();
+
+},{"../index":23,"ascii-tree":13}],29:[function(require,module,exports){
 // https://d3js.org/d3-array/ Version 1.2.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -7848,7 +8660,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],16:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 // https://d3js.org/d3-axis/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -8043,7 +8855,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],17:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 // https://d3js.org/d3-brush/ Version 1.0.4. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dispatch'), require('d3-drag'), require('d3-interpolate'), require('d3-selection'), require('d3-transition')) :
@@ -8612,7 +9424,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":22,"d3-drag":23,"d3-interpolate":31,"d3-selection":38,"d3-transition":43}],18:[function(require,module,exports){
+},{"d3-dispatch":36,"d3-drag":37,"d3-interpolate":45,"d3-selection":52,"d3-transition":57}],32:[function(require,module,exports){
 // https://d3js.org/d3-chord/ Version 1.0.4. Copyright 2017 Mike Bostock.
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array'), require('d3-path')) :
@@ -8844,7 +9656,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":15,"d3-path":32}],19:[function(require,module,exports){
+},{"d3-array":29,"d3-path":46}],33:[function(require,module,exports){
 // https://d3js.org/d3-collection/ Version 1.0.4. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -9063,7 +9875,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],20:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 // https://d3js.org/d3-color/ Version 1.2.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -9614,8 +10426,8 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],21:[function(require,module,exports){
-// https://d3js.org/d3-contour/ Version 1.2.0. Copyright 2018 Mike Bostock.
+},{}],35:[function(require,module,exports){
+// https://d3js.org/d3-contour/ Version 1.3.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array')) :
 	typeof define === 'function' && define.amd ? define(['exports', 'd3-array'], factory) :
@@ -9920,9 +10732,14 @@ function defaultY(d) {
   return d[1];
 }
 
+function defaultWeight() {
+  return 1;
+}
+
 var density = function() {
   var x = defaultX,
       y = defaultY,
+      weight = defaultWeight,
       dx = 960,
       dy = 500,
       r = 20, // blur radius
@@ -9937,10 +10754,11 @@ var density = function() {
         values1 = new Float32Array(n * m);
 
     data.forEach(function(d, i, data) {
-      var xi = (x(d, i, data) + o) >> k,
-          yi = (y(d, i, data) + o) >> k;
+      var xi = (+x(d, i, data) + o) >> k,
+          yi = (+y(d, i, data) + o) >> k,
+          wi = +weight(d, i, data);
       if (xi >= 0 && xi < n && yi >= 0 && yi < m) {
-        ++values0[xi + yi * n];
+        values0[xi + yi * n] += wi;
       }
     });
 
@@ -10004,6 +10822,10 @@ var density = function() {
     return arguments.length ? (y = typeof _ === "function" ? _ : constant(+_), density) : y;
   };
 
+  density.weight = function(_) {
+    return arguments.length ? (weight = typeof _ === "function" ? _ : constant(+_), density) : weight;
+  };
+
   density.size = function(_) {
     if (!arguments.length) return [dx, dy];
     var _0 = Math.ceil(_[0]), _1 = Math.ceil(_[1]);
@@ -10037,7 +10859,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":15}],22:[function(require,module,exports){
+},{"d3-array":29}],36:[function(require,module,exports){
 // https://d3js.org/d3-dispatch/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -10134,7 +10956,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],23:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 // https://d3js.org/d3-drag/ Version 1.2.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dispatch'), require('d3-selection')) :
@@ -10370,7 +11192,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":22,"d3-selection":38}],24:[function(require,module,exports){
+},{"d3-dispatch":36,"d3-selection":52}],38:[function(require,module,exports){
 // https://d3js.org/d3-dsv/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -10534,7 +11356,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],25:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 // https://d3js.org/d3-ease/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -10795,7 +11617,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],26:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 // https://d3js.org/d3-fetch/ Version 1.1.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dsv')) :
@@ -10899,7 +11721,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dsv":24}],27:[function(require,module,exports){
+},{"d3-dsv":38}],41:[function(require,module,exports){
 // https://d3js.org/d3-force/ Version 1.1.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-quadtree'), require('d3-collection'), require('d3-dispatch'), require('d3-timer')) :
@@ -11561,7 +12383,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-collection":19,"d3-dispatch":22,"d3-quadtree":34,"d3-timer":42}],28:[function(require,module,exports){
+},{"d3-collection":33,"d3-dispatch":36,"d3-quadtree":48,"d3-timer":56}],42:[function(require,module,exports){
 // https://d3js.org/d3-format/ Version 1.3.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -11885,7 +12707,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],29:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 // https://d3js.org/d3-geo/ Version 1.10.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array')) :
@@ -14969,7 +15791,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":15}],30:[function(require,module,exports){
+},{"d3-array":29}],44:[function(require,module,exports){
 // https://d3js.org/d3-hierarchy/ Version 1.1.6. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -16261,7 +17083,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],31:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 // https://d3js.org/d3-interpolate/ Version 1.2.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-color')) :
@@ -16818,7 +17640,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":20}],32:[function(require,module,exports){
+},{"d3-color":34}],46:[function(require,module,exports){
 // https://d3js.org/d3-path/ Version 1.0.5. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -16961,7 +17783,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],33:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 // https://d3js.org/d3-polygon/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -17113,7 +17935,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],34:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 // https://d3js.org/d3-quadtree/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -17550,7 +18372,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],35:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 // https://d3js.org/d3-random/ Version 1.1.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -17667,7 +18489,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],36:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 // https://d3js.org/d3-scale-chromatic/ Version 1.3.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-interpolate'), require('d3-color')) :
@@ -18167,8 +18989,8 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":20,"d3-interpolate":31}],37:[function(require,module,exports){
-// https://d3js.org/d3-scale/ Version 2.0.0. Copyright 2018 Mike Bostock.
+},{"d3-color":34,"d3-interpolate":45}],51:[function(require,module,exports){
+// https://d3js.org/d3-scale/ Version 2.1.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array'), require('d3-collection'), require('d3-interpolate'), require('d3-format'), require('d3-time'), require('d3-time-format')) :
 	typeof define === 'function' && define.amd ? define(['exports', 'd3-array', 'd3-collection', 'd3-interpolate', 'd3-format', 'd3-time', 'd3-time-format'], factory) :
@@ -18990,15 +19812,16 @@ function utcTime() {
 function sequential(interpolator) {
   var x0 = 0,
       x1 = 1,
+      k10 = 1,
       clamp = false;
 
   function scale(x) {
-    var t = (x - x0) / (x1 - x0);
+    var t = (x - x0) * k10;
     return interpolator(clamp ? Math.max(0, Math.min(1, t)) : t);
   }
 
   scale.domain = function(_) {
-    return arguments.length ? (x0 = +_[0], x1 = +_[1], scale) : [x0, x1];
+    return arguments.length ? (x0 = +_[0], x1 = +_[1], k10 = x0 === x1 ? 0 : 1 / (x1 - x0), scale) : [x0, x1];
   };
 
   scale.clamp = function(_) {
@@ -19011,6 +19834,38 @@ function sequential(interpolator) {
 
   scale.copy = function() {
     return sequential(interpolator).domain([x0, x1]).clamp(clamp);
+  };
+
+  return linearish(scale);
+}
+
+function diverging(interpolator) {
+  var x0 = 0,
+      x1 = 0.5,
+      x2 = 1,
+      k10 = 1,
+      k21 = 1,
+      clamp = false;
+
+  function scale(x) {
+    var t = 0.5 + ((x = +x) - x1) * (x < x1 ? k10 : k21);
+    return interpolator(clamp ? Math.max(0, Math.min(1, t)) : t);
+  }
+
+  scale.domain = function(_) {
+    return arguments.length ? (x0 = +_[0], x1 = +_[1], x2 = +_[2], k10 = x0 === x1 ? 0 : 0.5 / (x1 - x0), k21 = x1 === x2 ? 0 : 0.5 / (x2 - x1), scale) : [x0, x1, x2];
+  };
+
+  scale.clamp = function(_) {
+    return arguments.length ? (clamp = !!_, scale) : clamp;
+  };
+
+  scale.interpolator = function(_) {
+    return arguments.length ? (interpolator = _, scale) : interpolator;
+  };
+
+  scale.copy = function() {
+    return diverging(interpolator).domain([x0, x1, x2]).clamp(clamp);
   };
 
   return linearish(scale);
@@ -19031,12 +19886,13 @@ exports.scaleThreshold = threshold;
 exports.scaleTime = time;
 exports.scaleUtc = utcTime;
 exports.scaleSequential = sequential;
+exports.scaleDiverging = diverging;
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":15,"d3-collection":19,"d3-format":28,"d3-interpolate":31,"d3-time":41,"d3-time-format":40}],38:[function(require,module,exports){
+},{"d3-array":29,"d3-collection":33,"d3-format":42,"d3-interpolate":45,"d3-time":55,"d3-time-format":54}],52:[function(require,module,exports){
 // https://d3js.org/d3-selection/ Version 1.3.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -20033,7 +20889,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],39:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 // https://d3js.org/d3-shape/ Version 1.2.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-path')) :
@@ -21970,7 +22826,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-path":32}],40:[function(require,module,exports){
+},{"d3-path":46}],54:[function(require,module,exports){
 // https://d3js.org/d3-time-format/ Version 2.1.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-time')) :
@@ -22660,7 +23516,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-time":41}],41:[function(require,module,exports){
+},{"d3-time":55}],55:[function(require,module,exports){
 // https://d3js.org/d3-time/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -23047,7 +23903,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],42:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 // https://d3js.org/d3-timer/ Version 1.0.7. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -23198,7 +24054,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],43:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 // https://d3js.org/d3-transition/ Version 1.1.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-dispatch'), require('d3-timer'), require('d3-interpolate'), require('d3-color'), require('d3-ease')) :
@@ -23987,7 +24843,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":20,"d3-dispatch":22,"d3-ease":25,"d3-interpolate":31,"d3-selection":38,"d3-timer":42}],44:[function(require,module,exports){
+},{"d3-color":34,"d3-dispatch":36,"d3-ease":39,"d3-interpolate":45,"d3-selection":52,"d3-timer":56}],58:[function(require,module,exports){
 // https://d3js.org/d3-voronoi/ Version 1.1.2. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -24988,7 +25844,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],45:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 // https://d3js.org/d3-zoom/ Version 1.7.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dispatch'), require('d3-drag'), require('d3-interpolate'), require('d3-selection'), require('d3-transition')) :
@@ -25492,7 +26348,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":22,"d3-drag":23,"d3-interpolate":31,"d3-selection":38,"d3-transition":43}],46:[function(require,module,exports){
+},{"d3-dispatch":36,"d3-drag":37,"d3-interpolate":45,"d3-selection":52,"d3-transition":57}],60:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -25529,7 +26385,7 @@ var d3Transition = require('d3-transition');
 var d3Voronoi = require('d3-voronoi');
 var d3Zoom = require('d3-zoom');
 
-var version = "5.4.0";
+var version = "5.5.0";
 
 Object.keys(d3Array).forEach(function (key) { exports[key] = d3Array[key]; });
 Object.keys(d3Axis).forEach(function (key) { exports[key] = d3Axis[key]; });
@@ -25565,7 +26421,120 @@ Object.keys(d3Zoom).forEach(function (key) { exports[key] = d3Zoom[key]; });
 exports.version = version;
 Object.defineProperty(exports, "event", {get: function() { return d3Selection.event; }});
 
-},{"d3-array":15,"d3-axis":16,"d3-brush":17,"d3-chord":18,"d3-collection":19,"d3-color":20,"d3-contour":21,"d3-dispatch":22,"d3-drag":23,"d3-dsv":24,"d3-ease":25,"d3-fetch":26,"d3-force":27,"d3-format":28,"d3-geo":29,"d3-hierarchy":30,"d3-interpolate":31,"d3-path":32,"d3-polygon":33,"d3-quadtree":34,"d3-random":35,"d3-scale":37,"d3-scale-chromatic":36,"d3-selection":38,"d3-shape":39,"d3-time":41,"d3-time-format":40,"d3-timer":42,"d3-transition":43,"d3-voronoi":44,"d3-zoom":45}],47:[function(require,module,exports){
+},{"d3-array":29,"d3-axis":30,"d3-brush":31,"d3-chord":32,"d3-collection":33,"d3-color":34,"d3-contour":35,"d3-dispatch":36,"d3-drag":37,"d3-dsv":38,"d3-ease":39,"d3-fetch":40,"d3-force":41,"d3-format":42,"d3-geo":43,"d3-hierarchy":44,"d3-interpolate":45,"d3-path":46,"d3-polygon":47,"d3-quadtree":48,"d3-random":49,"d3-scale":51,"d3-scale-chromatic":50,"d3-selection":52,"d3-shape":53,"d3-time":55,"d3-time-format":54,"d3-timer":56,"d3-transition":57,"d3-voronoi":58,"d3-zoom":59}],61:[function(require,module,exports){
+function parse(str, settings) {
+    var _settings = {
+        leadingChar: '#',
+        compact: false
+    };
+
+    config(_settings, settings);
+
+    var lines = split(str);
+    check(lines, _settings);
+    return build(lines, _settings);
+}
+
+function config(_settings, settings) {
+    var key, val;
+    if (!settings)
+        return;
+
+    for (key in _settings) {
+        val = settings[key];
+        if (val) _settings[key] = val;
+    }
+}
+
+function split(str) {
+    var lines = str.split(/[\r\n]+/);
+
+    return lines.filter(function(line) {
+        return line.trim() != '';
+    });
+}
+
+function check(str, _settings) {
+    checkRoot(str, _settings);
+}
+
+function escapeRegExp(string) {
+    return string.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+}
+
+function checkRoot(lines, _settings) {
+    var c = escapeRegExp(_settings.leadingChar),
+        firstTwoPattern = new RegExp('^' + c + '[^' + c + ']'),
+        pattern = new RegExp('^' + c + '[^' + c + '].*$'),
+        roots = lines.filter(function(line) {
+            return pattern.test(line);
+        });
+
+    if (roots.length > 1)
+        throw new Error('Only single root node is allowed!');
+
+
+    if (!firstTwoPattern.test(lines[0]))
+        throw new Error('The root node should be the first node!');
+}
+
+function parseLine(line, _settings) {
+    var c = escapeRegExp(_settings.leadingChar),
+        pattern = new RegExp('^(' + c + '+)' + '(.+)$'),
+        matches = line.match(pattern),
+        node = Object.create(null);
+
+    node.level = matches[1].length - 1;
+    node.value = matches[2];
+    return node;
+}
+
+function build(lines, _settings) {
+    var i,
+        node,
+        root = Object.create(null),
+        stack = [],
+        len = lines.length;
+
+    for (i = 0; i < len; ++i) {
+        node = parseLine(lines[i], _settings);
+
+        if (stack.length == 0) {
+            root = node;
+            stack.unshift(root);
+            continue;
+        }
+
+        while (stack[0].level >= node.level)
+            stack.shift();
+
+        if (!stack[0].nodes)
+            stack[0].nodes = [];
+
+        stack[0].nodes.push(node);
+        stack.unshift(node);
+    }
+
+    if (_settings.compact)
+        return compress(root);
+
+    return root;
+}
+
+function compress(root) {
+    var compressed = Object.create(null);
+    if (root.nodes) {
+        compressed[root.value] = [];
+        for (var i = 0, len = root.nodes.length; i < len; ++i)
+            compressed[root.value].push(compress(root.nodes[i]));
+    } else
+        compressed[root.value] = null;
+
+    return compressed;
+}
+
+exports.parse = parse;
+},{}],62:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v3.3.1
  * https://jquery.com/
@@ -35931,7 +36900,7 @@ if ( !noGlobal ) {
 return jQuery;
 } );
 
-},{}],48:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 'use strict';
 
 /**
@@ -36306,7 +37275,7 @@ return jQuery;
     }
 
 })();
-},{}],49:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 (function (global){
 /**!
  * @fileOverview Kickass library to create and place poppers near their reference elements.
@@ -38838,7 +39807,7 @@ return Popper;
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],50:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 var _forEach = require('lodash/forEach');
 var _map = require('lodash/map');
 var _every = require('lodash/every');
@@ -38960,7 +39929,7 @@ function findBestMatch(mainString, targetStrings) {
   }
 }
 
-},{"lodash/every":161,"lodash/flattenDeep":162,"lodash/forEach":163,"lodash/map":178,"lodash/maxBy":179}],51:[function(require,module,exports){
+},{"lodash/every":176,"lodash/flattenDeep":177,"lodash/forEach":178,"lodash/map":193,"lodash/maxBy":194}],66:[function(require,module,exports){
 var getNative = require('./_getNative'),
     root = require('./_root');
 
@@ -38969,7 +39938,7 @@ var DataView = getNative(root, 'DataView');
 
 module.exports = DataView;
 
-},{"./_getNative":111,"./_root":148}],52:[function(require,module,exports){
+},{"./_getNative":126,"./_root":163}],67:[function(require,module,exports){
 var hashClear = require('./_hashClear'),
     hashDelete = require('./_hashDelete'),
     hashGet = require('./_hashGet'),
@@ -39003,7 +39972,7 @@ Hash.prototype.set = hashSet;
 
 module.exports = Hash;
 
-},{"./_hashClear":117,"./_hashDelete":118,"./_hashGet":119,"./_hashHas":120,"./_hashSet":121}],53:[function(require,module,exports){
+},{"./_hashClear":132,"./_hashDelete":133,"./_hashGet":134,"./_hashHas":135,"./_hashSet":136}],68:[function(require,module,exports){
 var listCacheClear = require('./_listCacheClear'),
     listCacheDelete = require('./_listCacheDelete'),
     listCacheGet = require('./_listCacheGet'),
@@ -39037,7 +40006,7 @@ ListCache.prototype.set = listCacheSet;
 
 module.exports = ListCache;
 
-},{"./_listCacheClear":130,"./_listCacheDelete":131,"./_listCacheGet":132,"./_listCacheHas":133,"./_listCacheSet":134}],54:[function(require,module,exports){
+},{"./_listCacheClear":145,"./_listCacheDelete":146,"./_listCacheGet":147,"./_listCacheHas":148,"./_listCacheSet":149}],69:[function(require,module,exports){
 var getNative = require('./_getNative'),
     root = require('./_root');
 
@@ -39046,7 +40015,7 @@ var Map = getNative(root, 'Map');
 
 module.exports = Map;
 
-},{"./_getNative":111,"./_root":148}],55:[function(require,module,exports){
+},{"./_getNative":126,"./_root":163}],70:[function(require,module,exports){
 var mapCacheClear = require('./_mapCacheClear'),
     mapCacheDelete = require('./_mapCacheDelete'),
     mapCacheGet = require('./_mapCacheGet'),
@@ -39080,7 +40049,7 @@ MapCache.prototype.set = mapCacheSet;
 
 module.exports = MapCache;
 
-},{"./_mapCacheClear":135,"./_mapCacheDelete":136,"./_mapCacheGet":137,"./_mapCacheHas":138,"./_mapCacheSet":139}],56:[function(require,module,exports){
+},{"./_mapCacheClear":150,"./_mapCacheDelete":151,"./_mapCacheGet":152,"./_mapCacheHas":153,"./_mapCacheSet":154}],71:[function(require,module,exports){
 var getNative = require('./_getNative'),
     root = require('./_root');
 
@@ -39089,7 +40058,7 @@ var Promise = getNative(root, 'Promise');
 
 module.exports = Promise;
 
-},{"./_getNative":111,"./_root":148}],57:[function(require,module,exports){
+},{"./_getNative":126,"./_root":163}],72:[function(require,module,exports){
 var getNative = require('./_getNative'),
     root = require('./_root');
 
@@ -39098,7 +40067,7 @@ var Set = getNative(root, 'Set');
 
 module.exports = Set;
 
-},{"./_getNative":111,"./_root":148}],58:[function(require,module,exports){
+},{"./_getNative":126,"./_root":163}],73:[function(require,module,exports){
 var MapCache = require('./_MapCache'),
     setCacheAdd = require('./_setCacheAdd'),
     setCacheHas = require('./_setCacheHas');
@@ -39127,7 +40096,7 @@ SetCache.prototype.has = setCacheHas;
 
 module.exports = SetCache;
 
-},{"./_MapCache":55,"./_setCacheAdd":149,"./_setCacheHas":150}],59:[function(require,module,exports){
+},{"./_MapCache":70,"./_setCacheAdd":164,"./_setCacheHas":165}],74:[function(require,module,exports){
 var ListCache = require('./_ListCache'),
     stackClear = require('./_stackClear'),
     stackDelete = require('./_stackDelete'),
@@ -39156,7 +40125,7 @@ Stack.prototype.set = stackSet;
 
 module.exports = Stack;
 
-},{"./_ListCache":53,"./_stackClear":152,"./_stackDelete":153,"./_stackGet":154,"./_stackHas":155,"./_stackSet":156}],60:[function(require,module,exports){
+},{"./_ListCache":68,"./_stackClear":167,"./_stackDelete":168,"./_stackGet":169,"./_stackHas":170,"./_stackSet":171}],75:[function(require,module,exports){
 var root = require('./_root');
 
 /** Built-in value references. */
@@ -39164,7 +40133,7 @@ var Symbol = root.Symbol;
 
 module.exports = Symbol;
 
-},{"./_root":148}],61:[function(require,module,exports){
+},{"./_root":163}],76:[function(require,module,exports){
 var root = require('./_root');
 
 /** Built-in value references. */
@@ -39172,7 +40141,7 @@ var Uint8Array = root.Uint8Array;
 
 module.exports = Uint8Array;
 
-},{"./_root":148}],62:[function(require,module,exports){
+},{"./_root":163}],77:[function(require,module,exports){
 var getNative = require('./_getNative'),
     root = require('./_root');
 
@@ -39181,7 +40150,7 @@ var WeakMap = getNative(root, 'WeakMap');
 
 module.exports = WeakMap;
 
-},{"./_getNative":111,"./_root":148}],63:[function(require,module,exports){
+},{"./_getNative":126,"./_root":163}],78:[function(require,module,exports){
 /**
  * A specialized version of `_.forEach` for arrays without support for
  * iteratee shorthands.
@@ -39205,7 +40174,7 @@ function arrayEach(array, iteratee) {
 
 module.exports = arrayEach;
 
-},{}],64:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 /**
  * A specialized version of `_.every` for arrays without support for
  * iteratee shorthands.
@@ -39230,7 +40199,7 @@ function arrayEvery(array, predicate) {
 
 module.exports = arrayEvery;
 
-},{}],65:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 /**
  * A specialized version of `_.filter` for arrays without support for
  * iteratee shorthands.
@@ -39257,7 +40226,7 @@ function arrayFilter(array, predicate) {
 
 module.exports = arrayFilter;
 
-},{}],66:[function(require,module,exports){
+},{}],81:[function(require,module,exports){
 var baseTimes = require('./_baseTimes'),
     isArguments = require('./isArguments'),
     isArray = require('./isArray'),
@@ -39308,7 +40277,7 @@ function arrayLikeKeys(value, inherited) {
 
 module.exports = arrayLikeKeys;
 
-},{"./_baseTimes":95,"./_isIndex":123,"./isArguments":167,"./isArray":168,"./isBuffer":170,"./isTypedArray":176}],67:[function(require,module,exports){
+},{"./_baseTimes":110,"./_isIndex":138,"./isArguments":182,"./isArray":183,"./isBuffer":185,"./isTypedArray":191}],82:[function(require,module,exports){
 /**
  * A specialized version of `_.map` for arrays without support for iteratee
  * shorthands.
@@ -39331,7 +40300,7 @@ function arrayMap(array, iteratee) {
 
 module.exports = arrayMap;
 
-},{}],68:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 /**
  * Appends the elements of `values` to `array`.
  *
@@ -39353,7 +40322,7 @@ function arrayPush(array, values) {
 
 module.exports = arrayPush;
 
-},{}],69:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 /**
  * A specialized version of `_.some` for arrays without support for iteratee
  * shorthands.
@@ -39378,7 +40347,7 @@ function arraySome(array, predicate) {
 
 module.exports = arraySome;
 
-},{}],70:[function(require,module,exports){
+},{}],85:[function(require,module,exports){
 var eq = require('./eq');
 
 /**
@@ -39401,7 +40370,7 @@ function assocIndexOf(array, key) {
 
 module.exports = assocIndexOf;
 
-},{"./eq":160}],71:[function(require,module,exports){
+},{"./eq":175}],86:[function(require,module,exports){
 var baseForOwn = require('./_baseForOwn'),
     createBaseEach = require('./_createBaseEach');
 
@@ -39417,7 +40386,7 @@ var baseEach = createBaseEach(baseForOwn);
 
 module.exports = baseEach;
 
-},{"./_baseForOwn":76,"./_createBaseEach":102}],72:[function(require,module,exports){
+},{"./_baseForOwn":91,"./_createBaseEach":117}],87:[function(require,module,exports){
 var baseEach = require('./_baseEach');
 
 /**
@@ -39440,7 +40409,7 @@ function baseEvery(collection, predicate) {
 
 module.exports = baseEvery;
 
-},{"./_baseEach":71}],73:[function(require,module,exports){
+},{"./_baseEach":86}],88:[function(require,module,exports){
 var isSymbol = require('./isSymbol');
 
 /**
@@ -39474,7 +40443,7 @@ function baseExtremum(array, iteratee, comparator) {
 
 module.exports = baseExtremum;
 
-},{"./isSymbol":175}],74:[function(require,module,exports){
+},{"./isSymbol":190}],89:[function(require,module,exports){
 var arrayPush = require('./_arrayPush'),
     isFlattenable = require('./_isFlattenable');
 
@@ -39514,7 +40483,7 @@ function baseFlatten(array, depth, predicate, isStrict, result) {
 
 module.exports = baseFlatten;
 
-},{"./_arrayPush":68,"./_isFlattenable":122}],75:[function(require,module,exports){
+},{"./_arrayPush":83,"./_isFlattenable":137}],90:[function(require,module,exports){
 var createBaseFor = require('./_createBaseFor');
 
 /**
@@ -39532,7 +40501,7 @@ var baseFor = createBaseFor();
 
 module.exports = baseFor;
 
-},{"./_createBaseFor":103}],76:[function(require,module,exports){
+},{"./_createBaseFor":118}],91:[function(require,module,exports){
 var baseFor = require('./_baseFor'),
     keys = require('./keys');
 
@@ -39550,7 +40519,7 @@ function baseForOwn(object, iteratee) {
 
 module.exports = baseForOwn;
 
-},{"./_baseFor":75,"./keys":177}],77:[function(require,module,exports){
+},{"./_baseFor":90,"./keys":192}],92:[function(require,module,exports){
 var castPath = require('./_castPath'),
     toKey = require('./_toKey');
 
@@ -39576,7 +40545,7 @@ function baseGet(object, path) {
 
 module.exports = baseGet;
 
-},{"./_castPath":100,"./_toKey":158}],78:[function(require,module,exports){
+},{"./_castPath":115,"./_toKey":173}],93:[function(require,module,exports){
 var arrayPush = require('./_arrayPush'),
     isArray = require('./isArray');
 
@@ -39598,7 +40567,7 @@ function baseGetAllKeys(object, keysFunc, symbolsFunc) {
 
 module.exports = baseGetAllKeys;
 
-},{"./_arrayPush":68,"./isArray":168}],79:[function(require,module,exports){
+},{"./_arrayPush":83,"./isArray":183}],94:[function(require,module,exports){
 var Symbol = require('./_Symbol'),
     getRawTag = require('./_getRawTag'),
     objectToString = require('./_objectToString');
@@ -39628,7 +40597,7 @@ function baseGetTag(value) {
 
 module.exports = baseGetTag;
 
-},{"./_Symbol":60,"./_getRawTag":112,"./_objectToString":146}],80:[function(require,module,exports){
+},{"./_Symbol":75,"./_getRawTag":127,"./_objectToString":161}],95:[function(require,module,exports){
 /**
  * The base implementation of `_.gt` which doesn't coerce arguments.
  *
@@ -39644,7 +40613,7 @@ function baseGt(value, other) {
 
 module.exports = baseGt;
 
-},{}],81:[function(require,module,exports){
+},{}],96:[function(require,module,exports){
 /**
  * The base implementation of `_.hasIn` without support for deep paths.
  *
@@ -39659,7 +40628,7 @@ function baseHasIn(object, key) {
 
 module.exports = baseHasIn;
 
-},{}],82:[function(require,module,exports){
+},{}],97:[function(require,module,exports){
 var baseGetTag = require('./_baseGetTag'),
     isObjectLike = require('./isObjectLike');
 
@@ -39679,7 +40648,7 @@ function baseIsArguments(value) {
 
 module.exports = baseIsArguments;
 
-},{"./_baseGetTag":79,"./isObjectLike":174}],83:[function(require,module,exports){
+},{"./_baseGetTag":94,"./isObjectLike":189}],98:[function(require,module,exports){
 var baseIsEqualDeep = require('./_baseIsEqualDeep'),
     isObjectLike = require('./isObjectLike');
 
@@ -39709,7 +40678,7 @@ function baseIsEqual(value, other, bitmask, customizer, stack) {
 
 module.exports = baseIsEqual;
 
-},{"./_baseIsEqualDeep":84,"./isObjectLike":174}],84:[function(require,module,exports){
+},{"./_baseIsEqualDeep":99,"./isObjectLike":189}],99:[function(require,module,exports){
 var Stack = require('./_Stack'),
     equalArrays = require('./_equalArrays'),
     equalByTag = require('./_equalByTag'),
@@ -39794,7 +40763,7 @@ function baseIsEqualDeep(object, other, bitmask, customizer, equalFunc, stack) {
 
 module.exports = baseIsEqualDeep;
 
-},{"./_Stack":59,"./_equalArrays":104,"./_equalByTag":105,"./_equalObjects":106,"./_getTag":114,"./isArray":168,"./isBuffer":170,"./isTypedArray":176}],85:[function(require,module,exports){
+},{"./_Stack":74,"./_equalArrays":119,"./_equalByTag":120,"./_equalObjects":121,"./_getTag":129,"./isArray":183,"./isBuffer":185,"./isTypedArray":191}],100:[function(require,module,exports){
 var Stack = require('./_Stack'),
     baseIsEqual = require('./_baseIsEqual');
 
@@ -39858,7 +40827,7 @@ function baseIsMatch(object, source, matchData, customizer) {
 
 module.exports = baseIsMatch;
 
-},{"./_Stack":59,"./_baseIsEqual":83}],86:[function(require,module,exports){
+},{"./_Stack":74,"./_baseIsEqual":98}],101:[function(require,module,exports){
 var isFunction = require('./isFunction'),
     isMasked = require('./_isMasked'),
     isObject = require('./isObject'),
@@ -39907,7 +40876,7 @@ function baseIsNative(value) {
 
 module.exports = baseIsNative;
 
-},{"./_isMasked":127,"./_toSource":159,"./isFunction":171,"./isObject":173}],87:[function(require,module,exports){
+},{"./_isMasked":142,"./_toSource":174,"./isFunction":186,"./isObject":188}],102:[function(require,module,exports){
 var baseGetTag = require('./_baseGetTag'),
     isLength = require('./isLength'),
     isObjectLike = require('./isObjectLike');
@@ -39969,7 +40938,7 @@ function baseIsTypedArray(value) {
 
 module.exports = baseIsTypedArray;
 
-},{"./_baseGetTag":79,"./isLength":172,"./isObjectLike":174}],88:[function(require,module,exports){
+},{"./_baseGetTag":94,"./isLength":187,"./isObjectLike":189}],103:[function(require,module,exports){
 var baseMatches = require('./_baseMatches'),
     baseMatchesProperty = require('./_baseMatchesProperty'),
     identity = require('./identity'),
@@ -40002,7 +40971,7 @@ function baseIteratee(value) {
 
 module.exports = baseIteratee;
 
-},{"./_baseMatches":91,"./_baseMatchesProperty":92,"./identity":166,"./isArray":168,"./property":181}],89:[function(require,module,exports){
+},{"./_baseMatches":106,"./_baseMatchesProperty":107,"./identity":181,"./isArray":183,"./property":196}],104:[function(require,module,exports){
 var isPrototype = require('./_isPrototype'),
     nativeKeys = require('./_nativeKeys');
 
@@ -40034,7 +41003,7 @@ function baseKeys(object) {
 
 module.exports = baseKeys;
 
-},{"./_isPrototype":128,"./_nativeKeys":144}],90:[function(require,module,exports){
+},{"./_isPrototype":143,"./_nativeKeys":159}],105:[function(require,module,exports){
 var baseEach = require('./_baseEach'),
     isArrayLike = require('./isArrayLike');
 
@@ -40058,7 +41027,7 @@ function baseMap(collection, iteratee) {
 
 module.exports = baseMap;
 
-},{"./_baseEach":71,"./isArrayLike":169}],91:[function(require,module,exports){
+},{"./_baseEach":86,"./isArrayLike":184}],106:[function(require,module,exports){
 var baseIsMatch = require('./_baseIsMatch'),
     getMatchData = require('./_getMatchData'),
     matchesStrictComparable = require('./_matchesStrictComparable');
@@ -40082,7 +41051,7 @@ function baseMatches(source) {
 
 module.exports = baseMatches;
 
-},{"./_baseIsMatch":85,"./_getMatchData":110,"./_matchesStrictComparable":141}],92:[function(require,module,exports){
+},{"./_baseIsMatch":100,"./_getMatchData":125,"./_matchesStrictComparable":156}],107:[function(require,module,exports){
 var baseIsEqual = require('./_baseIsEqual'),
     get = require('./get'),
     hasIn = require('./hasIn'),
@@ -40117,7 +41086,7 @@ function baseMatchesProperty(path, srcValue) {
 
 module.exports = baseMatchesProperty;
 
-},{"./_baseIsEqual":83,"./_isKey":125,"./_isStrictComparable":129,"./_matchesStrictComparable":141,"./_toKey":158,"./get":164,"./hasIn":165}],93:[function(require,module,exports){
+},{"./_baseIsEqual":98,"./_isKey":140,"./_isStrictComparable":144,"./_matchesStrictComparable":156,"./_toKey":173,"./get":179,"./hasIn":180}],108:[function(require,module,exports){
 /**
  * The base implementation of `_.property` without support for deep paths.
  *
@@ -40133,7 +41102,7 @@ function baseProperty(key) {
 
 module.exports = baseProperty;
 
-},{}],94:[function(require,module,exports){
+},{}],109:[function(require,module,exports){
 var baseGet = require('./_baseGet');
 
 /**
@@ -40151,7 +41120,7 @@ function basePropertyDeep(path) {
 
 module.exports = basePropertyDeep;
 
-},{"./_baseGet":77}],95:[function(require,module,exports){
+},{"./_baseGet":92}],110:[function(require,module,exports){
 /**
  * The base implementation of `_.times` without support for iteratee shorthands
  * or max array length checks.
@@ -40173,7 +41142,7 @@ function baseTimes(n, iteratee) {
 
 module.exports = baseTimes;
 
-},{}],96:[function(require,module,exports){
+},{}],111:[function(require,module,exports){
 var Symbol = require('./_Symbol'),
     arrayMap = require('./_arrayMap'),
     isArray = require('./isArray'),
@@ -40212,7 +41181,7 @@ function baseToString(value) {
 
 module.exports = baseToString;
 
-},{"./_Symbol":60,"./_arrayMap":67,"./isArray":168,"./isSymbol":175}],97:[function(require,module,exports){
+},{"./_Symbol":75,"./_arrayMap":82,"./isArray":183,"./isSymbol":190}],112:[function(require,module,exports){
 /**
  * The base implementation of `_.unary` without support for storing metadata.
  *
@@ -40228,7 +41197,7 @@ function baseUnary(func) {
 
 module.exports = baseUnary;
 
-},{}],98:[function(require,module,exports){
+},{}],113:[function(require,module,exports){
 /**
  * Checks if a `cache` value for `key` exists.
  *
@@ -40243,7 +41212,7 @@ function cacheHas(cache, key) {
 
 module.exports = cacheHas;
 
-},{}],99:[function(require,module,exports){
+},{}],114:[function(require,module,exports){
 var identity = require('./identity');
 
 /**
@@ -40259,7 +41228,7 @@ function castFunction(value) {
 
 module.exports = castFunction;
 
-},{"./identity":166}],100:[function(require,module,exports){
+},{"./identity":181}],115:[function(require,module,exports){
 var isArray = require('./isArray'),
     isKey = require('./_isKey'),
     stringToPath = require('./_stringToPath'),
@@ -40282,7 +41251,7 @@ function castPath(value, object) {
 
 module.exports = castPath;
 
-},{"./_isKey":125,"./_stringToPath":157,"./isArray":168,"./toString":184}],101:[function(require,module,exports){
+},{"./_isKey":140,"./_stringToPath":172,"./isArray":183,"./toString":199}],116:[function(require,module,exports){
 var root = require('./_root');
 
 /** Used to detect overreaching core-js shims. */
@@ -40290,7 +41259,7 @@ var coreJsData = root['__core-js_shared__'];
 
 module.exports = coreJsData;
 
-},{"./_root":148}],102:[function(require,module,exports){
+},{"./_root":163}],117:[function(require,module,exports){
 var isArrayLike = require('./isArrayLike');
 
 /**
@@ -40324,7 +41293,7 @@ function createBaseEach(eachFunc, fromRight) {
 
 module.exports = createBaseEach;
 
-},{"./isArrayLike":169}],103:[function(require,module,exports){
+},{"./isArrayLike":184}],118:[function(require,module,exports){
 /**
  * Creates a base function for methods like `_.forIn` and `_.forOwn`.
  *
@@ -40351,7 +41320,7 @@ function createBaseFor(fromRight) {
 
 module.exports = createBaseFor;
 
-},{}],104:[function(require,module,exports){
+},{}],119:[function(require,module,exports){
 var SetCache = require('./_SetCache'),
     arraySome = require('./_arraySome'),
     cacheHas = require('./_cacheHas');
@@ -40436,7 +41405,7 @@ function equalArrays(array, other, bitmask, customizer, equalFunc, stack) {
 
 module.exports = equalArrays;
 
-},{"./_SetCache":58,"./_arraySome":69,"./_cacheHas":98}],105:[function(require,module,exports){
+},{"./_SetCache":73,"./_arraySome":84,"./_cacheHas":113}],120:[function(require,module,exports){
 var Symbol = require('./_Symbol'),
     Uint8Array = require('./_Uint8Array'),
     eq = require('./eq'),
@@ -40550,7 +41519,7 @@ function equalByTag(object, other, tag, bitmask, customizer, equalFunc, stack) {
 
 module.exports = equalByTag;
 
-},{"./_Symbol":60,"./_Uint8Array":61,"./_equalArrays":104,"./_mapToArray":140,"./_setToArray":151,"./eq":160}],106:[function(require,module,exports){
+},{"./_Symbol":75,"./_Uint8Array":76,"./_equalArrays":119,"./_mapToArray":155,"./_setToArray":166,"./eq":175}],121:[function(require,module,exports){
 var getAllKeys = require('./_getAllKeys');
 
 /** Used to compose bitmasks for value comparisons. */
@@ -40641,7 +41610,7 @@ function equalObjects(object, other, bitmask, customizer, equalFunc, stack) {
 
 module.exports = equalObjects;
 
-},{"./_getAllKeys":108}],107:[function(require,module,exports){
+},{"./_getAllKeys":123}],122:[function(require,module,exports){
 (function (global){
 /** Detect free variable `global` from Node.js. */
 var freeGlobal = typeof global == 'object' && global && global.Object === Object && global;
@@ -40649,7 +41618,7 @@ var freeGlobal = typeof global == 'object' && global && global.Object === Object
 module.exports = freeGlobal;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],108:[function(require,module,exports){
+},{}],123:[function(require,module,exports){
 var baseGetAllKeys = require('./_baseGetAllKeys'),
     getSymbols = require('./_getSymbols'),
     keys = require('./keys');
@@ -40667,7 +41636,7 @@ function getAllKeys(object) {
 
 module.exports = getAllKeys;
 
-},{"./_baseGetAllKeys":78,"./_getSymbols":113,"./keys":177}],109:[function(require,module,exports){
+},{"./_baseGetAllKeys":93,"./_getSymbols":128,"./keys":192}],124:[function(require,module,exports){
 var isKeyable = require('./_isKeyable');
 
 /**
@@ -40687,7 +41656,7 @@ function getMapData(map, key) {
 
 module.exports = getMapData;
 
-},{"./_isKeyable":126}],110:[function(require,module,exports){
+},{"./_isKeyable":141}],125:[function(require,module,exports){
 var isStrictComparable = require('./_isStrictComparable'),
     keys = require('./keys');
 
@@ -40713,7 +41682,7 @@ function getMatchData(object) {
 
 module.exports = getMatchData;
 
-},{"./_isStrictComparable":129,"./keys":177}],111:[function(require,module,exports){
+},{"./_isStrictComparable":144,"./keys":192}],126:[function(require,module,exports){
 var baseIsNative = require('./_baseIsNative'),
     getValue = require('./_getValue');
 
@@ -40732,7 +41701,7 @@ function getNative(object, key) {
 
 module.exports = getNative;
 
-},{"./_baseIsNative":86,"./_getValue":115}],112:[function(require,module,exports){
+},{"./_baseIsNative":101,"./_getValue":130}],127:[function(require,module,exports){
 var Symbol = require('./_Symbol');
 
 /** Used for built-in method references. */
@@ -40780,7 +41749,7 @@ function getRawTag(value) {
 
 module.exports = getRawTag;
 
-},{"./_Symbol":60}],113:[function(require,module,exports){
+},{"./_Symbol":75}],128:[function(require,module,exports){
 var arrayFilter = require('./_arrayFilter'),
     stubArray = require('./stubArray');
 
@@ -40812,7 +41781,7 @@ var getSymbols = !nativeGetSymbols ? stubArray : function(object) {
 
 module.exports = getSymbols;
 
-},{"./_arrayFilter":65,"./stubArray":182}],114:[function(require,module,exports){
+},{"./_arrayFilter":80,"./stubArray":197}],129:[function(require,module,exports){
 var DataView = require('./_DataView'),
     Map = require('./_Map'),
     Promise = require('./_Promise'),
@@ -40872,7 +41841,7 @@ if ((DataView && getTag(new DataView(new ArrayBuffer(1))) != dataViewTag) ||
 
 module.exports = getTag;
 
-},{"./_DataView":51,"./_Map":54,"./_Promise":56,"./_Set":57,"./_WeakMap":62,"./_baseGetTag":79,"./_toSource":159}],115:[function(require,module,exports){
+},{"./_DataView":66,"./_Map":69,"./_Promise":71,"./_Set":72,"./_WeakMap":77,"./_baseGetTag":94,"./_toSource":174}],130:[function(require,module,exports){
 /**
  * Gets the value at `key` of `object`.
  *
@@ -40887,7 +41856,7 @@ function getValue(object, key) {
 
 module.exports = getValue;
 
-},{}],116:[function(require,module,exports){
+},{}],131:[function(require,module,exports){
 var castPath = require('./_castPath'),
     isArguments = require('./isArguments'),
     isArray = require('./isArray'),
@@ -40928,7 +41897,7 @@ function hasPath(object, path, hasFunc) {
 
 module.exports = hasPath;
 
-},{"./_castPath":100,"./_isIndex":123,"./_toKey":158,"./isArguments":167,"./isArray":168,"./isLength":172}],117:[function(require,module,exports){
+},{"./_castPath":115,"./_isIndex":138,"./_toKey":173,"./isArguments":182,"./isArray":183,"./isLength":187}],132:[function(require,module,exports){
 var nativeCreate = require('./_nativeCreate');
 
 /**
@@ -40945,7 +41914,7 @@ function hashClear() {
 
 module.exports = hashClear;
 
-},{"./_nativeCreate":143}],118:[function(require,module,exports){
+},{"./_nativeCreate":158}],133:[function(require,module,exports){
 /**
  * Removes `key` and its value from the hash.
  *
@@ -40964,7 +41933,7 @@ function hashDelete(key) {
 
 module.exports = hashDelete;
 
-},{}],119:[function(require,module,exports){
+},{}],134:[function(require,module,exports){
 var nativeCreate = require('./_nativeCreate');
 
 /** Used to stand-in for `undefined` hash values. */
@@ -40996,7 +41965,7 @@ function hashGet(key) {
 
 module.exports = hashGet;
 
-},{"./_nativeCreate":143}],120:[function(require,module,exports){
+},{"./_nativeCreate":158}],135:[function(require,module,exports){
 var nativeCreate = require('./_nativeCreate');
 
 /** Used for built-in method references. */
@@ -41021,7 +41990,7 @@ function hashHas(key) {
 
 module.exports = hashHas;
 
-},{"./_nativeCreate":143}],121:[function(require,module,exports){
+},{"./_nativeCreate":158}],136:[function(require,module,exports){
 var nativeCreate = require('./_nativeCreate');
 
 /** Used to stand-in for `undefined` hash values. */
@@ -41046,7 +42015,7 @@ function hashSet(key, value) {
 
 module.exports = hashSet;
 
-},{"./_nativeCreate":143}],122:[function(require,module,exports){
+},{"./_nativeCreate":158}],137:[function(require,module,exports){
 var Symbol = require('./_Symbol'),
     isArguments = require('./isArguments'),
     isArray = require('./isArray');
@@ -41068,7 +42037,7 @@ function isFlattenable(value) {
 
 module.exports = isFlattenable;
 
-},{"./_Symbol":60,"./isArguments":167,"./isArray":168}],123:[function(require,module,exports){
+},{"./_Symbol":75,"./isArguments":182,"./isArray":183}],138:[function(require,module,exports){
 /** Used as references for various `Number` constants. */
 var MAX_SAFE_INTEGER = 9007199254740991;
 
@@ -41095,7 +42064,7 @@ function isIndex(value, length) {
 
 module.exports = isIndex;
 
-},{}],124:[function(require,module,exports){
+},{}],139:[function(require,module,exports){
 var eq = require('./eq'),
     isArrayLike = require('./isArrayLike'),
     isIndex = require('./_isIndex'),
@@ -41127,7 +42096,7 @@ function isIterateeCall(value, index, object) {
 
 module.exports = isIterateeCall;
 
-},{"./_isIndex":123,"./eq":160,"./isArrayLike":169,"./isObject":173}],125:[function(require,module,exports){
+},{"./_isIndex":138,"./eq":175,"./isArrayLike":184,"./isObject":188}],140:[function(require,module,exports){
 var isArray = require('./isArray'),
     isSymbol = require('./isSymbol');
 
@@ -41158,7 +42127,7 @@ function isKey(value, object) {
 
 module.exports = isKey;
 
-},{"./isArray":168,"./isSymbol":175}],126:[function(require,module,exports){
+},{"./isArray":183,"./isSymbol":190}],141:[function(require,module,exports){
 /**
  * Checks if `value` is suitable for use as unique object key.
  *
@@ -41175,7 +42144,7 @@ function isKeyable(value) {
 
 module.exports = isKeyable;
 
-},{}],127:[function(require,module,exports){
+},{}],142:[function(require,module,exports){
 var coreJsData = require('./_coreJsData');
 
 /** Used to detect methods masquerading as native. */
@@ -41197,7 +42166,7 @@ function isMasked(func) {
 
 module.exports = isMasked;
 
-},{"./_coreJsData":101}],128:[function(require,module,exports){
+},{"./_coreJsData":116}],143:[function(require,module,exports){
 /** Used for built-in method references. */
 var objectProto = Object.prototype;
 
@@ -41217,7 +42186,7 @@ function isPrototype(value) {
 
 module.exports = isPrototype;
 
-},{}],129:[function(require,module,exports){
+},{}],144:[function(require,module,exports){
 var isObject = require('./isObject');
 
 /**
@@ -41234,7 +42203,7 @@ function isStrictComparable(value) {
 
 module.exports = isStrictComparable;
 
-},{"./isObject":173}],130:[function(require,module,exports){
+},{"./isObject":188}],145:[function(require,module,exports){
 /**
  * Removes all key-value entries from the list cache.
  *
@@ -41249,7 +42218,7 @@ function listCacheClear() {
 
 module.exports = listCacheClear;
 
-},{}],131:[function(require,module,exports){
+},{}],146:[function(require,module,exports){
 var assocIndexOf = require('./_assocIndexOf');
 
 /** Used for built-in method references. */
@@ -41286,7 +42255,7 @@ function listCacheDelete(key) {
 
 module.exports = listCacheDelete;
 
-},{"./_assocIndexOf":70}],132:[function(require,module,exports){
+},{"./_assocIndexOf":85}],147:[function(require,module,exports){
 var assocIndexOf = require('./_assocIndexOf');
 
 /**
@@ -41307,7 +42276,7 @@ function listCacheGet(key) {
 
 module.exports = listCacheGet;
 
-},{"./_assocIndexOf":70}],133:[function(require,module,exports){
+},{"./_assocIndexOf":85}],148:[function(require,module,exports){
 var assocIndexOf = require('./_assocIndexOf');
 
 /**
@@ -41325,7 +42294,7 @@ function listCacheHas(key) {
 
 module.exports = listCacheHas;
 
-},{"./_assocIndexOf":70}],134:[function(require,module,exports){
+},{"./_assocIndexOf":85}],149:[function(require,module,exports){
 var assocIndexOf = require('./_assocIndexOf');
 
 /**
@@ -41353,7 +42322,7 @@ function listCacheSet(key, value) {
 
 module.exports = listCacheSet;
 
-},{"./_assocIndexOf":70}],135:[function(require,module,exports){
+},{"./_assocIndexOf":85}],150:[function(require,module,exports){
 var Hash = require('./_Hash'),
     ListCache = require('./_ListCache'),
     Map = require('./_Map');
@@ -41376,7 +42345,7 @@ function mapCacheClear() {
 
 module.exports = mapCacheClear;
 
-},{"./_Hash":52,"./_ListCache":53,"./_Map":54}],136:[function(require,module,exports){
+},{"./_Hash":67,"./_ListCache":68,"./_Map":69}],151:[function(require,module,exports){
 var getMapData = require('./_getMapData');
 
 /**
@@ -41396,7 +42365,7 @@ function mapCacheDelete(key) {
 
 module.exports = mapCacheDelete;
 
-},{"./_getMapData":109}],137:[function(require,module,exports){
+},{"./_getMapData":124}],152:[function(require,module,exports){
 var getMapData = require('./_getMapData');
 
 /**
@@ -41414,7 +42383,7 @@ function mapCacheGet(key) {
 
 module.exports = mapCacheGet;
 
-},{"./_getMapData":109}],138:[function(require,module,exports){
+},{"./_getMapData":124}],153:[function(require,module,exports){
 var getMapData = require('./_getMapData');
 
 /**
@@ -41432,7 +42401,7 @@ function mapCacheHas(key) {
 
 module.exports = mapCacheHas;
 
-},{"./_getMapData":109}],139:[function(require,module,exports){
+},{"./_getMapData":124}],154:[function(require,module,exports){
 var getMapData = require('./_getMapData');
 
 /**
@@ -41456,7 +42425,7 @@ function mapCacheSet(key, value) {
 
 module.exports = mapCacheSet;
 
-},{"./_getMapData":109}],140:[function(require,module,exports){
+},{"./_getMapData":124}],155:[function(require,module,exports){
 /**
  * Converts `map` to its key-value pairs.
  *
@@ -41476,7 +42445,7 @@ function mapToArray(map) {
 
 module.exports = mapToArray;
 
-},{}],141:[function(require,module,exports){
+},{}],156:[function(require,module,exports){
 /**
  * A specialized version of `matchesProperty` for source values suitable
  * for strict equality comparisons, i.e. `===`.
@@ -41498,7 +42467,7 @@ function matchesStrictComparable(key, srcValue) {
 
 module.exports = matchesStrictComparable;
 
-},{}],142:[function(require,module,exports){
+},{}],157:[function(require,module,exports){
 var memoize = require('./memoize');
 
 /** Used as the maximum memoize cache size. */
@@ -41526,7 +42495,7 @@ function memoizeCapped(func) {
 
 module.exports = memoizeCapped;
 
-},{"./memoize":180}],143:[function(require,module,exports){
+},{"./memoize":195}],158:[function(require,module,exports){
 var getNative = require('./_getNative');
 
 /* Built-in method references that are verified to be native. */
@@ -41534,7 +42503,7 @@ var nativeCreate = getNative(Object, 'create');
 
 module.exports = nativeCreate;
 
-},{"./_getNative":111}],144:[function(require,module,exports){
+},{"./_getNative":126}],159:[function(require,module,exports){
 var overArg = require('./_overArg');
 
 /* Built-in method references for those with the same name as other `lodash` methods. */
@@ -41542,7 +42511,7 @@ var nativeKeys = overArg(Object.keys, Object);
 
 module.exports = nativeKeys;
 
-},{"./_overArg":147}],145:[function(require,module,exports){
+},{"./_overArg":162}],160:[function(require,module,exports){
 var freeGlobal = require('./_freeGlobal');
 
 /** Detect free variable `exports`. */
@@ -41574,7 +42543,7 @@ var nodeUtil = (function() {
 
 module.exports = nodeUtil;
 
-},{"./_freeGlobal":107}],146:[function(require,module,exports){
+},{"./_freeGlobal":122}],161:[function(require,module,exports){
 /** Used for built-in method references. */
 var objectProto = Object.prototype;
 
@@ -41598,7 +42567,7 @@ function objectToString(value) {
 
 module.exports = objectToString;
 
-},{}],147:[function(require,module,exports){
+},{}],162:[function(require,module,exports){
 /**
  * Creates a unary function that invokes `func` with its argument transformed.
  *
@@ -41615,7 +42584,7 @@ function overArg(func, transform) {
 
 module.exports = overArg;
 
-},{}],148:[function(require,module,exports){
+},{}],163:[function(require,module,exports){
 var freeGlobal = require('./_freeGlobal');
 
 /** Detect free variable `self`. */
@@ -41626,7 +42595,7 @@ var root = freeGlobal || freeSelf || Function('return this')();
 
 module.exports = root;
 
-},{"./_freeGlobal":107}],149:[function(require,module,exports){
+},{"./_freeGlobal":122}],164:[function(require,module,exports){
 /** Used to stand-in for `undefined` hash values. */
 var HASH_UNDEFINED = '__lodash_hash_undefined__';
 
@@ -41647,7 +42616,7 @@ function setCacheAdd(value) {
 
 module.exports = setCacheAdd;
 
-},{}],150:[function(require,module,exports){
+},{}],165:[function(require,module,exports){
 /**
  * Checks if `value` is in the array cache.
  *
@@ -41663,7 +42632,7 @@ function setCacheHas(value) {
 
 module.exports = setCacheHas;
 
-},{}],151:[function(require,module,exports){
+},{}],166:[function(require,module,exports){
 /**
  * Converts `set` to an array of its values.
  *
@@ -41683,7 +42652,7 @@ function setToArray(set) {
 
 module.exports = setToArray;
 
-},{}],152:[function(require,module,exports){
+},{}],167:[function(require,module,exports){
 var ListCache = require('./_ListCache');
 
 /**
@@ -41700,7 +42669,7 @@ function stackClear() {
 
 module.exports = stackClear;
 
-},{"./_ListCache":53}],153:[function(require,module,exports){
+},{"./_ListCache":68}],168:[function(require,module,exports){
 /**
  * Removes `key` and its value from the stack.
  *
@@ -41720,7 +42689,7 @@ function stackDelete(key) {
 
 module.exports = stackDelete;
 
-},{}],154:[function(require,module,exports){
+},{}],169:[function(require,module,exports){
 /**
  * Gets the stack value for `key`.
  *
@@ -41736,7 +42705,7 @@ function stackGet(key) {
 
 module.exports = stackGet;
 
-},{}],155:[function(require,module,exports){
+},{}],170:[function(require,module,exports){
 /**
  * Checks if a stack value for `key` exists.
  *
@@ -41752,7 +42721,7 @@ function stackHas(key) {
 
 module.exports = stackHas;
 
-},{}],156:[function(require,module,exports){
+},{}],171:[function(require,module,exports){
 var ListCache = require('./_ListCache'),
     Map = require('./_Map'),
     MapCache = require('./_MapCache');
@@ -41788,7 +42757,7 @@ function stackSet(key, value) {
 
 module.exports = stackSet;
 
-},{"./_ListCache":53,"./_Map":54,"./_MapCache":55}],157:[function(require,module,exports){
+},{"./_ListCache":68,"./_Map":69,"./_MapCache":70}],172:[function(require,module,exports){
 var memoizeCapped = require('./_memoizeCapped');
 
 /** Used to match property names within property paths. */
@@ -41817,7 +42786,7 @@ var stringToPath = memoizeCapped(function(string) {
 
 module.exports = stringToPath;
 
-},{"./_memoizeCapped":142}],158:[function(require,module,exports){
+},{"./_memoizeCapped":157}],173:[function(require,module,exports){
 var isSymbol = require('./isSymbol');
 
 /** Used as references for various `Number` constants. */
@@ -41840,7 +42809,7 @@ function toKey(value) {
 
 module.exports = toKey;
 
-},{"./isSymbol":175}],159:[function(require,module,exports){
+},{"./isSymbol":190}],174:[function(require,module,exports){
 /** Used for built-in method references. */
 var funcProto = Function.prototype;
 
@@ -41868,7 +42837,7 @@ function toSource(func) {
 
 module.exports = toSource;
 
-},{}],160:[function(require,module,exports){
+},{}],175:[function(require,module,exports){
 /**
  * Performs a
  * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
@@ -41907,7 +42876,7 @@ function eq(value, other) {
 
 module.exports = eq;
 
-},{}],161:[function(require,module,exports){
+},{}],176:[function(require,module,exports){
 var arrayEvery = require('./_arrayEvery'),
     baseEvery = require('./_baseEvery'),
     baseIteratee = require('./_baseIteratee'),
@@ -41965,7 +42934,7 @@ function every(collection, predicate, guard) {
 
 module.exports = every;
 
-},{"./_arrayEvery":64,"./_baseEvery":72,"./_baseIteratee":88,"./_isIterateeCall":124,"./isArray":168}],162:[function(require,module,exports){
+},{"./_arrayEvery":79,"./_baseEvery":87,"./_baseIteratee":103,"./_isIterateeCall":139,"./isArray":183}],177:[function(require,module,exports){
 var baseFlatten = require('./_baseFlatten');
 
 /** Used as references for various `Number` constants. */
@@ -41992,7 +42961,7 @@ function flattenDeep(array) {
 
 module.exports = flattenDeep;
 
-},{"./_baseFlatten":74}],163:[function(require,module,exports){
+},{"./_baseFlatten":89}],178:[function(require,module,exports){
 var arrayEach = require('./_arrayEach'),
     baseEach = require('./_baseEach'),
     castFunction = require('./_castFunction'),
@@ -42035,7 +43004,7 @@ function forEach(collection, iteratee) {
 
 module.exports = forEach;
 
-},{"./_arrayEach":63,"./_baseEach":71,"./_castFunction":99,"./isArray":168}],164:[function(require,module,exports){
+},{"./_arrayEach":78,"./_baseEach":86,"./_castFunction":114,"./isArray":183}],179:[function(require,module,exports){
 var baseGet = require('./_baseGet');
 
 /**
@@ -42070,7 +43039,7 @@ function get(object, path, defaultValue) {
 
 module.exports = get;
 
-},{"./_baseGet":77}],165:[function(require,module,exports){
+},{"./_baseGet":92}],180:[function(require,module,exports){
 var baseHasIn = require('./_baseHasIn'),
     hasPath = require('./_hasPath');
 
@@ -42106,7 +43075,7 @@ function hasIn(object, path) {
 
 module.exports = hasIn;
 
-},{"./_baseHasIn":81,"./_hasPath":116}],166:[function(require,module,exports){
+},{"./_baseHasIn":96,"./_hasPath":131}],181:[function(require,module,exports){
 /**
  * This method returns the first argument it receives.
  *
@@ -42129,7 +43098,7 @@ function identity(value) {
 
 module.exports = identity;
 
-},{}],167:[function(require,module,exports){
+},{}],182:[function(require,module,exports){
 var baseIsArguments = require('./_baseIsArguments'),
     isObjectLike = require('./isObjectLike');
 
@@ -42167,7 +43136,7 @@ var isArguments = baseIsArguments(function() { return arguments; }()) ? baseIsAr
 
 module.exports = isArguments;
 
-},{"./_baseIsArguments":82,"./isObjectLike":174}],168:[function(require,module,exports){
+},{"./_baseIsArguments":97,"./isObjectLike":189}],183:[function(require,module,exports){
 /**
  * Checks if `value` is classified as an `Array` object.
  *
@@ -42195,7 +43164,7 @@ var isArray = Array.isArray;
 
 module.exports = isArray;
 
-},{}],169:[function(require,module,exports){
+},{}],184:[function(require,module,exports){
 var isFunction = require('./isFunction'),
     isLength = require('./isLength');
 
@@ -42230,7 +43199,7 @@ function isArrayLike(value) {
 
 module.exports = isArrayLike;
 
-},{"./isFunction":171,"./isLength":172}],170:[function(require,module,exports){
+},{"./isFunction":186,"./isLength":187}],185:[function(require,module,exports){
 var root = require('./_root'),
     stubFalse = require('./stubFalse');
 
@@ -42270,7 +43239,7 @@ var isBuffer = nativeIsBuffer || stubFalse;
 
 module.exports = isBuffer;
 
-},{"./_root":148,"./stubFalse":183}],171:[function(require,module,exports){
+},{"./_root":163,"./stubFalse":198}],186:[function(require,module,exports){
 var baseGetTag = require('./_baseGetTag'),
     isObject = require('./isObject');
 
@@ -42309,7 +43278,7 @@ function isFunction(value) {
 
 module.exports = isFunction;
 
-},{"./_baseGetTag":79,"./isObject":173}],172:[function(require,module,exports){
+},{"./_baseGetTag":94,"./isObject":188}],187:[function(require,module,exports){
 /** Used as references for various `Number` constants. */
 var MAX_SAFE_INTEGER = 9007199254740991;
 
@@ -42346,7 +43315,7 @@ function isLength(value) {
 
 module.exports = isLength;
 
-},{}],173:[function(require,module,exports){
+},{}],188:[function(require,module,exports){
 /**
  * Checks if `value` is the
  * [language type](http://www.ecma-international.org/ecma-262/7.0/#sec-ecmascript-language-types)
@@ -42379,7 +43348,7 @@ function isObject(value) {
 
 module.exports = isObject;
 
-},{}],174:[function(require,module,exports){
+},{}],189:[function(require,module,exports){
 /**
  * Checks if `value` is object-like. A value is object-like if it's not `null`
  * and has a `typeof` result of "object".
@@ -42410,7 +43379,7 @@ function isObjectLike(value) {
 
 module.exports = isObjectLike;
 
-},{}],175:[function(require,module,exports){
+},{}],190:[function(require,module,exports){
 var baseGetTag = require('./_baseGetTag'),
     isObjectLike = require('./isObjectLike');
 
@@ -42441,7 +43410,7 @@ function isSymbol(value) {
 
 module.exports = isSymbol;
 
-},{"./_baseGetTag":79,"./isObjectLike":174}],176:[function(require,module,exports){
+},{"./_baseGetTag":94,"./isObjectLike":189}],191:[function(require,module,exports){
 var baseIsTypedArray = require('./_baseIsTypedArray'),
     baseUnary = require('./_baseUnary'),
     nodeUtil = require('./_nodeUtil');
@@ -42470,7 +43439,7 @@ var isTypedArray = nodeIsTypedArray ? baseUnary(nodeIsTypedArray) : baseIsTypedA
 
 module.exports = isTypedArray;
 
-},{"./_baseIsTypedArray":87,"./_baseUnary":97,"./_nodeUtil":145}],177:[function(require,module,exports){
+},{"./_baseIsTypedArray":102,"./_baseUnary":112,"./_nodeUtil":160}],192:[function(require,module,exports){
 var arrayLikeKeys = require('./_arrayLikeKeys'),
     baseKeys = require('./_baseKeys'),
     isArrayLike = require('./isArrayLike');
@@ -42509,7 +43478,7 @@ function keys(object) {
 
 module.exports = keys;
 
-},{"./_arrayLikeKeys":66,"./_baseKeys":89,"./isArrayLike":169}],178:[function(require,module,exports){
+},{"./_arrayLikeKeys":81,"./_baseKeys":104,"./isArrayLike":184}],193:[function(require,module,exports){
 var arrayMap = require('./_arrayMap'),
     baseIteratee = require('./_baseIteratee'),
     baseMap = require('./_baseMap'),
@@ -42564,7 +43533,7 @@ function map(collection, iteratee) {
 
 module.exports = map;
 
-},{"./_arrayMap":67,"./_baseIteratee":88,"./_baseMap":90,"./isArray":168}],179:[function(require,module,exports){
+},{"./_arrayMap":82,"./_baseIteratee":103,"./_baseMap":105,"./isArray":183}],194:[function(require,module,exports){
 var baseExtremum = require('./_baseExtremum'),
     baseGt = require('./_baseGt'),
     baseIteratee = require('./_baseIteratee');
@@ -42600,7 +43569,7 @@ function maxBy(array, iteratee) {
 
 module.exports = maxBy;
 
-},{"./_baseExtremum":73,"./_baseGt":80,"./_baseIteratee":88}],180:[function(require,module,exports){
+},{"./_baseExtremum":88,"./_baseGt":95,"./_baseIteratee":103}],195:[function(require,module,exports){
 var MapCache = require('./_MapCache');
 
 /** Error message constants. */
@@ -42675,7 +43644,7 @@ memoize.Cache = MapCache;
 
 module.exports = memoize;
 
-},{"./_MapCache":55}],181:[function(require,module,exports){
+},{"./_MapCache":70}],196:[function(require,module,exports){
 var baseProperty = require('./_baseProperty'),
     basePropertyDeep = require('./_basePropertyDeep'),
     isKey = require('./_isKey'),
@@ -42709,7 +43678,7 @@ function property(path) {
 
 module.exports = property;
 
-},{"./_baseProperty":93,"./_basePropertyDeep":94,"./_isKey":125,"./_toKey":158}],182:[function(require,module,exports){
+},{"./_baseProperty":108,"./_basePropertyDeep":109,"./_isKey":140,"./_toKey":173}],197:[function(require,module,exports){
 /**
  * This method returns a new empty array.
  *
@@ -42734,7 +43703,7 @@ function stubArray() {
 
 module.exports = stubArray;
 
-},{}],183:[function(require,module,exports){
+},{}],198:[function(require,module,exports){
 /**
  * This method returns `false`.
  *
@@ -42754,7 +43723,7 @@ function stubFalse() {
 
 module.exports = stubFalse;
 
-},{}],184:[function(require,module,exports){
+},{}],199:[function(require,module,exports){
 var baseToString = require('./_baseToString');
 
 /**
@@ -42784,7 +43753,7 @@ function toString(value) {
 
 module.exports = toString;
 
-},{"./_baseToString":96}],185:[function(require,module,exports){
+},{"./_baseToString":111}],200:[function(require,module,exports){
 (function (global){
 /*!
 Copyright (C) 2015-2017 Andrea Giammarchi - @WebReflection
