@@ -4,7 +4,6 @@ var bootslider = require('bootstrap-slider');
 var cophylogeny = require('./lib/cophylogeny');
 var processFile = require('./lib/processFile');
 var URLSearchParams = require('url-search-params');
-var Newick = require('newick');
 var treetools = require('cophy-treetools'); // for make_binary
 
 /************
