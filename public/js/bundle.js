@@ -6,6 +6,7 @@ var cophylogeny = require('./lib/cophylogeny');
 var processFile = require('./lib/processFile');
 var URLSearchParams = require('url-search-params');
 var Newick = require('newick');
+var treetools = require('cophy-treetools'); // for make_binary
 
 /************
 * globals
@@ -152,6 +153,8 @@ function loadData(leftURL, rightURL) {
     getNewicksAsync(leftURL, rightURL)
         .then(nwTrees => // nwTrees: newick objects
         {
+            treetools.make_binary(nwTrees.left);
+            treetools.make_binary(nwTrees.right);
             render_cophylogeny('#middle_container','unnamed', nwTrees.left, nwTrees.right, 700, userArgs);
         })
         .catch(reason => {
@@ -183,7 +186,7 @@ function SVGExport() {
     document.body.removeChild(downloadLink);
 }
 
-},{"./lib/cophylogeny":2,"./lib/processFile":12,"bootstrap":15,"bootstrap-slider":14,"jquery":62,"newick":63,"url-search-params":200}],2:[function(require,module,exports){
+},{"./lib/cophylogeny":2,"./lib/processFile":12,"bootstrap":15,"bootstrap-slider":14,"cophy-treetools":23,"jquery":62,"newick":63,"url-search-params":200}],2:[function(require,module,exports){
 // this class organization is suggested by
 // http://geekswithblogs.net/shaunxu/archive/2016/03/07/define-a-class-in-multiple-files-in-node.js.aspx
 (function () {
@@ -610,7 +613,7 @@ module.exports.SVGUtils = SVGUtils;
                             // TODO: separate out bridge line coloring function to something
                             // TODO: there needs to be a BLUE/RED gradient defined somewhere once for this function to reference
                             //console.log("you are inside the bridging function max:" + rightNodeName + "(" + cophy_obj.dfoot_obj[rightNodeName] + ") =>" + cophy_obj.dfoot_color_scale[ cophy_obj.dfoot_obj[rightNodeName] ]);
-                            console.dir(rightNodeName + ":" + cophy_obj.dfoot_obj.diffs[rightNodeName]);
+                            //console.dir(rightNodeName + ":" + cophy_obj.dfoot_obj.diffs[rightNodeName]);
                             return cophy_obj.dfoot_color_scale[ cophy_obj.dfoot_obj.diffs[rightNodeName] ];
                             // that can be passed down from top level.
                             //

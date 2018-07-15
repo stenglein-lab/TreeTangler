@@ -5,6 +5,7 @@ var cophylogeny = require('./lib/cophylogeny');
 var processFile = require('./lib/processFile');
 var URLSearchParams = require('url-search-params');
 var Newick = require('newick');
+var treetools = require('cophy-treetools'); // for make_binary
 
 /************
 * globals
@@ -151,6 +152,8 @@ function loadData(leftURL, rightURL) {
     getNewicksAsync(leftURL, rightURL)
         .then(nwTrees => // nwTrees: newick objects
         {
+            treetools.make_binary(nwTrees.left);
+            treetools.make_binary(nwTrees.right);
             render_cophylogeny('#middle_container','unnamed', nwTrees.left, nwTrees.right, 700, userArgs);
         })
         .catch(reason => {
