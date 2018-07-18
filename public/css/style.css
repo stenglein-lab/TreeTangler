@@ -22,6 +22,9 @@ pre {
     border-color: #E2E2E0;
     color: black;
 }
+.btn-secondary.disabled, .btn-secondary:disabled {
+    color: #82b3de;
+}
 /*.btn-success {
 background-image: linear-gradient(to bottom, #FFFFFF 0, #F0F9F9 90%, #F3F3F0 100%);
 border-color: #E2E2E0;
