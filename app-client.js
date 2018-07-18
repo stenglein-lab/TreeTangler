@@ -144,6 +144,18 @@ function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}
 
     // CoPhylogenyGraph.render sets up the graph
     cophylogeny_fig.render(leftNw, rightNw, w, h);
+    
+    // link in user functions
+    $('#user_detangle_left').on("click", function() {
+        console.log("clicked user_detangle_left");
+        cophylogeny_fig.detangle_left();
+        cophylogeny_fig.redraw();
+    });
+    $('#user_detangle_right').on("click", function() {
+        console.log("clicked user_detangle_right");
+        cophylogeny_fig.detangle_right();
+        cophylogeny_fig.redraw();
+    });
 
 }
 

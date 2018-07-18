@@ -145,6 +145,18 @@ function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}
 
     // CoPhylogenyGraph.render sets up the graph
     cophylogeny_fig.render(leftNw, rightNw, w, h);
+    
+    // link in user functions
+    $('#user_detangle_left').on("click", function() {
+        console.log("clicked user_detangle_left");
+        cophylogeny_fig.detangle_left();
+        cophylogeny_fig.redraw();
+    });
+    $('#user_detangle_right').on("click", function() {
+        console.log("clicked user_detangle_right");
+        cophylogeny_fig.detangle_right();
+        cophylogeny_fig.redraw();
+    });
 
 }
 
@@ -1091,6 +1103,12 @@ module.exports.SVGUtils = SVGUtils;
 (function() {
     exports = module.exports = function(CoPhylogenyGraph) {
         var treetools = require('cophy-treetools');
+        CoPhylogenyGraph.prototype.detangle_left = function() {
+            treetools.run_detangler(this.leftTree, this.rightTree );
+        };
+        CoPhylogenyGraph.prototype.detangle_right = function() {
+            treetools.run_detangler(this.rightTree, this.leftTree );
+        };
         CoPhylogenyGraph.prototype.swap_children = function(json, target) {
             var node = json == this.leftTree ? this.leftNodeLookup[target] : this.rightNodeLookup[target];
             console.dir(this);
@@ -7409,15 +7427,21 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
                 var dfoot_post = treetools.dfoot(treetools.leaf_names(data.root), data.l1);
                 if (dfoot_pre < dfoot_post) {
                     treetools.swap_children(node); // swaps it back
-                    console.error("No swap needed for children of %s", node.name);
+                    //console.error("No swap needed for children of %s", node.name);
                 }
-                else {
+                /*else {
                     console.error("Swapping children of %s", node.name); // retain swap
-                }
+                }*/
             }
         };
 
         builders.visitPostOrder(root, detangle, 0, data);
+    };
+    treetools.run_detangler = function(nw1, nw2) {
+        treetools.detangler(nw1, treetools.leaf_names(nw2));
+    };
+    treetools.run_dfoot = function(nw1, nw2) {
+        return treetools.dfoot(treetools.leaf_names(nw1), treetools.leaf_names(nw2));
     };
     treetools.dfoot = function(nodelist, standard) {
         // Implementation of Spearman's footrule distance
@@ -7425,7 +7449,8 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         // No ranking system is predefined, so use the order of the left leaves as the ranks.
         var sum = 0;
         for (var i = 0; i < nodelist.length; i++) {
-            sum += Math.abs(i - nodelist.indexOf( standard[i] ));
+            var other_index = nodelist.indexOf( standard[i] );
+            sum += Math.abs(i - other_index);
         }
         return sum;
     };
@@ -7992,7 +8017,8 @@ module.exports = dist
                 // function executed at each node to for bullet format
                 var indent='#';
                 for (var i=0; i < depth; i++) { indent += '#'; }
-                data.bullet_str += indent + node.name + line_ending; // was str_so_far passed by value or by reference?
+                var node_str = node.name ? node.name : "anon";
+                data.bullet_str += indent + node_str + line_ending; // was str_so_far passed by value or by reference?
             },
             0,
             d
@@ -8005,6 +8031,9 @@ module.exports = dist
         var ascii = asciitree.generate(bullet);
         return ascii;
     };
+    treetools.print_bullet = function(tree) {
+        console.log( treetools.to_bullet_tree(tree) );
+    }
     treetools.print_ascii = function(tree) {
         console.log( treetools.to_ascii(tree) );
     }
