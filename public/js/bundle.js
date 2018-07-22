@@ -1,5 +1,6 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 $ = require('jquery');
+var d3 = require('d3');
 var bootstrap = require('bootstrap');
 var bootslider = require('bootstrap-slider');
 var cophylogeny = require('./lib/cophylogeny');
@@ -184,20 +185,147 @@ async function getNewicksAsync(leftURL, rightURL) {
 }
 /* jshint ignore: end */
 
-function SVGExport() {
-    //get svg element.
-    var svgData = $("#cophy-graph")[0].outerHTML;
-    var svgBlob = new Blob([svgData], {type:"image/svg+xml;charset=utf-8"});
-    var svgUrl = URL.createObjectURL(svgBlob);
-    var downloadLink = document.createElement("a");
-    downloadLink.href = svgUrl;
-    downloadLink.download = "newesttree.svg";
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-}
+/*function getStyleSheetFromURL(url) {
+    return new Promise(
+        (resolve,reject) => {
+            d3.text( styleSheet.href )
+                .then(
+                    //function(parsed_text){ resolve(parsed_text); }
+                    text => { console.log(text); }
+                )
+                .catch(
+                    reason => { console.error(reason); }
+                    //function(reason){ reject(reason); }
+                )
+            ;
+        }
+    );
+}*/
 
-},{"./lib/cophylogeny":2,"./lib/processFile":11,"bootstrap":14,"bootstrap-slider":13,"cophy-treetools":22,"jquery":61,"url-search-params":198}],2:[function(require,module,exports){
+/* jshint ignore: start */
+function SVGExport() {
+    parseTransform = function (a)
+/*
+Modified from 
+https://stackoverflow.com/questions/17824145/parse-svg-transform-attribute-with-javascript
+to convert strings to floats
+*/
+    {
+        var b={};
+        for (var i in a = a.match(/(\w+\((\-?\d+\.?\d*e?\-?\d*,?)+\))+/g))
+        {
+            var c = a[i].match(/[\w\.\-]+/g);
+            var op = c.shift();
+            var vals = [];
+            c.forEach(function(d) { vals.push(parseFloat(d)); });
+            b[op] = vals;
+        }
+        
+        return b;
+/*
+Running this
+
+parse('translate(6,5),scale(3,3.5),a(1,1),b(2,23,-34),c(300)');
+Will result in this:
+
+{
+    translate: [ '6', '5' ],
+    scale: [ '3', '3.5' ],
+    a: [ '1', '1' ],
+    b: [ '2', '23', '-34' ],
+    c: [ '300' ]
+}
+*/
+    }
+    collapseTransform = function(t) {
+
+        var ops = [];
+
+        if (t.hasOwnProperty("translate")) {
+            var dx = t.translate[0];
+            var dy = t.translate[1];
+            var translate_str = `translate(${dx}, ${dy})`
+            ops.push(translate_str);
+        }
+
+        if (t.hasOwnProperty("scale")) {
+            var mx = t.scale[0];
+            var my = t.scale[1];
+            var scale_str = `scale(${mx}, ${my})`;
+            ops.push(scale_str);
+        }
+        return ops.join(",");
+    }
+    //get svg element.
+    //var svgData = $("#cophy-graph")[0].outerHTML;
+    var svgData = $("#cophy-graph");
+    svgData.find("text").each(function() {
+        var text_element = $(this);
+        var str_tform = text_element.attr("transform");
+        if (str_tform === undefined) {
+            tform = { translate: [0,0], scale: [1,1] };
+        }
+        else {
+            tform = parseTransform(str_tform);
+        }
+        var x_val = 0;
+        var y_val = 0;
+        x_val += parseFloat( text_element.attr("x") === undefined ? "0" : text_element.attr("x") );
+        text_element.attr("x","0");
+        x_val += parseFloat( text_element.attr("dx") === undefined ? "0" : text_element.attr("dx") ); // I think d3 is setting this variable despite explicit calls to other ways of setting position
+        text_element.attr("dx","0");
+        y_val += parseFloat( text_element.attr("y") === undefined ? "0" :text_element.attr("y") );
+        text_element.attr("y","0");
+        y_val += parseFloat( text_element.attr("dy") === undefined ? "0" :text_element.attr("dy") ); // I think d3 is setting this variable despite explicit calls to other ways of setting position
+        text_element.attr("dy","0");
+        tform.translate[0] += x_val;
+        tform.translate[1] += y_val;
+
+        text_element.attr("transform", collapseTransform(tform));
+        
+    });
+    // get DOM object from Jquery object 
+    svgData = svgData[0];
+    svgData.setAttribute("version", "1.1");
+    svgData.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+
+    // insert the SVG stylesheet into the DOM here
+    var styleSheet = null;
+    for (var i=0; i < document.styleSheets.length; i++){
+        styleSheet = document.styleSheets[i];
+        if (styleSheet.href.match(/cophylogeny\.css$/) ) {
+            // just GET it and insert it into a STYLE tag of svgData
+            d3.text( styleSheet.href )
+                .then( text => { 
+                    console.log(text); 
+                    var styleObj = $('<style type="text/css">')[0];
+                    styleObj.prepend( text );
+                    //console.log(styleObj.outerHTML);
+                    svgData.prepend( styleObj );
+                    console.dir(svgData);
+                    console.log(svgData.outerHTML);
+                    var xmlHeader = '<?xml version="1.0" encoding="utf-8"?>';
+                    var doctype = '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">';
+                    var svgText = xmlHeader + "\n" + doctype + "\n" + svgData.outerHTML;
+                    var svgBlob = new Blob([svgText], {type:"image/svg+xml;charset=utf-8"});
+                    var svgUrl = URL.createObjectURL(svgBlob);
+                    var downloadLink = document.createElement("a");
+                    downloadLink.href = svgUrl;
+                    downloadLink.download = "tree.svg";
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                } )
+                .catch( reason => { console.error(reason); } );
+            break;
+        }
+    }
+    return;
+
+}
+/* jshint ignore: end */
+
+},{"./lib/cophylogeny":2,"./lib/processFile":11,"bootstrap":14,"bootstrap-slider":13,"cophy-treetools":22,"d3":59,"jquery":61,"url-search-params":198}],2:[function(require,module,exports){
 // this class organization is suggested by
 // http://geekswithblogs.net/shaunxu/archive/2016/03/07/define-a-class-in-multiple-files-in-node.js.aspx
 (function () {
@@ -708,7 +836,7 @@ module.exports.SVGUtils = SVGUtils;
                 .data( childLinks ) // only the nuclear family
                 .enter()
                 .append("path")
-                .attr("class", "link")
+                .attr("class", "link0")
                 .attr("d", SVGUtils.SVGUtils.rightAngleDiagonal())
                 .attr("id", function(l) {
                     return cophy_obj.make_edge_id(l.source, l.target);
@@ -991,7 +1119,7 @@ module.exports.SVGUtils = SVGUtils;
 
         if (redraw) {
             this.overall_vis.selectAll(".node").remove();
-            this.overall_vis.selectAll(".link").remove();
+            this.overall_vis.selectAll(".link0").remove();
             this.overall_vis.selectAll("#bridge_g").remove();
             this.overall_vis.selectAll(".tree_label").remove();
         }
@@ -1014,17 +1142,22 @@ module.exports.SVGUtils = SVGUtils;
 
         // add labels
         var label_offset = 5;
+        var t = "translate(" + label_offset + "," + -5 + ")";
         var left_label = this.tree1_g.append("text")
         .attr("class", "tree_label")
-        .attr("x", label_offset)
-        .attr("y", -5)
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("transform", t)
         .style("alignment-baseline", "baseline")
         .text(this.tree1_name);
 
+        var x_adj = this.svg_w -  this.margin.right - label_offset;
+        t = "translate(" + x_adj + "," + -5 + ")";
         var right_label = this.tree2_g.append("text")
         .attr("class", "tree_label")
-        .attr("x", this.svg_w -  this.margin.right - label_offset)
-        .attr("y", -5)
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("transform", t)
         .style("text-anchor", "end")
         .style("alignment-baseline", "baseline")
         .text(this.tree2_name);

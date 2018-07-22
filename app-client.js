@@ -1,4 +1,5 @@
 $ = require('jquery');
+var d3 = require('d3');
 var bootstrap = require('bootstrap');
 var bootslider = require('bootstrap-slider');
 var cophylogeny = require('./lib/cophylogeny');
@@ -183,15 +184,142 @@ async function getNewicksAsync(leftURL, rightURL) {
 }
 /* jshint ignore: end */
 
+/*function getStyleSheetFromURL(url) {
+    return new Promise(
+        (resolve,reject) => {
+            d3.text( styleSheet.href )
+                .then(
+                    //function(parsed_text){ resolve(parsed_text); }
+                    text => { console.log(text); }
+                )
+                .catch(
+                    reason => { console.error(reason); }
+                    //function(reason){ reject(reason); }
+                )
+            ;
+        }
+    );
+}*/
+
+/* jshint ignore: start */
 function SVGExport() {
-    //get svg element.
-    var svgData = $("#cophy-graph")[0].outerHTML;
-    var svgBlob = new Blob([svgData], {type:"image/svg+xml;charset=utf-8"});
-    var svgUrl = URL.createObjectURL(svgBlob);
-    var downloadLink = document.createElement("a");
-    downloadLink.href = svgUrl;
-    downloadLink.download = "newesttree.svg";
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
+    parseTransform = function (a)
+/*
+Modified from 
+https://stackoverflow.com/questions/17824145/parse-svg-transform-attribute-with-javascript
+to convert strings to floats
+*/
+    {
+        var b={};
+        for (var i in a = a.match(/(\w+\((\-?\d+\.?\d*e?\-?\d*,?)+\))+/g))
+        {
+            var c = a[i].match(/[\w\.\-]+/g);
+            var op = c.shift();
+            var vals = [];
+            c.forEach(function(d) { vals.push(parseFloat(d)); });
+            b[op] = vals;
+        }
+        
+        return b;
+/*
+Running this
+
+parse('translate(6,5),scale(3,3.5),a(1,1),b(2,23,-34),c(300)');
+Will result in this:
+
+{
+    translate: [ '6', '5' ],
+    scale: [ '3', '3.5' ],
+    a: [ '1', '1' ],
+    b: [ '2', '23', '-34' ],
+    c: [ '300' ]
 }
+*/
+    }
+    collapseTransform = function(t) {
+
+        var ops = [];
+
+        if (t.hasOwnProperty("translate")) {
+            var dx = t.translate[0];
+            var dy = t.translate[1];
+            var translate_str = `translate(${dx}, ${dy})`
+            ops.push(translate_str);
+        }
+
+        if (t.hasOwnProperty("scale")) {
+            var mx = t.scale[0];
+            var my = t.scale[1];
+            var scale_str = `scale(${mx}, ${my})`;
+            ops.push(scale_str);
+        }
+        return ops.join(",");
+    }
+    //get svg element.
+    //var svgData = $("#cophy-graph")[0].outerHTML;
+    var svgData = $("#cophy-graph");
+    svgData.find("text").each(function() {
+        var text_element = $(this);
+        var str_tform = text_element.attr("transform");
+        if (str_tform === undefined) {
+            tform = { translate: [0,0], scale: [1,1] };
+        }
+        else {
+            tform = parseTransform(str_tform);
+        }
+        var x_val = 0;
+        var y_val = 0;
+        x_val += parseFloat( text_element.attr("x") === undefined ? "0" : text_element.attr("x") );
+        text_element.attr("x","0");
+        x_val += parseFloat( text_element.attr("dx") === undefined ? "0" : text_element.attr("dx") ); // I think d3 is setting this variable despite explicit calls to other ways of setting position
+        text_element.attr("dx","0");
+        y_val += parseFloat( text_element.attr("y") === undefined ? "0" :text_element.attr("y") );
+        text_element.attr("y","0");
+        y_val += parseFloat( text_element.attr("dy") === undefined ? "0" :text_element.attr("dy") ); // I think d3 is setting this variable despite explicit calls to other ways of setting position
+        text_element.attr("dy","0");
+        tform.translate[0] += x_val;
+        tform.translate[1] += y_val;
+
+        text_element.attr("transform", collapseTransform(tform));
+        
+    });
+    // get DOM object from Jquery object 
+    svgData = svgData[0];
+    svgData.setAttribute("version", "1.1");
+    svgData.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+
+    // insert the SVG stylesheet into the DOM here
+    var styleSheet = null;
+    for (var i=0; i < document.styleSheets.length; i++){
+        styleSheet = document.styleSheets[i];
+        if (styleSheet.href.match(/cophylogeny\.css$/) ) {
+            // just GET it and insert it into a STYLE tag of svgData
+            d3.text( styleSheet.href )
+                .then( text => { 
+                    console.log(text); 
+                    var styleObj = $('<style type="text/css">')[0];
+                    styleObj.prepend( text );
+                    //console.log(styleObj.outerHTML);
+                    svgData.prepend( styleObj );
+                    console.dir(svgData);
+                    console.log(svgData.outerHTML);
+                    var xmlHeader = '<?xml version="1.0" encoding="utf-8"?>';
+                    var doctype = '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">';
+                    var svgText = xmlHeader + "\n" + doctype + "\n" + svgData.outerHTML;
+                    var svgBlob = new Blob([svgText], {type:"image/svg+xml;charset=utf-8"});
+                    var svgUrl = URL.createObjectURL(svgBlob);
+                    var downloadLink = document.createElement("a");
+                    downloadLink.href = svgUrl;
+                    downloadLink.download = "tree.svg";
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                } )
+                .catch( reason => { console.error(reason); } );
+            break;
+        }
+    }
+    return;
+
+}
+/* jshint ignore: end */
