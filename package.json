@@ -6,7 +6,7 @@
   "dependencies": {
     "body-parser": "^1.18.3",
     "bootstrap": "^4.1.2",
-    "bootstrap-slider": "^10.0.2",
+    "bootstrap-slider": "^10.2.0",
     "cophy-treetools": "git+https://github.com/meekrob/cophy-treetools.git",
     "cors": "^2.8.4",
     "d3": "^5.5.0",
