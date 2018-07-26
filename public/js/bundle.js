@@ -3466,7 +3466,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
 },{"jquery":61}],14:[function(require,module,exports){
 /*!
-  * Bootstrap v4.1.2 (https://getbootstrap.com/)
+  * Bootstrap v4.1.3 (https://getbootstrap.com/)
   * Copyright 2011-2018 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
   * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
   */
@@ -3537,7 +3537,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.2): util.js
+   * Bootstrap (v4.1.3): util.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -3669,7 +3669,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.2): alert.js
+   * Bootstrap (v4.1.3): alert.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -3681,7 +3681,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'alert';
-    var VERSION = '4.1.2';
+    var VERSION = '4.1.3';
     var DATA_KEY = 'bs.alert';
     var EVENT_KEY = "." + DATA_KEY;
     var DATA_API_KEY = '.data-api';
@@ -3844,7 +3844,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.2): button.js
+   * Bootstrap (v4.1.3): button.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -3856,7 +3856,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'button';
-    var VERSION = '4.1.2';
+    var VERSION = '4.1.3';
     var DATA_KEY = 'bs.button';
     var EVENT_KEY = "." + DATA_KEY;
     var DATA_API_KEY = '.data-api';
@@ -4008,7 +4008,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.2): carousel.js
+   * Bootstrap (v4.1.3): carousel.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -4020,7 +4020,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'carousel';
-    var VERSION = '4.1.2';
+    var VERSION = '4.1.3';
     var DATA_KEY = 'bs.carousel';
     var EVENT_KEY = "." + DATA_KEY;
     var DATA_API_KEY = '.data-api';
@@ -4512,7 +4512,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.2): collapse.js
+   * Bootstrap (v4.1.3): collapse.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -4524,7 +4524,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'collapse';
-    var VERSION = '4.1.2';
+    var VERSION = '4.1.3';
     var DATA_KEY = 'bs.collapse';
     var EVENT_KEY = "." + DATA_KEY;
     var DATA_API_KEY = '.data-api';
@@ -4880,7 +4880,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.2): dropdown.js
+   * Bootstrap (v4.1.3): dropdown.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -4892,7 +4892,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'dropdown';
-    var VERSION = '4.1.2';
+    var VERSION = '4.1.3';
     var DATA_KEY = 'bs.dropdown';
     var EVENT_KEY = "." + DATA_KEY;
     var DATA_API_KEY = '.data-api';
@@ -5368,7 +5368,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.2): modal.js
+   * Bootstrap (v4.1.3): modal.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -5380,7 +5380,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'modal';
-    var VERSION = '4.1.2';
+    var VERSION = '4.1.3';
     var DATA_KEY = 'bs.modal';
     var EVENT_KEY = "." + DATA_KEY;
     var DATA_API_KEY = '.data-api';
@@ -5939,7 +5939,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.2): tooltip.js
+   * Bootstrap (v4.1.3): tooltip.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -5951,7 +5951,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'tooltip';
-    var VERSION = '4.1.2';
+    var VERSION = '4.1.3';
     var DATA_KEY = 'bs.tooltip';
     var EVENT_KEY = "." + DATA_KEY;
     var JQUERY_NO_CONFLICT = $$$1.fn[NAME];
@@ -6609,7 +6609,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.2): popover.js
+   * Bootstrap (v4.1.3): popover.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -6621,7 +6621,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'popover';
-    var VERSION = '4.1.2';
+    var VERSION = '4.1.3';
     var DATA_KEY = 'bs.popover';
     var EVENT_KEY = "." + DATA_KEY;
     var JQUERY_NO_CONFLICT = $$$1.fn[NAME];
@@ -6806,7 +6806,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.2): scrollspy.js
+   * Bootstrap (v4.1.3): scrollspy.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -6818,7 +6818,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'scrollspy';
-    var VERSION = '4.1.2';
+    var VERSION = '4.1.3';
     var DATA_KEY = 'bs.scrollspy';
     var EVENT_KEY = "." + DATA_KEY;
     var DATA_API_KEY = '.data-api';
@@ -7122,7 +7122,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.2): tab.js
+   * Bootstrap (v4.1.3): tab.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -7134,7 +7134,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
      * ------------------------------------------------------------------------
      */
     var NAME = 'tab';
-    var VERSION = '4.1.2';
+    var VERSION = '4.1.3';
     var DATA_KEY = 'bs.tab';
     var EVENT_KEY = "." + DATA_KEY;
     var DATA_API_KEY = '.data-api';
@@ -7371,7 +7371,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap (v4.1.2): index.js
+   * Bootstrap (v4.1.3): index.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
    * --------------------------------------------------------------------------
    */
@@ -7602,6 +7602,14 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
         }
         return sum;
     };
+    treetools.run_local_dfoot = function(nw1, nw2, exact=false) {
+        l1 = treetools.leaf_names(nw1);
+        l2 = treetools.leaf_names(nw2);
+        for (var i = 0; i < l1.length; i++) {
+            console.log("%d %s %s", i, l1[i], l2[i]);
+        }
+        return treetools.local_dfoot(treetools.leaf_names(nw1), treetools.leaf_names(nw2));
+    }
     treetools.local_dfoot = function(nodelist, standard, exact=false) {
         var sum = 0;
         var obj = {};
@@ -7617,12 +7625,14 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
                 // find the closest (Hamming) string in standard that matches leftNodeName.
                 // the outcome is an item of the array, and therefore will have a valid index
                 bestMatch = stringSimilarity.findBestMatch(leftNodeName, standard).bestMatch.target;
-                dif = Math.abs(i - standard.indexOf( bestMatch ));
+
+                i_in_std = standard.indexOf( bestMatch );
+                dif = Math.abs(i - i_in_std);
             }
             sum += dif;
             min = Math.min(min,dif);
             max = Math.max(max,dif);
-            obj[ standard[i] ] = dif;
+            obj[ nodelist[i] ] = dif;
         }
         return { sum: sum, diffs: obj, min: min, max: max };
     }
