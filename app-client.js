@@ -10,7 +10,7 @@ var treetools = require('cophy-treetools'); // for make_binary
 /************
 * globals
 *************/
-userArgs = {};
+userArgs = {uniform:false};
 
 
 $(document).ready(function() {
@@ -85,6 +85,20 @@ $(document).ready(function() {
             cophylogeny_fig.yScaleFactor = sliderValue;
             cophylogeny_fig.redraw();
         }   
+    });
+
+    var phylogramCheck = $("#phylogramInput");
+    phylogramCheck.on("change", function(evt) {
+        console.log("phylo go");
+        userArgs.uniform = false;
+        cophylogeny_fig.redraw();
+    });
+
+    var cladogramCheck = $("#cladogramInput");
+    cladogramCheck.on("change", function(evt) {
+        console.log("clado go");
+        userArgs.uniform = true;
+        cophylogeny_fig.redraw();
     });
 
     var user_args = {};

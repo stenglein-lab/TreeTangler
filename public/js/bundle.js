@@ -11,7 +11,7 @@ var treetools = require('cophy-treetools'); // for make_binary
 /************
 * globals
 *************/
-userArgs = {};
+userArgs = {uniform:false};
 
 
 $(document).ready(function() {
@@ -86,6 +86,20 @@ $(document).ready(function() {
             cophylogeny_fig.yScaleFactor = sliderValue;
             cophylogeny_fig.redraw();
         }   
+    });
+
+    var phylogramCheck = $("#phylogramInput");
+    phylogramCheck.on("change", function(evt) {
+        console.log("phylo go");
+        userArgs.uniform = false;
+        cophylogeny_fig.redraw();
+    });
+
+    var cladogramCheck = $("#cladogramInput");
+    cladogramCheck.on("change", function(evt) {
+        console.log("clado go");
+        userArgs.uniform = true;
+        cophylogeny_fig.redraw();
     });
 
     var user_args = {};
@@ -486,65 +500,31 @@ class SVGUtils {
         return diagonal;
     }
 
-    static scaleBranchLengthsToWidth(nodes, width, inverted)
-    {
-        function nodeSum(node) {
-            // rootdist is total distance from root node
-            //node.rootDist = (node.parent ? node.parent.rootDist : 0) + (node.length || 0);
-            if (node.parent) {
-                //console.log("nodeSum: node has parent:" + node.parent.rootDist);
-                //console.log("nodeSum: node.length:" + node.data.length);
-                node.rootDist = node.parent.rootDist + (node.data.length || 0);
-            }
-            else {
-                //console.log("nodeSum: node has no parent, use node.length || 0");
-                node.rootDist = node.data.length || 0;
-            }
+    static nodeSum(node) {
+        // rootdist is total distance from root node
+        if (node.parent) {
+            node.rootDist = node.parent.rootDist + (node.data.length || 0);
         }
-        SVGUtils.visitPreOrder(nodes[0], nodeSum);
-        // an array of the root dists corresponding to nodes array
-        // map creates a new array based on other array and function 
-        var rootDists = nodes.map(function(n)
-        {
-            return n.rootDist;
-        });
-        var y_range = [0, width ]; // --> draw the tree all the way to "width"
-        if (inverted)
-        {
-            y_range = [width, 0]; // --> horizontally reflected
+        else {
+            node.rootDist = node.data.length || 0;
         }
-        var yscale = d3.scaleLinear()
-            .domain([0, d3.max(rootDists)])
-            .range(y_range);
-
-        // here, we actually scale the tree node positions
-        // according to the actual branch lengths
-        SVGUtils.visitPreOrder(nodes[0], function(node)
-        {
-            node.y = yscale(node.rootDist);
-        });
-        return yscale;
-    } // end scaleBranchLengthsToWidth
+    }
+    static uniformSum(node) {
+        // rootdist is total distance from root node
+        if (node.parent) {
+            node.rootDist = node.parent.rootDist + 1;
+        }
+        else {
+            node.rootDist = 1;
+        }
+    }
 
     // this function adjusts node positions (node y values) based on their branch lengths
-    static scaleBranchLengths(nodes, w, inverted)
+    static scaleBranchLengths(nodes, w, inverted, uniform = false)
     {
         //console.log("------------- scaleBranchLengths ------------");
         // Visit all nodes and adjust y pos with distance metric
-        function nodeSum(node) {
-            // rootdist is total distance from root node
-            //node.rootDist = (node.parent ? node.parent.rootDist : 0) + (node.length || 0);
-            if (node.parent) {
-                //console.log("nodeSum: node has parent:" + node.parent.rootDist);
-                //console.log("nodeSum: node.length:" + node.data.length);
-                node.rootDist = node.parent.rootDist + (node.data.length || 0);
-            }
-            else {
-                //console.log("nodeSum: node has no parent, use node.length || 0");
-                node.rootDist = node.data.length || 0;
-            }
-        }
-        SVGUtils.visitPreOrder(nodes[0], nodeSum);
+        SVGUtils.visitPreOrder(nodes[0], uniform ? SVGUtils.uniformSum : SVGUtils.nodeSum);
 
         // an array of the root dists corresponding to nodes array
         // map creates a new array based on other array and function 
@@ -1119,8 +1099,8 @@ module.exports = SVGUtils;
         // this repositions nodes based on actual branch lengths
         if (rescale) {
             // actually the scale is on x
-            var yscale = SVGUtils.scaleBranchLengths(this.leftDescendants, this.svg_w - this.margin.left - this.margin.right, false);
-            yscale = SVGUtils.scaleBranchLengths(this.rightDescendants, this.svg_w - this.margin.left - this.margin.right, true);
+            var yscale = SVGUtils.scaleBranchLengths(this.leftDescendants, this.svg_w - this.margin.left - this.margin.right, false, userArgs.uniform);
+            yscale = SVGUtils.scaleBranchLengths(this.rightDescendants, this.svg_w - this.margin.left - this.margin.right, true, userArgs.uniform);
         }
 
         // shift everything down and right for the margins
