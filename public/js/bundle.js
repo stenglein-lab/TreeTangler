@@ -429,6 +429,18 @@ class SVGUtils {
         }
         return outarray;
     }
+    // In Order Tree Traversal (d3 hiearchies). Children are evaluated last first.
+    static visitPreOrder(root, callback)
+    {
+        callback(root);
+        if (root.children)
+        {
+            for (var i = root.children.length - 1; i >= 0; i--)
+            {
+                SVGUtils.visitPreOrder(root.children[i], callback);
+            }
+        }
+    }
     // several functions copied from:
     // from: https://gist.github.com/kueda/1036776
     // Copyright (c) 2013, Ken-ichi Ueda
@@ -476,17 +488,6 @@ class SVGUtils {
 
     static scaleBranchLengthsToWidth(nodes, width, inverted)
     {
-        function visitPreOrder(root, callback)
-        {
-            callback(root);
-            if (root.children)
-            {
-                for (var i = root.children.length - 1; i >= 0; i--)
-                {
-                    visitPreOrder(root.children[i], callback);
-                }
-            }
-        }
         function nodeSum(node) {
             // rootdist is total distance from root node
             //node.rootDist = (node.parent ? node.parent.rootDist : 0) + (node.length || 0);
@@ -500,7 +501,7 @@ class SVGUtils {
                 node.rootDist = node.data.length || 0;
             }
         }
-        visitPreOrder(nodes[0], nodeSum);
+        SVGUtils.visitPreOrder(nodes[0], nodeSum);
         // an array of the root dists corresponding to nodes array
         // map creates a new array based on other array and function 
         var rootDists = nodes.map(function(n)
@@ -518,7 +519,7 @@ class SVGUtils {
 
         // here, we actually scale the tree node positions
         // according to the actual branch lengths
-        visitPreOrder(nodes[0], function(node)
+        SVGUtils.visitPreOrder(nodes[0], function(node)
         {
             node.y = yscale(node.rootDist);
         });
@@ -530,17 +531,6 @@ class SVGUtils {
     {
         //console.log("------------- scaleBranchLengths ------------");
         // Visit all nodes and adjust y pos with distance metric
-        function visitPreOrder(root, callback)
-        {
-            callback(root);
-            if (root.children)
-            {
-                for (var i = root.children.length - 1; i >= 0; i--)
-                {
-                    visitPreOrder(root.children[i], callback);
-                }
-            }
-        }
         function nodeSum(node) {
             // rootdist is total distance from root node
             //node.rootDist = (node.parent ? node.parent.rootDist : 0) + (node.length || 0);
@@ -554,7 +544,7 @@ class SVGUtils {
                 node.rootDist = node.data.length || 0;
             }
         }
-        visitPreOrder(nodes[0], nodeSum);
+        SVGUtils.visitPreOrder(nodes[0], nodeSum);
 
         // an array of the root dists corresponding to nodes array
         // map creates a new array based on other array and function 
@@ -576,16 +566,15 @@ class SVGUtils {
             .range(y_range);
         // here, we actually scale the tree node positions
         // according to the actual branch lengths
-        visitPreOrder(nodes[0], function(node)
+        SVGUtils.visitPreOrder(nodes[0], function(node)
         {
             node.y = yscale(node.rootDist);
         });
         return yscale;
     } // end scaleBranchLengths
 } // end SVGUtils
-var SVGUtilsModule = function() {};
-module.exports = SVGUtilsModule;
-module.exports.SVGUtils = SVGUtils;
+module.exports = function() {};
+module.exports = SVGUtils;
 
 },{}],4:[function(require,module,exports){
 (function() {
@@ -764,9 +753,9 @@ module.exports.SVGUtils = SVGUtils;
                                 // match actually returns an array of results, the 2nd element is the one we want
                                 var seg_genotype_number = seg_genotype[1];
                                 // we'll have to cycle through colors if more than in our scheme
-                                var color_index = seg_genotype_number % SVGUtils.SVGUtils.color_scheme().length;
+                                var color_index = seg_genotype_number % SVGUtils.color_scheme().length;
                                 console.log("making the seg_genotype stroke function");
-                                return SVGUtils.SVGUtils.color_scheme()[color_index];
+                                return SVGUtils.color_scheme()[color_index];
                             }
                             else
                             {
@@ -837,7 +826,7 @@ module.exports.SVGUtils = SVGUtils;
                 .enter()
                 .append("path")
                 .attr("class", "link0")
-                .attr("d", SVGUtils.SVGUtils.rightAngleDiagonal())
+                .attr("d", SVGUtils.rightAngleDiagonal())
                 .attr("id", function(l) {
                     return cophy_obj.make_edge_id(l.source, l.target);
                     //return l.source.data.unique_id + "_to_" + l.target.data.unique_id;
@@ -1130,8 +1119,8 @@ module.exports.SVGUtils = SVGUtils;
         // this repositions nodes based on actual branch lengths
         if (rescale) {
             // actually the scale is on x
-            var yscale = SVGUtils.SVGUtils.scaleBranchLengths(this.leftDescendants, this.svg_w - this.margin.left - this.margin.right, false);
-            yscale = SVGUtils.SVGUtils.scaleBranchLengths(this.rightDescendants, this.svg_w - this.margin.left - this.margin.right, true);
+            var yscale = SVGUtils.scaleBranchLengths(this.leftDescendants, this.svg_w - this.margin.left - this.margin.right, false);
+            yscale = SVGUtils.scaleBranchLengths(this.rightDescendants, this.svg_w - this.margin.left - this.margin.right, true);
         }
 
         // shift everything down and right for the margins
@@ -1163,7 +1152,7 @@ module.exports.SVGUtils = SVGUtils;
         .text(this.tree2_name);
 
         // a fxn to create right angled edges connecting nodes
-        var diagonal = SVGUtils.SVGUtils.rightAngleDiagonal();
+        var diagonal = SVGUtils.rightAngleDiagonal();
         var cophy_obj = this;
         var id_str = function(node) {
             if (node) {
@@ -1325,7 +1314,7 @@ module.exports.SVGUtils = SVGUtils;
             this.dfoot_max = obj.max;
             this.dfoot_sum = obj.sum;
             var nlevels = obj.max - obj.min + 1;
-            this.dfoot_color_scale = SVGUtils.SVGUtils.blueToRed(nlevels).reverse();
+            this.dfoot_color_scale = SVGUtils.blueToRed(nlevels).reverse();
             console.log(this.dfoot_obj);
             return obj.sum;
         };
@@ -1333,11 +1322,18 @@ module.exports.SVGUtils = SVGUtils;
         CoPhylogenyGraph.prototype.create_d3_objects_from_newick = function() {
             var debug_create_d3_objects_from_newick = false; // can be made to retrieve value from global settings
             // make these class variables if they need to be accessed later
-            this.leftHierarchy = d3.hierarchy(this.leftTree, function(d) {return d.branchset;}); // "branchset" is the field named by Newick.js
-            this.rightHierarchy = d3.hierarchy(this.rightTree, function(d) {return d.branchset;});
+            this.leftHierarchy = d3.hierarchy(this.leftTree, function(d) {return d.branchset;}) 
+                                            .sum(function (d) { return 1; })
+                                ;
+            this.rightHierarchy = d3.hierarchy(this.rightTree, function(d) {return d.branchset;})
+                                ;
 
-            this.leftDescendants = this.leftHierarchy.descendants(); // d3 "nodes"
-            this.rightDescendants = this.rightHierarchy.descendants();
+            this.leftDescendants = this.leftHierarchy
+                                .sum(function (d) { return 1; })
+                                .descendants(); // d3 "nodes"
+            this.rightDescendants = this.rightHierarchy
+                                .sum(function (d) { return 1; })
+                                .descendants();
             // checking the overall drawing height
             if (debug_create_d3_objects_from_newick) console.log("check overall height:");
             var height_needed = Math.max(200, this.yScaleFactor * this.leftDescendants.length);
