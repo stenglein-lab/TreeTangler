@@ -673,7 +673,6 @@ module.exports = SVGUtils;
                     console.log("unable to find a match in RIGHT for " + leftNodeName + " using " + bestMatch);
                 }
                 else {
-                    //console.log("Matched " + leftNodeName + " with " + rightNodeName);
                     var x1 = leftNode.x;
                     var y1 = leftNode.y + 40; // to get past text. NB x,y flipped in d3.layout.cluster
                     var x2 = rightNode.x;
@@ -718,29 +717,7 @@ module.exports = SVGUtils;
                         .attr("pointer-events", "stroke") // only clicking on stroke works
                         .attr("stroke", function (d, i)
                         {
-                            // TODO: separate out bridge line coloring function to something
-                            // TODO: there needs to be a BLUE/RED gradient defined somewhere once for this function to reference
-                            //console.log("you are inside the bridging function max:" + rightNodeName + "(" + cophy_obj.dfoot_obj[rightNodeName] + ") =>" + cophy_obj.dfoot_color_scale[ cophy_obj.dfoot_obj[rightNodeName] ]);
-                            //console.dir(rightNodeName + ":" + cophy_obj.dfoot_obj.diffs[rightNodeName]);
                             return cophy_obj.dfoot_color_scale[ cophy_obj.dfoot_obj.diffs[rightNodeName] ];
-                            // that can be passed down from top level.
-                            //
-                            // code block below is meaningful for Mark's genotypes specified by node names
-                            // color bridging lines by genotype
-                            /*var seg_genotype = leftNodeName.match(/[SL]([0-9]+)/);
-                            if (seg_genotype)
-                            {
-                                // match actually returns an array of results, the 2nd element is the one we want
-                                var seg_genotype_number = seg_genotype[1];
-                                // we'll have to cycle through colors if more than in our scheme
-                                var color_index = seg_genotype_number % SVGUtils.color_scheme().length;
-                                console.log("making the seg_genotype stroke function");
-                                return SVGUtils.color_scheme()[color_index];
-                            }
-                            else
-                            {
-                                return "#d3d3d3"; // == "lightgrey" --> d3, ha ha
-                            }*/
                         })
                         // .on("click", highlight_toggle);
                         .on("click", cophy_obj.highlight_from_node());
@@ -1351,16 +1328,19 @@ module.exports = SVGUtils;
             function cluster_spread_fxn(a,b) {
                 return a.parent == b.parent ? 1.5 : 1.8;
             }
+            function uniform_spread_fxn(a,b) {
+                return 1.8;
+            }
             // set up left d3 object
             this.leftCluster = d3.cluster()
                                 .size(d3_layout_bounds)
-                                .separation(cluster_spread_fxn)
+                                .separation(this.userArgs.uniform ? uniform_spread_fxn : cluster_spread_fxn)
                                 ;
             this.leftCluster(this.leftHierarchy);
             // set up right d3 object
             this.rightCluster = d3.cluster()
                                 .size(d3_layout_bounds)
-                                .separation(cluster_spread_fxn)
+                                .separation(this.userArgs.uniform ? uniform_spread_fxn : cluster_spread_fxn)
                                 ;
             this.rightCluster(this.rightHierarchy);
 
