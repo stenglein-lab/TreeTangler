@@ -645,9 +645,13 @@ module.exports = SVGUtils;
         };
 
         CoPhylogenyGraph.prototype.drawHierarchy = function(node, parentSelector, orientation=1, depth=0) 
-        {
+        {   
+    
+            // For a node, draw the hierarchy it contains and define functions that can be called 
+            // with this node's unique ID string.
+
+            var cophy_obj = this; // save ref to cophy_obj in subfunctions
             this.d3NodeObj[ node.data.unique_id ] = node;
-            var cophy_obj = this; // for use in subfunctions' scope
             var debug = false;
             if (debug) console.log("drawHierachy " + depth + " --------------------------------------" + id_str(node) + ":" + ch_str(node));
             var childLinks = node.childLinks(); // only the nuclear family
