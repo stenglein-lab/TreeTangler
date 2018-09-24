@@ -15,9 +15,18 @@ userArgs = {uniform:false};
 
 $(document).ready(function() {
 
+    // some menu bar functions are connected here
     $('#svglink').on("click", function() {
         console.log("here I am going to export SVG");
         SVGExport();
+    });
+    $('#newick_left_export').on("click", function() {
+        console.log("here I am going to export newick of the left Tree");
+        export_newick("left");
+    });
+    $('#newick_right_export').on("click", function() {
+        console.log("here I am going to export newick of the right Tree");
+        export_newick("right");
     });
     // URL blobs needed for newick reader
     var leftURL = null,
@@ -334,6 +343,35 @@ function SVGExport() {
         }
     }
     return;
-
 }
+
+
+function export_newick(which_tree) {
+
+    if (! cophylogeny_fig ) {
+        alert("No trees to export!" + which_tree);
+        return;
+    }
+
+    var nw_tree;
+    if (which_tree == "left" ) {
+        nw_tree = cophylogeny_fig.leftTree;
+    }
+    else {
+        nw_tree = cophylogeny_fig.rightTree;
+    }
+
+    var txt = treetools.toString(nw_tree);
+    // create the object
+    var txtBlob = new Blob([txt], {type:"text/plain;charset=utf-8"});
+    var txtURL = URL.createObjectURL(txtBlob);
+    var downloadLink = document.createElement("a");
+    downloadLink.href = txtURL;
+    downloadLink.download = "tree.nw";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+}
+
+
 /* jshint ignore: end */

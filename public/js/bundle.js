@@ -16,9 +16,18 @@ userArgs = {uniform:false};
 
 $(document).ready(function() {
 
+    // some menu bar functions are connected here
     $('#svglink').on("click", function() {
         console.log("here I am going to export SVG");
         SVGExport();
+    });
+    $('#newick_left_export').on("click", function() {
+        console.log("here I am going to export newick of the left Tree");
+        export_newick("left");
+    });
+    $('#newick_right_export').on("click", function() {
+        console.log("here I am going to export newick of the right Tree");
+        export_newick("right");
     });
     // URL blobs needed for newick reader
     var leftURL = null,
@@ -219,11 +228,11 @@ async function getNewicksAsync(leftURL, rightURL) {
 /* jshint ignore: start */
 function SVGExport() {
     parseTransform = function (a)
-/*
-Modified from 
-https://stackoverflow.com/questions/17824145/parse-svg-transform-attribute-with-javascript
-to convert strings to floats
-*/
+    /*
+    Modified from 
+    https://stackoverflow.com/questions/17824145/parse-svg-transform-attribute-with-javascript
+    to convert strings to floats
+    */
     {
         var b={};
         for (var i in a = a.match(/(\w+\((\-?\d+\.?\d*e?\-?\d*,?)+\))+/g))
@@ -236,20 +245,20 @@ to convert strings to floats
         }
         
         return b;
-/*
-Running this
+    /*
+    Running this
 
-parse('translate(6,5),scale(3,3.5),a(1,1),b(2,23,-34),c(300)');
-Will result in this:
+    parse('translate(6,5),scale(3,3.5),a(1,1),b(2,23,-34),c(300)');
+    Will result in this:
 
-{
-    translate: [ '6', '5' ],
-    scale: [ '3', '3.5' ],
-    a: [ '1', '1' ],
-    b: [ '2', '23', '-34' ],
-    c: [ '300' ]
-}
-*/
+    {
+        translate: [ '6', '5' ],
+        scale: [ '3', '3.5' ],
+        a: [ '1', '1' ],
+        b: [ '2', '23', '-34' ],
+        c: [ '300' ]
+    }
+    */
     }
     collapseTransform = function(t) {
 
@@ -335,8 +344,37 @@ Will result in this:
         }
     }
     return;
-
 }
+
+
+function export_newick(which_tree) {
+
+    if (! cophylogeny_fig ) {
+        alert("No trees to export!" + which_tree);
+        return;
+    }
+
+    var nw_tree;
+    if (which_tree == "left" ) {
+        nw_tree = cophylogeny_fig.leftTree;
+    }
+    else {
+        nw_tree = cophylogeny_fig.rightTree;
+    }
+
+    var txt = treetools.toString(nw_tree);
+    // create the object
+    var txtBlob = new Blob([txt], {type:"text/plain;charset=utf-8"});
+    var txtURL = URL.createObjectURL(txtBlob);
+    var downloadLink = document.createElement("a");
+    downloadLink.href = txtURL;
+    downloadLink.download = "tree.nw";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+}
+
+
 /* jshint ignore: end */
 
 },{"./lib/cophylogeny":10,"./lib/processFile":11,"bootstrap":14,"bootstrap-slider":13,"cophy-treetools":22,"d3":59,"jquery":61,"url-search-params":69}],2:[function(require,module,exports){
@@ -1311,7 +1349,7 @@ module.exports = SVGUtils;
 // http://geekswithblogs.net/shaunxu/archive/2016/03/07/define-a-class-in-multiple-files-in-node.js.aspx
 (function () {
     /*
-     * Copyright 2017 David C. King and Mark Stenglein.
+     * Copyright 2017-2018 David C. King and Mark Stenglein.
      * Using ECMAScript 2015 class definition wrapper around prototype inheritance.
      * See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes
      */
