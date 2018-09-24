@@ -218,11 +218,11 @@ async function getNewicksAsync(leftURL, rightURL) {
 /* jshint ignore: start */
 function SVGExport() {
     parseTransform = function (a)
-/*
-Modified from 
-https://stackoverflow.com/questions/17824145/parse-svg-transform-attribute-with-javascript
-to convert strings to floats
-*/
+    /*
+    Modified from 
+    https://stackoverflow.com/questions/17824145/parse-svg-transform-attribute-with-javascript
+    to convert strings to floats
+    */
     {
         var b={};
         for (var i in a = a.match(/(\w+\((\-?\d+\.?\d*e?\-?\d*,?)+\))+/g))
@@ -235,20 +235,20 @@ to convert strings to floats
         }
         
         return b;
-/*
-Running this
+    /*
+    Running this
 
-parse('translate(6,5),scale(3,3.5),a(1,1),b(2,23,-34),c(300)');
-Will result in this:
+    parse('translate(6,5),scale(3,3.5),a(1,1),b(2,23,-34),c(300)');
+    Will result in this:
 
-{
-    translate: [ '6', '5' ],
-    scale: [ '3', '3.5' ],
-    a: [ '1', '1' ],
-    b: [ '2', '23', '-34' ],
-    c: [ '300' ]
-}
-*/
+    {
+        translate: [ '6', '5' ],
+        scale: [ '3', '3.5' ],
+        a: [ '1', '1' ],
+        b: [ '2', '23', '-34' ],
+        c: [ '300' ]
+    }
+    */
     }
     collapseTransform = function(t) {
 
