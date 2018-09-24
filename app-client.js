@@ -12,7 +12,33 @@ var treetools = require('cophy-treetools'); // for make_binary
 *************/
 userArgs = {uniform:false};
 
+/************
+* helpers
+*************/
+function basename(pth) {
+    pth = pth.replace('#','');
+    var parts = pth.split('/');
+    return parts[ parts.length - 1];
+}
+function padWithNBSP(str, maxlen) {
+    var adj_str = str.substr(0,maxlen);
+    var extra_sp = maxlen - adj_str.length;
+    var remainder = extra_sp % 2;
+    var base = (extra_sp-remainder) / 2;
+    // left side 
+    for (var i=0; i < base; i++) {
+        str = ' ' + str;
+    }
+    // right side gets the extra space if necessary
+    for (var j=0; j < (base+remainder); j++) {
+        str = str + ' '; 
+    }
+    return str;
+}
 
+/************
+* Main function
+*************/
 $(document).ready(function() {
 
     // some menu bar functions are connected here
@@ -122,21 +148,25 @@ $(document).ready(function() {
         if (query.has("left") && query.has("right"))
         {
             leftURL = query.get("left");
+            leftName = basename(leftURL);
             rightURL = query.get("right");
+            rightName = basename(rightURL);
             // Show input files on the title bar
-            document.title += " " + leftURL + " vs " + rightURL;
+            document.title += " " + leftName + " vs " + rightName;
             // Set buttons as they would be if file uploaded
             // deactivate left button
             fileButtonRight.addClass("btn-pass");
             fileButtonRight.attr('disabled', 'disabled');
-            fileButtonRight.innerHTML = rightURL; // name is used in graph code
+            fileButtonRight.html(padWithNBSP(rightName, 24));
+            fileButtonRight.css("white-space", "pre");
             // deactivate middle button
             fileButtonMiddle.addClass("btn-pass");
             fileButtonMiddle.attr('disabled', 'disabled');
             // deactivate right button
             fileButtonLeft.addClass("btn-pass");
+            fileButtonLeft.html(padWithNBSP(leftName,24)); // name is used in graph code
+            fileButtonLeft.css("white-space", "pre");
             fileButtonLeft.attr('disabled', 'disabled');
-            fileButtonLeft.innerHTML = leftURL; // name is used in graph code
             //render_cophylogeny('#middle_container', 'unnamed', leftURL, rightURL, 700, user_args);
             loadData(leftURL, rightURL);
             return;
@@ -154,10 +184,8 @@ function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}
 
     cophylogeny_fig = new cophylogeny(container, w, h, leftNw, rightNw, userArgs);
 
-    cophylogeny_fig.tree1_name = fileButtonLeft.innerHTML; // excessive WS is coming in from the HTML
-    //console.log("name1 is " + cophylogeny_fig.tree1_name);
-    cophylogeny_fig.tree2_name = fileButtonRight.innerHTML;
-    //console.log("name2 is " + cophylogeny_fig.tree2_name);
+    cophylogeny_fig.leftTreeName = fileButtonLeft.innerHTML.trim(); 
+    cophylogeny_fig.rightTreeName = fileButtonRight.innerHTML.trim();
 
     // here the left-to-right mapping document is applied, 
     // if it exists
@@ -324,8 +352,6 @@ function SVGExport() {
                     styleObj.prepend( text );
                     //console.log(styleObj.outerHTML);
                     svgData.prepend( styleObj );
-                    console.dir(svgData);
-                    console.log(svgData.outerHTML);
                     var xmlHeader = '<?xml version="1.0" encoding="utf-8"?>';
                     var doctype = '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">';
                     var svgText = xmlHeader + "\n" + doctype + "\n" + svgData.outerHTML;
@@ -333,7 +359,8 @@ function SVGExport() {
                     var svgUrl = URL.createObjectURL(svgBlob);
                     var downloadLink = document.createElement("a");
                     downloadLink.href = svgUrl;
-                    downloadLink.download = "tree.svg";
+                    var name = cophylogeny_fig.leftTreeName + "_versus_" + cophylogeny_fig.rightTreeName;
+                    downloadLink.download = name + ".svg";
                     document.body.appendChild(downloadLink);
                     downloadLink.click();
                     document.body.removeChild(downloadLink);
@@ -367,7 +394,7 @@ function export_newick(which_tree) {
     var txtURL = URL.createObjectURL(txtBlob);
     var downloadLink = document.createElement("a");
     downloadLink.href = txtURL;
-    downloadLink.download = "tree.nw";
+    downloadLink.download = which_tree == "left" ? cophylogeny_fig.leftTreeName : cophylogeny_fig.rightTreeName;
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
