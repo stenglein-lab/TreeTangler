@@ -16,6 +16,14 @@ module.exports = function(grunt) { // grunt instance is passed to this function 
             client: {
                 src: ["app-client.js"],
                 dest: "public/js/bundle.js"
+            },
+            modal: {
+                src: ["app-test-modal.js"],
+                dest: "public/js/test-modal.js"
+            },
+            test_contrast: {
+                src: ["app-test-contrast.js"],
+                dest: "public/js/test-contrast.js"
             }
         }
     });

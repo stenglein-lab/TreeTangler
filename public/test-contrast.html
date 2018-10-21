@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="minimum-scale=1.0, width=device-width, maximum-scale=1.0, user-scalable=no"/>
+    <meta charset="utf-8">
+    <title></title>
+    <meta charset="utf-8">
+    <script src="js/test-contrast.js"></script>
+    <link rel="stylesheet" href="css/bootstrap-slider.min.css"/>
+    <link rel="stylesheet" href="css/bootstrap.min.css"/>
+</head>
+<style>
+body {
+  font: 10px sans-serif;
+}
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.point, .point2 {
+  stroke: #000;
+}
+svg {
+    /*display: block;*/
+}
+#ex1Slider .slider-selection {
+    background: #BABABA;
+}
+</style>
+<body>
+<input
+    id="ex2"
+    data-slider-id='ex2Slider'
+    type="text"
+    data-slider-min="0.01"
+    data-slider-max="0.29"
+    data-slider-step=".01"
+    data-slider-value="0.01"
+    data-slider-orientation="vertical"
+/>
+<input id="ex1" data-slider-id='ex1Slider' type="text" data-slider-min="0" data-slider-max="89" data-slider-step="1" data-slider-value="44" /><br/>
+<br/>Slider value: <span id="sliderText"></span><br/>
+Param: a: <span id="a_param"></span><br/>
+Param: midpoint: <span id="midpoint"></span><br/>
+</body>
+</html>
