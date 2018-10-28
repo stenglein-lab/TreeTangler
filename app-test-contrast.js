@@ -1,5 +1,11 @@
 var bootstrap = require('bootstrap');
 var bootslider = require('bootstrap-slider');
+
+function colorScale(f) {
+    //return redBlue(f);
+    return plasma(f);
+}
+
 function redBlue(f) {
 // given a value in {0,1}, give rgb interpolated through purple (red-0, blue-1)
     if (f > 1) { f = 1; }
@@ -12,9 +18,21 @@ function blackRed(f) {
     if (f > 1) { f = 1; }
     if (f < 0) { f = 0; }
     return { r: Math.round(255 * f), g: 0, b: 0 };
-
 }
 
+function plasma(f) {
+    if (f > 1) { f = 1; }
+    if (f < 0) { f = 0; }
+    return hexToObj(d3.interpolatePlasma(f));
+}
+
+function hexToObj(hex) {
+    return {
+      r : parseInt(hex.substr(1,2), 16),
+      g : parseInt(hex.substr(3,2), 16),
+      b : parseInt(hex.substr(5,2), 16)
+    };
+}
 function objToHex(obj) {
     // for use in style definition
     var hex = '#';
@@ -82,7 +100,7 @@ function update_styles() {
         var x = +data_level;
         var f = sigmoid_scaled(x, param_a, param_mid);
         //var rgb = redBlue(f);
-        var rgb = blackRed(f);
+        var rgb = colorScale(f);
         var rgb_hex = objToHex(rgb);
         if (x == 49) {
             console.log(f, param_a, param_mid, rgb, rgb_hex);
@@ -145,7 +163,7 @@ for (var data_level in ecdh) {
     var rule_name = ".data_level_" + data_level;
     var f = ecdh[data_level];
     //var rgb = redBlue(f);
-    var rgb = blackRed(f);
+    var rgb = colorScale(f);
     var rgb_hex = objToHex(rgb);
     //var rule_text = rule_name + " { fill: "  + rgb_hex + "}";
     //var index = sheet.cssRules.length - 1;
