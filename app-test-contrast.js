@@ -3,7 +3,12 @@ var bootslider = require('bootstrap-slider');
 
 function colorScale(f) {
     //return redBlue(f);
-    return plasma(f);
+    //return plasma(f);
+    //return cool(f);
+    //return warm(f);
+    //return cubeHelixDefault(f);
+    //return viridis(f);
+    return magma(f);
 }
 
 function redBlue(f) {
@@ -19,11 +24,39 @@ function blackRed(f) {
     if (f < 0) { f = 0; }
     return { r: Math.round(255 * f), g: 0, b: 0 };
 }
-
+function objectifyD3Output(val) {
+    if (val.substr(0,1) == "#") {
+        return hexToObj(val);
+    }
+    if (val.substr(0,4) == "rgb(") {
+        var arr = val.substr(4, val.length - 5).split(',');
+        var red = parseInt(arr[0]);
+        var green = parseInt(arr[1]);
+        var blue = parseInt(arr[2]);
+        if (! isNaN(red) && ! isNaN(green) && ! isNaN(blue)) return { r: red, g: green, b: blue };
+    }
+    throw "Can't recognize color string:" + val;
+}
+function viridis(f) {
+    return objectifyD3Output( d3.interpolateViridis(f) );
+}
+function cubeHelixDefault(f) {
+    return objectifyD3Output( d3.interpolateCubehelixDefault(f) );
+}
+function cool(f) {
+    return objectifyD3Output( d3.interpolateCool(f) );
+}
 function plasma(f) {
-    if (f > 1) { f = 1; }
-    if (f < 0) { f = 0; }
     return hexToObj(d3.interpolatePlasma(f));
+}
+function inferno(f) {
+    return hexToObj(d3.interpolateInferno(f));
+}
+function magma(f) {
+    return hexToObj(d3.interpolateMagma(f));
+}
+function warm(f) {
+    return objectifyD3Output( d3.interpolateWarm(f) );
 }
 
 function hexToObj(hex) {
