@@ -85,7 +85,7 @@ data.sort(function(a,b) { return a - b; });
 // initialize variables
 x_min = data[0];
 x_max = data[data.length-1];
-param_a = 0.1;
+param_a = 0.01;
 param_mid = (x_max + x_min)/2;
 sigmoid_min = 0; 
 sigmoid_max = 0;
@@ -232,6 +232,15 @@ svg.append("g")
   )
 ;
 
+var ffunc = function(d) {
+    var yprime = -1;
+    if (d.x == 30) {
+        yprime = sigmoid_scaled(d.x);
+    }
+    yprime = sigmoid_scaled(d.x);
+    return yprime;
+};
+
 // Add the points!
 svg.selectAll(".point")
   .data(plot_data)
@@ -240,7 +249,7 @@ svg.selectAll(".point")
   .attr("class", function(d) { return ["point data_level_" + d.x]; } )
   .attr("r", 4.5)
   .attr("cx", function(d) { return x(d.x); })
-  .attr("cy", function(d) { return y(d.y); });
+  .attr("cy", function(d) { return y(ffunc(d)); });
 
 svg.selectAll(".point2")
   .data(plot_data)
@@ -258,6 +267,15 @@ var slide = $('#ex1').slider({
         $('#currentVertScaleLabel').text(value);
     }   
 });
+function update_points() {
+    svg.selectAll(".point")
+      .transition() 
+      /*.attr("class", "point")
+      .attr("class", function(d) { return ["point data_level_" + d.x]; } )
+      .attr("r", 4.5)
+      .attr("cx", function(d) { return x(d.x); })*/
+      .attr("cy", function(d) { return y(ffunc(d)); });
+}
 function slideFuncMidPoint(slideEvt) {
     update_midpoint(slideEvt.value); 
 
@@ -268,6 +286,7 @@ function changeFuncMidPoint(changeEvt) {
 function update_midpoint(value) {
     update_params(param_a, value);
     update_styles();
+    update_points();
     $('#sliderText').text(value);
     $('#a_param').text(param_a);
     $('#midpoint').text(param_mid);
@@ -282,6 +301,7 @@ function changeFuncContrast(changeEvt) {
 function update_contrast(value) {
     update_params(value, param_mid);
     update_styles();
+    update_points();
     //$('#sliderText').text(value);
     $('#a_param').text(param_a);
     $('#midpoint').text(param_mid);
