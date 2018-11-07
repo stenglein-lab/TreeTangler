@@ -54,6 +54,30 @@ $(document).ready(function() {
         console.log("here I am going to export newick of the right Tree");
         export_newick("right");
     });
+
+    // keyboard shortcut for detangling
+    $(document).keydown(function(e){
+        var message = "The key code is " + e.which;
+        console.log (message);
+
+        // is this object defined?
+        if (cophylogeny_fig != null)
+        {
+           // comma/less than key
+           if (e.which == 188)
+           {
+              cophylogeny_fig.detangle_left();
+              cophylogeny_fig.redraw();
+           }
+           // perod/greater than key
+           else if (e.which == 190)
+           {
+              cophylogeny_fig.detangle_right();
+              cophylogeny_fig.redraw();
+           }
+        }
+    });
+
     // URL blobs needed for newick reader
     var leftURL = null,
         rightURL = null;
