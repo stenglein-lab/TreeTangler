@@ -1,6 +1,17 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 var bootstrap = require('bootstrap');
 var bootslider = require('bootstrap-slider');
+
+function colorScale(f) {
+    //return redBlue(f);
+    //return plasma(f);
+    //return cool(f);
+    //return warm(f);
+    //return cubeHelixDefault(f);
+    //return viridis(f);
+    return magma(f);
+}
+
 function redBlue(f) {
 // given a value in {0,1}, give rgb interpolated through purple (red-0, blue-1)
     if (f > 1) { f = 1; }
@@ -13,9 +24,49 @@ function blackRed(f) {
     if (f > 1) { f = 1; }
     if (f < 0) { f = 0; }
     return { r: Math.round(255 * f), g: 0, b: 0 };
-
+}
+function objectifyD3Output(val) {
+    if (val.substr(0,1) == "#") {
+        return hexToObj(val);
+    }
+    if (val.substr(0,4) == "rgb(") {
+        var arr = val.substr(4, val.length - 5).split(',');
+        var red = parseInt(arr[0]);
+        var green = parseInt(arr[1]);
+        var blue = parseInt(arr[2]);
+        if (! isNaN(red) && ! isNaN(green) && ! isNaN(blue)) return { r: red, g: green, b: blue };
+    }
+    throw "Can't recognize color string:" + val;
+}
+function viridis(f) {
+    return objectifyD3Output( d3.interpolateViridis(f) );
+}
+function cubeHelixDefault(f) {
+    return objectifyD3Output( d3.interpolateCubehelixDefault(f) );
+}
+function cool(f) {
+    return objectifyD3Output( d3.interpolateCool(f) );
+}
+function plasma(f) {
+    return hexToObj(d3.interpolatePlasma(f));
+}
+function inferno(f) {
+    return hexToObj(d3.interpolateInferno(f));
+}
+function magma(f) {
+    return hexToObj(d3.interpolateMagma(f));
+}
+function warm(f) {
+    return objectifyD3Output( d3.interpolateWarm(f) );
 }
 
+function hexToObj(hex) {
+    return {
+      r : parseInt(hex.substr(1,2), 16),
+      g : parseInt(hex.substr(3,2), 16),
+      b : parseInt(hex.substr(5,2), 16)
+    };
+}
 function objToHex(obj) {
     // for use in style definition
     var hex = '#';
@@ -35,7 +86,7 @@ data.sort(function(a,b) { return a - b; });
 // initialize variables
 x_min = data[0];
 x_max = data[data.length-1];
-param_a = 0.1;
+param_a = 0.01;
 param_mid = (x_max + x_min)/2;
 sigmoid_min = 0; 
 sigmoid_max = 0;
@@ -83,7 +134,7 @@ function update_styles() {
         var x = +data_level;
         var f = sigmoid_scaled(x, param_a, param_mid);
         //var rgb = redBlue(f);
-        var rgb = blackRed(f);
+        var rgb = colorScale(f);
         var rgb_hex = objToHex(rgb);
         if (x == 49) {
             console.log(f, param_a, param_mid, rgb, rgb_hex);
@@ -146,7 +197,7 @@ for (var data_level in ecdh) {
     var rule_name = ".data_level_" + data_level;
     var f = ecdh[data_level];
     //var rgb = redBlue(f);
-    var rgb = blackRed(f);
+    var rgb = colorScale(f);
     var rgb_hex = objToHex(rgb);
     //var rule_text = rule_name + " { fill: "  + rgb_hex + "}";
     //var index = sheet.cssRules.length - 1;
@@ -182,6 +233,15 @@ svg.append("g")
   )
 ;
 
+var ffunc = function(d) {
+    var yprime = -1;
+    if (d.x == 30) {
+        yprime = sigmoid_scaled(d.x);
+    }
+    yprime = sigmoid_scaled(d.x);
+    return yprime;
+};
+
 // Add the points!
 svg.selectAll(".point")
   .data(plot_data)
@@ -190,7 +250,7 @@ svg.selectAll(".point")
   .attr("class", function(d) { return ["point data_level_" + d.x]; } )
   .attr("r", 4.5)
   .attr("cx", function(d) { return x(d.x); })
-  .attr("cy", function(d) { return y(d.y); });
+  .attr("cy", function(d) { return y(ffunc(d)); });
 
 svg.selectAll(".point2")
   .data(plot_data)
@@ -208,6 +268,15 @@ var slide = $('#ex1').slider({
         $('#currentVertScaleLabel').text(value);
     }   
 });
+function update_points() {
+    svg.selectAll(".point")
+      .transition() 
+      /*.attr("class", "point")
+      .attr("class", function(d) { return ["point data_level_" + d.x]; } )
+      .attr("r", 4.5)
+      .attr("cx", function(d) { return x(d.x); })*/
+      .attr("cy", function(d) { return y(ffunc(d)); });
+}
 function slideFuncMidPoint(slideEvt) {
     update_midpoint(slideEvt.value); 
 
@@ -218,6 +287,7 @@ function changeFuncMidPoint(changeEvt) {
 function update_midpoint(value) {
     update_params(param_a, value);
     update_styles();
+    update_points();
     $('#sliderText').text(value);
     $('#a_param').text(param_a);
     $('#midpoint').text(param_mid);
@@ -232,6 +302,7 @@ function changeFuncContrast(changeEvt) {
 function update_contrast(value) {
     update_params(value, param_mid);
     update_styles();
+    update_points();
     //$('#sliderText').text(value);
     $('#a_param').text(param_a);
     $('#midpoint').text(param_mid);
@@ -265,7 +336,7 @@ $('#ex2Slider').css('top', '0px');
 
 },{"bootstrap":3,"bootstrap-slider":2,"d3":35,"jquery":36}],2:[function(require,module,exports){
 /*! =======================================================
-                      VERSION  10.2.0              
+                      VERSION  10.2.3              
 ========================================================= */
 "use strict";
 
@@ -1883,6 +1954,9 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 				this._layout();
 				this._setDataVal(val);
 				this._trigger('slideStop', val);
+
+				// No longer need 'dragged' after mouse up
+				this._state.dragged = null;
 
 				return false;
 			},
@@ -34834,7 +34908,7 @@ return jQuery;
 (function (global){
 /**!
  * @fileOverview Kickass library to create and place poppers near their reference elements.
- * @version 1.14.4
+ * @version 1.14.5
  * @license
  * Copyright (c) 2016 Federico Zivolo and contributors
  *
@@ -34937,7 +35011,8 @@ function getStyleComputedProperty(element, property) {
     return [];
   }
   // NOTE: 1 DOM access here
-  var css = getComputedStyle(element, null);
+  var window = element.ownerDocument.defaultView;
+  var css = window.getComputedStyle(element, null);
   return property ? css[property] : css;
 }
 
@@ -35025,7 +35100,7 @@ function getOffsetParent(element) {
   var noOffsetParent = isIE(10) ? document.body : null;
 
   // NOTE: 1 DOM access here
-  var offsetParent = element.offsetParent;
+  var offsetParent = element.offsetParent || null;
   // Skip hidden elements which don't have an offsetParent
   while (offsetParent === noOffsetParent && element.nextElementSibling) {
     offsetParent = (element = element.nextElementSibling).offsetParent;
@@ -35037,9 +35112,9 @@ function getOffsetParent(element) {
     return element ? element.ownerDocument.documentElement : document.documentElement;
   }
 
-  // .offsetParent will return the closest TD or TABLE in case
+  // .offsetParent will return the closest TH, TD or TABLE in case
   // no offsetParent is present, I hate this job...
-  if (['TD', 'TABLE'].indexOf(offsetParent.nodeName) !== -1 && getStyleComputedProperty(offsetParent, 'position') === 'static') {
+  if (['TH', 'TD', 'TABLE'].indexOf(offsetParent.nodeName) !== -1 && getStyleComputedProperty(offsetParent, 'position') === 'static') {
     return getOffsetParent(offsetParent);
   }
 
@@ -35587,7 +35662,8 @@ function getReferenceOffsets(state, popper, reference) {
  * @returns {Object} object containing width and height properties
  */
 function getOuterSizes(element) {
-  var styles = getComputedStyle(element);
+  var window = element.ownerDocument.defaultView;
+  var styles = window.getComputedStyle(element);
   var x = parseFloat(styles.marginTop) + parseFloat(styles.marginBottom);
   var y = parseFloat(styles.marginLeft) + parseFloat(styles.marginRight);
   var result = {
