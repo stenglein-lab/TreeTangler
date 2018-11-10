@@ -428,7 +428,7 @@ function export_newick(which_tree) {
 
 /* jshint ignore: end */
 
-},{"./lib/cophylogeny":10,"./lib/processFile":11,"bootstrap":14,"bootstrap-slider":13,"cophy-treetools":22,"d3":59,"jquery":61,"url-search-params":69}],2:[function(require,module,exports){
+},{"./lib/cophylogeny":10,"./lib/processFile":11,"bootstrap":14,"bootstrap-slider":13,"cophy-treetools":24,"d3":61,"jquery":64,"url-search-params":72}],2:[function(require,module,exports){
 /*
  * Static functions for drawing SVG elements
  */
@@ -966,7 +966,7 @@ module.exports = SVGUtils;
     }; //end exports enclosure
 })();
 
-},{"d3":59,"string-similarity":68}],6:[function(require,module,exports){
+},{"d3":61,"string-similarity":71}],6:[function(require,module,exports){
 (function() {
     exports = module.exports = function(CoPhylogenyGraph) {
         CoPhylogenyGraph.prototype.addEventListener = function(evt_str, f) {
@@ -1396,7 +1396,7 @@ module.exports = SVGUtils;
     };// end module.exports enclosure
 })();
 
-},{"cophy-treetools":22}],10:[function(require,module,exports){
+},{"cophy-treetools":24}],10:[function(require,module,exports){
 // this class organization is suggested by
 // http://geekswithblogs.net/shaunxu/archive/2016/03/07/define-a-class-in-multiple-files-in-node.js.aspx
 (function () {
@@ -1480,7 +1480,7 @@ module.exports = SVGUtils;
 
 })();
 
-},{"./SVGUtils":2,"./cophylogeny-addPersistentClass":3,"./cophylogeny-compat":4,"./cophylogeny-draw":5,"./cophylogeny-events":6,"./cophylogeny-inspect":7,"./cophylogeny-render":8,"./cophylogeny-treemods":9,"d3":59}],11:[function(require,module,exports){
+},{"./SVGUtils":2,"./cophylogeny-addPersistentClass":3,"./cophylogeny-compat":4,"./cophylogeny-draw":5,"./cophylogeny-events":6,"./cophylogeny-inspect":7,"./cophylogeny-render":8,"./cophylogeny-treemods":9,"d3":61}],11:[function(require,module,exports){
 var treetools = require('cophy-treetools');
 var d3 = require('d3');
 
@@ -1618,7 +1618,7 @@ module.exports.processUploadedNewick = processUploadedNewick;
 module.exports.getNewickFromURL = getNewickFromURL;
 
 
-},{"cophy-treetools":22,"d3":59}],12:[function(require,module,exports){
+},{"cophy-treetools":24,"d3":61}],12:[function(require,module,exports){
 var freetree = require('freetree');
 var c0 = String.fromCharCode(9500);
 var c1 = String.fromCharCode(9472);
@@ -1666,9 +1666,9 @@ function _generate(tree, end, levels) {
 }
 
 exports.generate = generate;
-},{"freetree":60}],13:[function(require,module,exports){
+},{"freetree":63}],13:[function(require,module,exports){
 /*! =======================================================
-                      VERSION  10.2.0              
+                      VERSION  10.2.3              
 ========================================================= */
 "use strict";
 
@@ -3287,6 +3287,9 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 				this._setDataVal(val);
 				this._trigger('slideStop', val);
 
+				// No longer need 'dragged' after mouse up
+				this._state.dragged = null;
+
 				return false;
 			},
 			_calculateValue: function _calculateValue(snapToClosestTick) {
@@ -3548,7 +3551,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 	return Slider;
 });
 
-},{"jquery":61}],14:[function(require,module,exports){
+},{"jquery":64}],14:[function(require,module,exports){
 /*!
   * Bootstrap v4.1.3 (https://getbootstrap.com/)
   * Copyright 2011-2018 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
@@ -7494,7 +7497,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 })));
 
 
-},{"jquery":61,"popper.js":67}],15:[function(require,module,exports){
+},{"jquery":64,"popper.js":70}],15:[function(require,module,exports){
 
 },{}],16:[function(require,module,exports){
 (function() {
@@ -7724,7 +7727,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 })();
 
 
-},{"../builders":17,"../read-write":25,"string-similarity":68}],20:[function(require,module,exports){
+},{"../builders":17,"../read-write":27,"string-similarity":71}],20:[function(require,module,exports){
 (function() {
     traversal = require('../builders');
     treetools = {};
@@ -7782,11 +7785,145 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
     treetools = {};
     treetools = extend(treetools, require('./detangler'));
     treetools = extend(treetools, require('./general'));
+    treetools = extend(treetools, require('./validation'));
+    treetools = extend(treetools, require('./string-similarity'));
     module.exports = treetools;
 })();
 
 
-},{"./detangler":19,"./general":20}],22:[function(require,module,exports){
+},{"./detangler":19,"./general":20,"./string-similarity":22,"./validation":23}],22:[function(require,module,exports){
+/*
+Abstracting the module string-similarity with other comparison functions, such as Levenshtein
+*/
+(function() {
+    var cmp = function(a,b) {
+        if (a.rating == b.rating) return 0;
+        return a.rating < b.rating ? -1 : 1;
+    }
+    stringSimilarity = require("string-similarity");
+    fastLevenshtein = require("fast-levenshtein");
+    treetools = {};
+    treetools.findBestMatch = function(target, array_of_strings, method="Levenshtein") {
+        if (method === "Levenshtein") {
+            var best = { target: "NA", rating: Number.MAX_SAFE_INTEGER };
+            ratings = [];
+            for (var i in array_of_strings) {
+                var distance = fl.get(target, array_of_strings[i]);
+                outcome = { target: array_of_strings[i], rating: distance };
+                ratings.push( outcome );
+                if ( cmp(outcome, best) < 0 ) {
+                    best = outcome;
+                }
+            }
+            return {
+                ratings: ratings,
+                bestMatch: best
+            };
+        }
+    }
+    module.exports = treetools;
+})();
+
+
+},{"fast-levenshtein":62,"string-similarity":71}],23:[function(require,module,exports){
+(function() {
+    // need this
+    function format(v) {
+        if (! isInt(v)) {
+            return v.toFixed(4);
+        }
+        return v;
+    }
+
+    function cmp(a,b) {
+        if (a == b) return 0;
+        return a < b ? -1 : 1;
+    }
+
+    function isInt(v) {
+        return Math.trunc(v) == v;
+    }
+    treetools = {};
+
+    treetools.get_json_mismatches = function(left, right)   {
+        var left_to_right = treetools.compare_leaf_lists(left,right);
+        var right_to_left = treetools.compare_leaf_lists(right, left);
+        return { LTR: left_to_right, RTL: right_to_left };
+    }
+    treetools.compare_leaf_lists = function(nodelist, standard)   {
+
+
+        var json_mismatches = [];
+
+        for (var i = 0; i < nodelist.length; i++) {
+            node_i = nodelist[i];
+            outstr = i + ":\t" + node_i + "\t";
+
+            var json_report = {};
+            json_report.left_nodename = node_i;
+            json_report.left_nodeindex = i;
+
+            // exact matches:  standard.indexOf
+            var j = standard.indexOf(node_i);
+            json_report.right_index_for_left = j;
+
+            outstr += j + "\t";
+            if (j == -1) {
+                json_report.found_exact_match = false;
+                outstr += "NOT_FOUND\t";
+            }
+            else {
+                json_report.found_exact_match = true;
+                node_j = standard[j];
+                json_report.right_nodename_for_left = node_j;
+                outstr += node_j + "\t"
+            }
+
+            // best match method: find the closest matching string in standard, take the index of that match
+            // not necessary for exact matches
+            var bestMatchObj = treetools.findBestMatch(node_i, standard); 
+            //var bestMatch = bestMatchObj.bestMatch;//.target;
+
+
+            var ratings = bestMatchObj.ratings;
+            ratings.sort(function(a,b) {
+                if (a.rating == b.rating) {
+                    return cmp(a.target,b.target);
+                }
+                return a.rating < b.rating ? -1 : 1; // Distance, low-to-high
+            });
+            var bestMatch = { target: ratings[0].target, rating: ratings[0].rating };
+            json_report.best_match_in_right_for_left = bestMatch;
+            
+            var prev_j = j; // -1 if no exact match
+            j = standard.indexOf(bestMatch.target);
+
+            json_report.index_of_best_match_in_right_for_left = j;
+
+            if (prev_j != j) {
+                node_j = standard[j];
+                outstr += j + "\t" + node_j + "(" + format(bestMatch.rating) + ")";
+                json_report.rating_of_best_match_in_right_for_left = bestMatch.rating;
+
+                json_report.match_ratings = [];
+                for (var x=0; x < 5; x++) {
+                        outstr += "\t" + ratings[x].target + "(" + format(ratings[x].rating) + ")";
+                        json_report.match_ratings.push( { rank: x, match: ratings[x].target, levenshtein_distance: parseFloat(ratings[x].rating.toFixed(4)) } );
+                }
+                
+                console.log(outstr);
+                json_mismatches.push({ report_i: json_mismatches.length+1, report: json_report});
+            }
+        }
+        
+        return { mismatch_reports: json_mismatches, nmismatches: json_mismatches.length };
+
+    }
+    module.exports = treetools;
+})();
+
+
+},{}],24:[function(require,module,exports){
 (function() { // hide namespace from global
     function extend(obj, src) {
         Object.keys(src).forEach(function(key) { obj[key] = src[key]; });
@@ -7800,7 +7937,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
 })();
 
-},{"./builders":17,"./functions":21,"./read-write":25}],23:[function(require,module,exports){
+},{"./builders":17,"./functions":21,"./read-write":27}],25:[function(require,module,exports){
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory();
@@ -8173,12 +8310,12 @@ const normalize = s => {
 /***/ })
 /******/ ]);
 });
-},{}],24:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 var dist = require('./dist/')
 
 module.exports = dist
 
-},{"./dist/":23}],25:[function(require,module,exports){
+},{"./dist/":25}],27:[function(require,module,exports){
 (function() { // hide namespace from global
     function extend(obj, src) {
         Object.keys(src).forEach(function(key) { obj[key] = src[key]; }); 
@@ -8190,7 +8327,7 @@ module.exports = dist
     module.exports = treetools;
 })();
 
-},{"./parse":26,"./write":27}],26:[function(require,module,exports){
+},{"./parse":28,"./write":29}],28:[function(require,module,exports){
 (function() { // hide namespace from global
     Newick = require('newick').Newick;
     fs = require('fs');
@@ -8218,7 +8355,7 @@ module.exports = dist
 
 })();
 
-},{"fs":15,"newick":24}],27:[function(require,module,exports){
+},{"fs":15,"newick":26}],29:[function(require,module,exports){
 (function() { // shield global namespace
     treetools = require('../index');
     treetools.toString = function(nw, round) {
@@ -8317,7 +8454,7 @@ module.exports = dist
 
 })();
 
-},{"../index":22,"ascii-tree":12}],28:[function(require,module,exports){
+},{"../index":24,"ascii-tree":12}],30:[function(require,module,exports){
 // https://d3js.org/d3-array/ v1.2.4 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -8909,7 +9046,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],29:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 // https://d3js.org/d3-axis/ v1.0.12 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -9104,7 +9241,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],30:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 // https://d3js.org/d3-brush/ v1.0.6 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-dispatch'), require('d3-drag'), require('d3-interpolate'), require('d3-transition')) :
@@ -9673,7 +9810,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":35,"d3-drag":36,"d3-interpolate":44,"d3-selection":51,"d3-transition":56}],31:[function(require,module,exports){
+},{"d3-dispatch":37,"d3-drag":38,"d3-interpolate":46,"d3-selection":53,"d3-transition":58}],33:[function(require,module,exports){
 // https://d3js.org/d3-chord/ v1.0.6 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array'), require('d3-path')) :
@@ -9905,7 +10042,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":28,"d3-path":45}],32:[function(require,module,exports){
+},{"d3-array":30,"d3-path":47}],34:[function(require,module,exports){
 // https://d3js.org/d3-collection/ v1.0.7 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -10124,7 +10261,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],33:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 // https://d3js.org/d3-color/ v1.2.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -10675,7 +10812,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],34:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 // https://d3js.org/d3-contour/ v1.3.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array')) :
@@ -11108,7 +11245,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":28}],35:[function(require,module,exports){
+},{"d3-array":30}],37:[function(require,module,exports){
 // https://d3js.org/d3-dispatch/ v1.0.5 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -11205,7 +11342,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],36:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 // https://d3js.org/d3-drag/ v1.2.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-dispatch')) :
@@ -11441,7 +11578,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":35,"d3-selection":51}],37:[function(require,module,exports){
+},{"d3-dispatch":37,"d3-selection":53}],39:[function(require,module,exports){
 // https://d3js.org/d3-dsv/ v1.0.10 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -11605,7 +11742,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],38:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 // https://d3js.org/d3-ease/ v1.0.5 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -11866,7 +12003,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],39:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 // https://d3js.org/d3-fetch/ v1.1.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dsv')) :
@@ -11970,7 +12107,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dsv":37}],40:[function(require,module,exports){
+},{"d3-dsv":39}],42:[function(require,module,exports){
 // https://d3js.org/d3-force/ v1.1.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-quadtree'), require('d3-collection'), require('d3-dispatch'), require('d3-timer')) :
@@ -12632,7 +12769,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-collection":32,"d3-dispatch":35,"d3-quadtree":47,"d3-timer":55}],41:[function(require,module,exports){
+},{"d3-collection":34,"d3-dispatch":37,"d3-quadtree":49,"d3-timer":57}],43:[function(require,module,exports){
 // https://d3js.org/d3-format/ v1.3.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -12954,7 +13091,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],42:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 // https://d3js.org/d3-geo/ v1.11.1 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array')) :
@@ -16059,7 +16196,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":28}],43:[function(require,module,exports){
+},{"d3-array":30}],45:[function(require,module,exports){
 // https://d3js.org/d3-hierarchy/ v1.1.8 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -17351,7 +17488,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],44:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 // https://d3js.org/d3-interpolate/ v1.3.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-color')) :
@@ -17925,7 +18062,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":33}],45:[function(require,module,exports){
+},{"d3-color":35}],47:[function(require,module,exports){
 // https://d3js.org/d3-path/ v1.0.7 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -18068,7 +18205,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],46:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 // https://d3js.org/d3-polygon/ v1.0.5 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -18220,7 +18357,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],47:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 // https://d3js.org/d3-quadtree/ v1.0.5 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -18657,7 +18794,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],48:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 // https://d3js.org/d3-random/ v1.1.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -18774,7 +18911,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],49:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 // https://d3js.org/d3-scale-chromatic/ v1.3.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-interpolate'), require('d3-color')) :
@@ -19274,7 +19411,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":33,"d3-interpolate":44}],50:[function(require,module,exports){
+},{"d3-color":35,"d3-interpolate":46}],52:[function(require,module,exports){
 // https://d3js.org/d3-scale/ v2.1.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-collection'), require('d3-array'), require('d3-interpolate'), require('d3-format'), require('d3-time'), require('d3-time-format')) :
@@ -20177,7 +20314,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":28,"d3-collection":32,"d3-format":41,"d3-interpolate":44,"d3-time":54,"d3-time-format":53}],51:[function(require,module,exports){
+},{"d3-array":30,"d3-collection":34,"d3-format":43,"d3-interpolate":46,"d3-time":56,"d3-time-format":55}],53:[function(require,module,exports){
 // https://d3js.org/d3-selection/ v1.3.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -21174,7 +21311,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],52:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 // https://d3js.org/d3-shape/ v1.2.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-path')) :
@@ -23111,7 +23248,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-path":45}],53:[function(require,module,exports){
+},{"d3-path":47}],55:[function(require,module,exports){
 // https://d3js.org/d3-time-format/ v2.1.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-time')) :
@@ -23797,7 +23934,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-time":54}],54:[function(require,module,exports){
+},{"d3-time":56}],56:[function(require,module,exports){
 // https://d3js.org/d3-time/ v1.0.10 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -24172,7 +24309,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],55:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 // https://d3js.org/d3-timer/ v1.0.9 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -24323,7 +24460,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],56:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 // https://d3js.org/d3-transition/ v1.1.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dispatch'), require('d3-timer'), require('d3-color'), require('d3-interpolate'), require('d3-selection'), require('d3-ease')) :
@@ -25112,7 +25249,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":33,"d3-dispatch":35,"d3-ease":38,"d3-interpolate":44,"d3-selection":51,"d3-timer":55}],57:[function(require,module,exports){
+},{"d3-color":35,"d3-dispatch":37,"d3-ease":40,"d3-interpolate":46,"d3-selection":53,"d3-timer":57}],59:[function(require,module,exports){
 // https://d3js.org/d3-voronoi/ v1.1.4 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -26113,7 +26250,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],58:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 // https://d3js.org/d3-zoom/ v1.7.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-dispatch'), require('d3-drag'), require('d3-interpolate'), require('d3-transition')) :
@@ -26617,7 +26754,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":35,"d3-drag":36,"d3-interpolate":44,"d3-selection":51,"d3-transition":56}],59:[function(require,module,exports){
+},{"d3-dispatch":37,"d3-drag":38,"d3-interpolate":46,"d3-selection":53,"d3-transition":58}],61:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -26690,7 +26827,145 @@ Object.keys(d3Zoom).forEach(function (key) { exports[key] = d3Zoom[key]; });
 exports.version = version;
 Object.defineProperty(exports, "event", {get: function() { return d3Selection.event; }});
 
-},{"d3-array":28,"d3-axis":29,"d3-brush":30,"d3-chord":31,"d3-collection":32,"d3-color":33,"d3-contour":34,"d3-dispatch":35,"d3-drag":36,"d3-dsv":37,"d3-ease":38,"d3-fetch":39,"d3-force":40,"d3-format":41,"d3-geo":42,"d3-hierarchy":43,"d3-interpolate":44,"d3-path":45,"d3-polygon":46,"d3-quadtree":47,"d3-random":48,"d3-scale":50,"d3-scale-chromatic":49,"d3-selection":51,"d3-shape":52,"d3-time":54,"d3-time-format":53,"d3-timer":55,"d3-transition":56,"d3-voronoi":57,"d3-zoom":58}],60:[function(require,module,exports){
+},{"d3-array":30,"d3-axis":31,"d3-brush":32,"d3-chord":33,"d3-collection":34,"d3-color":35,"d3-contour":36,"d3-dispatch":37,"d3-drag":38,"d3-dsv":39,"d3-ease":40,"d3-fetch":41,"d3-force":42,"d3-format":43,"d3-geo":44,"d3-hierarchy":45,"d3-interpolate":46,"d3-path":47,"d3-polygon":48,"d3-quadtree":49,"d3-random":50,"d3-scale":52,"d3-scale-chromatic":51,"d3-selection":53,"d3-shape":54,"d3-time":56,"d3-time-format":55,"d3-timer":57,"d3-transition":58,"d3-voronoi":59,"d3-zoom":60}],62:[function(require,module,exports){
+(function() {
+  'use strict';
+  
+  var collator;
+  try {
+    collator = (typeof Intl !== "undefined" && typeof Intl.Collator !== "undefined") ? Intl.Collator("generic", { sensitivity: "base" }) : null;
+  } catch (err){
+    console.log("Collator could not be initialized and wouldn't be used");
+  }
+  // arrays to re-use
+  var prevRow = [],
+    str2Char = [];
+  
+  /**
+   * Based on the algorithm at http://en.wikipedia.org/wiki/Levenshtein_distance.
+   */
+  var Levenshtein = {
+    /**
+     * Calculate levenshtein distance of the two strings.
+     *
+     * @param str1 String the first string.
+     * @param str2 String the second string.
+     * @param [options] Additional options.
+     * @param [options.useCollator] Use `Intl.Collator` for locale-sensitive string comparison.
+     * @return Integer the levenshtein distance (0 and above).
+     */
+    get: function(str1, str2, options) {
+      var useCollator = (options && collator && options.useCollator);
+      
+      var str1Len = str1.length,
+        str2Len = str2.length;
+      
+      // base cases
+      if (str1Len === 0) return str2Len;
+      if (str2Len === 0) return str1Len;
+
+      // two rows
+      var curCol, nextCol, i, j, tmp;
+
+      // initialise previous row
+      for (i=0; i<str2Len; ++i) {
+        prevRow[i] = i;
+        str2Char[i] = str2.charCodeAt(i);
+      }
+      prevRow[str2Len] = str2Len;
+
+      var strCmp;
+      if (useCollator) {
+        // calculate current row distance from previous row using collator
+        for (i = 0; i < str1Len; ++i) {
+          nextCol = i + 1;
+
+          for (j = 0; j < str2Len; ++j) {
+            curCol = nextCol;
+
+            // substution
+            strCmp = 0 === collator.compare(str1.charAt(i), String.fromCharCode(str2Char[j]));
+
+            nextCol = prevRow[j] + (strCmp ? 0 : 1);
+
+            // insertion
+            tmp = curCol + 1;
+            if (nextCol > tmp) {
+              nextCol = tmp;
+            }
+            // deletion
+            tmp = prevRow[j + 1] + 1;
+            if (nextCol > tmp) {
+              nextCol = tmp;
+            }
+
+            // copy current col value into previous (in preparation for next iteration)
+            prevRow[j] = curCol;
+          }
+
+          // copy last col value into previous (in preparation for next iteration)
+          prevRow[j] = nextCol;
+        }
+      }
+      else {
+        // calculate current row distance from previous row without collator
+        for (i = 0; i < str1Len; ++i) {
+          nextCol = i + 1;
+
+          for (j = 0; j < str2Len; ++j) {
+            curCol = nextCol;
+
+            // substution
+            strCmp = str1.charCodeAt(i) === str2Char[j];
+
+            nextCol = prevRow[j] + (strCmp ? 0 : 1);
+
+            // insertion
+            tmp = curCol + 1;
+            if (nextCol > tmp) {
+              nextCol = tmp;
+            }
+            // deletion
+            tmp = prevRow[j + 1] + 1;
+            if (nextCol > tmp) {
+              nextCol = tmp;
+            }
+
+            // copy current col value into previous (in preparation for next iteration)
+            prevRow[j] = curCol;
+          }
+
+          // copy last col value into previous (in preparation for next iteration)
+          prevRow[j] = nextCol;
+        }
+      }
+      return nextCol;
+    }
+
+  };
+
+  // amd
+  if (typeof define !== "undefined" && define !== null && define.amd) {
+    define(function() {
+      return Levenshtein;
+    });
+  }
+  // commonjs
+  else if (typeof module !== "undefined" && module !== null && typeof exports !== "undefined" && module.exports === exports) {
+    module.exports = Levenshtein;
+  }
+  // web worker
+  else if (typeof self !== "undefined" && typeof self.postMessage === 'function' && typeof self.importScripts === 'function') {
+    self.Levenshtein = Levenshtein;
+  }
+  // browser main thread
+  else if (typeof window !== "undefined" && window !== null) {
+    window.Levenshtein = Levenshtein;
+  }
+}());
+
+
+},{}],63:[function(require,module,exports){
 function parse(str, settings) {
     var _settings = {
         leadingChar: '#',
@@ -26803,7 +27078,7 @@ function compress(root) {
 }
 
 exports.parse = parse;
-},{}],61:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v3.3.1
  * https://jquery.com/
@@ -37169,7 +37444,7 @@ if ( !noGlobal ) {
 return jQuery;
 } );
 
-},{}],62:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 (function (global){
 /**
  * lodash (Custom Build) <https://lodash.com/>
@@ -39568,7 +39843,7 @@ function property(path) {
 module.exports = every;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],63:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 (function (global){
 /**
  * lodash (Custom Build) <https://lodash.com/>
@@ -39922,7 +40197,7 @@ function isObjectLike(value) {
 module.exports = flattenDeep;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],64:[function(require,module,exports){
+},{}],67:[function(require,module,exports){
 /**
  * lodash (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -40489,7 +40764,7 @@ function identity(value) {
 
 module.exports = forEach;
 
-},{}],65:[function(require,module,exports){
+},{}],68:[function(require,module,exports){
 (function (global){
 /**
  * lodash (Custom Build) <https://lodash.com/>
@@ -42859,7 +43134,7 @@ function property(path) {
 module.exports = map;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],66:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 (function (global){
 /**
  * lodash (Custom Build) <https://lodash.com/>
@@ -45127,11 +45402,11 @@ function maxBy(array, iteratee) {
 module.exports = maxBy;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],67:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 (function (global){
 /**!
  * @fileOverview Kickass library to create and place poppers near their reference elements.
- * @version 1.14.4
+ * @version 1.14.5
  * @license
  * Copyright (c) 2016 Federico Zivolo and contributors
  *
@@ -45234,7 +45509,8 @@ function getStyleComputedProperty(element, property) {
     return [];
   }
   // NOTE: 1 DOM access here
-  var css = getComputedStyle(element, null);
+  var window = element.ownerDocument.defaultView;
+  var css = window.getComputedStyle(element, null);
   return property ? css[property] : css;
 }
 
@@ -45322,7 +45598,7 @@ function getOffsetParent(element) {
   var noOffsetParent = isIE(10) ? document.body : null;
 
   // NOTE: 1 DOM access here
-  var offsetParent = element.offsetParent;
+  var offsetParent = element.offsetParent || null;
   // Skip hidden elements which don't have an offsetParent
   while (offsetParent === noOffsetParent && element.nextElementSibling) {
     offsetParent = (element = element.nextElementSibling).offsetParent;
@@ -45334,9 +45610,9 @@ function getOffsetParent(element) {
     return element ? element.ownerDocument.documentElement : document.documentElement;
   }
 
-  // .offsetParent will return the closest TD or TABLE in case
+  // .offsetParent will return the closest TH, TD or TABLE in case
   // no offsetParent is present, I hate this job...
-  if (['TD', 'TABLE'].indexOf(offsetParent.nodeName) !== -1 && getStyleComputedProperty(offsetParent, 'position') === 'static') {
+  if (['TH', 'TD', 'TABLE'].indexOf(offsetParent.nodeName) !== -1 && getStyleComputedProperty(offsetParent, 'position') === 'static') {
     return getOffsetParent(offsetParent);
   }
 
@@ -45884,7 +46160,8 @@ function getReferenceOffsets(state, popper, reference) {
  * @returns {Object} object containing width and height properties
  */
 function getOuterSizes(element) {
-  var styles = getComputedStyle(element);
+  var window = element.ownerDocument.defaultView;
+  var styles = window.getComputedStyle(element);
   var x = parseFloat(styles.marginTop) + parseFloat(styles.marginBottom);
   var y = parseFloat(styles.marginLeft) + parseFloat(styles.marginRight);
   var result = {
@@ -47671,7 +47948,7 @@ return Popper;
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],68:[function(require,module,exports){
+},{}],71:[function(require,module,exports){
 var _forEach = require('lodash.foreach');
 var _map = require('lodash.map');
 var _every = require('lodash.every');
@@ -47786,7 +48063,7 @@ function findBestMatch(mainString, targetStrings) {
   }
 }
 
-},{"lodash.every":62,"lodash.flattendeep":63,"lodash.foreach":64,"lodash.map":65,"lodash.maxby":66}],69:[function(require,module,exports){
+},{"lodash.every":65,"lodash.flattendeep":66,"lodash.foreach":67,"lodash.map":68,"lodash.maxby":69}],72:[function(require,module,exports){
 (function (global){
 /*!
 Copyright (C) 2015-2017 Andrea Giammarchi - @WebReflection
