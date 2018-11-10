@@ -5,10 +5,10 @@ function colorScale(f) {
     //return redBlue(f);
     //return plasma(f);
     //return cool(f);
-    //return warm(f);
+    return warm(f);
     //return cubeHelixDefault(f);
     //return viridis(f);
-    return magma(f);
+    //return magma(f);
 }
 
 function redBlue(f) {

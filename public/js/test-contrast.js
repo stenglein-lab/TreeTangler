@@ -6,10 +6,10 @@ function colorScale(f) {
     //return redBlue(f);
     //return plasma(f);
     //return cool(f);
-    //return warm(f);
+    return warm(f);
     //return cubeHelixDefault(f);
     //return viridis(f);
-    return magma(f);
+    //return magma(f);
 }
 
 function redBlue(f) {
@@ -336,7 +336,7 @@ $('#ex2Slider').css('top', '0px');
 
 },{"bootstrap":3,"bootstrap-slider":2,"d3":35,"jquery":36}],2:[function(require,module,exports){
 /*! =======================================================
-                      VERSION  10.2.3              
+                      VERSION  10.2.0              
 ========================================================= */
 "use strict";
 
@@ -1954,9 +1954,6 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 				this._layout();
 				this._setDataVal(val);
 				this._trigger('slideStop', val);
-
-				// No longer need 'dragged' after mouse up
-				this._state.dragged = null;
 
 				return false;
 			},
@@ -34908,7 +34905,7 @@ return jQuery;
 (function (global){
 /**!
  * @fileOverview Kickass library to create and place poppers near their reference elements.
- * @version 1.14.5
+ * @version 1.14.4
  * @license
  * Copyright (c) 2016 Federico Zivolo and contributors
  *
@@ -35011,8 +35008,7 @@ function getStyleComputedProperty(element, property) {
     return [];
   }
   // NOTE: 1 DOM access here
-  var window = element.ownerDocument.defaultView;
-  var css = window.getComputedStyle(element, null);
+  var css = getComputedStyle(element, null);
   return property ? css[property] : css;
 }
 
@@ -35100,7 +35096,7 @@ function getOffsetParent(element) {
   var noOffsetParent = isIE(10) ? document.body : null;
 
   // NOTE: 1 DOM access here
-  var offsetParent = element.offsetParent || null;
+  var offsetParent = element.offsetParent;
   // Skip hidden elements which don't have an offsetParent
   while (offsetParent === noOffsetParent && element.nextElementSibling) {
     offsetParent = (element = element.nextElementSibling).offsetParent;
@@ -35112,9 +35108,9 @@ function getOffsetParent(element) {
     return element ? element.ownerDocument.documentElement : document.documentElement;
   }
 
-  // .offsetParent will return the closest TH, TD or TABLE in case
+  // .offsetParent will return the closest TD or TABLE in case
   // no offsetParent is present, I hate this job...
-  if (['TH', 'TD', 'TABLE'].indexOf(offsetParent.nodeName) !== -1 && getStyleComputedProperty(offsetParent, 'position') === 'static') {
+  if (['TD', 'TABLE'].indexOf(offsetParent.nodeName) !== -1 && getStyleComputedProperty(offsetParent, 'position') === 'static') {
     return getOffsetParent(offsetParent);
   }
 
@@ -35662,8 +35658,7 @@ function getReferenceOffsets(state, popper, reference) {
  * @returns {Object} object containing width and height properties
  */
 function getOuterSizes(element) {
-  var window = element.ownerDocument.defaultView;
-  var styles = window.getComputedStyle(element);
+  var styles = getComputedStyle(element);
   var x = parseFloat(styles.marginTop) + parseFloat(styles.marginBottom);
   var y = parseFloat(styles.marginLeft) + parseFloat(styles.marginRight);
   var result = {
