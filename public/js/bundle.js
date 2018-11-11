@@ -260,23 +260,6 @@ async function getNewicksAsync(leftURL, rightURL) {
 }
 /* jshint ignore: end */
 
-/*function getStyleSheetFromURL(url) {
-    return new Promise(
-        (resolve,reject) => {
-            d3.text( styleSheet.href )
-                .then(
-                    //function(parsed_text){ resolve(parsed_text); }
-                    text => { console.log(text); }
-                )
-                .catch(
-                    reason => { console.error(reason); }
-                    //function(reason){ reject(reason); }
-                )
-            ;
-        }
-    );
-}*/
-
 /* jshint ignore: start */
 function SVGExport() {
     parseTransform = function (a)
@@ -332,7 +315,6 @@ function SVGExport() {
         return ops.join(",");
     }
     //get svg element.
-    //var svgData = $("#cophy-graph")[0].outerHTML;
     var svgData = $("#cophy-graph");
     svgData.find("text").each(function() {
         var text_element = $(this);
@@ -347,11 +329,11 @@ function SVGExport() {
         var y_val = 0;
         x_val += parseFloat( text_element.attr("x") === undefined ? "0" : text_element.attr("x") );
         text_element.attr("x","0");
-        x_val += parseFloat( text_element.attr("dx") === undefined ? "0" : text_element.attr("dx") ); // I think d3 is setting this variable despite explicit calls to other ways of setting position
+        x_val += parseFloat( text_element.attr("dx") === undefined ? "0" : text_element.attr("dx") ); 
         text_element.attr("dx","0");
         y_val += parseFloat( text_element.attr("y") === undefined ? "0" :text_element.attr("y") );
         text_element.attr("y","0");
-        y_val += parseFloat( text_element.attr("dy") === undefined ? "0" :text_element.attr("dy") ); // I think d3 is setting this variable despite explicit calls to other ways of setting position
+        y_val += parseFloat( text_element.attr("dy") === undefined ? "0" :text_element.attr("dy") ); 
         text_element.attr("dy","0");
         tform.translate[0] += x_val;
         tform.translate[1] += y_val;
@@ -375,7 +357,6 @@ function SVGExport() {
                     console.log(text); 
                     var styleObj = $('<style type="text/css">')[0];
                     styleObj.prepend( text );
-                    //console.log(styleObj.outerHTML);
                     svgData.prepend( styleObj );
                     var xmlHeader = '<?xml version="1.0" encoding="utf-8"?>';
                     var doctype = '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">';
