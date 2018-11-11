@@ -1,34 +1,9 @@
-# TreeTangler
-Requires node.js, npm
+# Main
+The javascript app in /public/js/bundle.js is ready to go as-is,
+but it must be delivered via a webserver.
 
-### node.js
-Go to https://nodejs.org, it will autodetect your OS. 
+## Using the built-in webserver
+To use the built-in webserver with TreeTangler, you need to install from https://nodejs.org;
+it will autodetect your OS. 
+To launch a webserver on localhost, do ```npm start```
 
-Once those are installed, checkout the repository and execute 
-```npm install```
-to update dependancies.
-
-## dev dependancies in the global environment
-Some dev dependancies are best installed globally for developers.
-
-### node-dev
-A utility to detect changes and restart your app.
-
-```sudo npm install -g node-dev```
-
-### grunt command line tools
-Task runner that will run via command-line commands
-
-```sudo npm install -g grunt-cli```
-
-### mocha
-Testing framework.
-
-```sudo npm install -g mocha```
-
-### istanbul
-Code coverage through mocha.
-
-```sudo npm install -g istanbul```
-
-```istanbul cover _mocha```
