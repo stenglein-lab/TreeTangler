@@ -43,8 +43,10 @@ $(document).ready(function() {
 
     // some menu bar functions are connected here
     $('#svglink').on("click", function() {
-        console.log("here I am going to export SVG");
         SVGExport();
+    });
+    $('#jsonlink').on("click", function() {
+        export_JSON();
     });
     $('#newick_left_export').on("click", function() {
         console.log("here I am going to export newick of the left Tree");
@@ -196,6 +198,7 @@ $(document).ready(function() {
             return;
         }
     }
+
 });
 cophylogeny_fig = null;
 function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}) {
@@ -241,6 +244,7 @@ function loadData(leftURL, rightURL) {
         {
             treetools.make_binary(nwTrees.left);
             treetools.make_binary(nwTrees.right);
+            $('#graph').css('display', 'block');
             render_cophylogeny('#middle_container','unnamed', nwTrees.left, nwTrees.right, 700, userArgs);
         })
         .catch(reason => {
@@ -375,6 +379,24 @@ function SVGExport() {
         }
     }
     return;
+}
+
+function export_JSON() {
+    var pack = Object.create(null);
+    pack.leftTree = cophylogeny_fig.leftTree;
+    pack.rightTree = cophylogeny_fig.rightTree;
+    pack.scaleFactor = cophylogeny_fig.scaleFactor;
+    pack.margin = cophylogeny_fig.margin;
+    var txt = JSON.stringify(pack);
+    
+    var txtBlob = new Blob([txt], {type:"text/plain;charset=utf-8"});
+    var txtURL = URL.createObjectURL(txtBlob);
+    var downloadLink = document.createElement("a");
+    downloadLink.href = txtURL;
+    downloadLink.download = "app-state.JSON";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
 }
 
 
