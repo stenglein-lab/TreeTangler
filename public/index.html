@@ -4,65 +4,86 @@
 
     <meta name="viewport" content="minimum-scale=1.0, width=device-width, maximum-scale=1.0, user-scalable=no"/>
     <meta charset="utf-8">
-    <title>TangleGram Browser</title>
+    <title>TreeTangler</title>
     <meta charset="utf-8">
     <script src="js/bundle.js"></script>
     <link rel="stylesheet" href="css/bootstrap-slider.min.css"/>
     <link rel="stylesheet" href="css/bootstrap.min.css"/>
     <link rel="stylesheet" href="css/cophylogeny.css"/>
     <link rel="stylesheet" href="/css/style.css"/>
+<style>
+body {
+    font-family: "museo-sans", sans-serif;
+    color: #5a6268;
+}
 
+nav {
+ width: 100%;
+}
+#graph {
+    display: none;
+}
+#menu-title, #menu-lab-title {
+    padding-right: 5px;
+    padding-left: 5px;
+    border: 2px solid #6c757d;
+    border-radius: 5px;
+    color: #6c757d;
+}
 
+#menu-title {
+    margin-right: 25px;
+}
+#menu-lab-title {
+    margin-left: 25px;
+    margin-right: 5px;
+}
+/*.modal-dialog {
+    max-width: 66%;
+}*/
+</style>
 </head>
 <body>
-    <!-- input buttons plus left/right margin spacers -->
+    <!-- For noscript people ------>
     <noscript>
 <div style="background-color: red; margin:auto; width: 66%;height: 400px;font-family:monospace;font-size:-webkit-xxx-large; padding-left:3%;padding-right:3%; text-align: center;">
         TreeTangler requires Javascript to be enabled.<br/>
         <img src="img/angry_dinosaur.gif"/>
 </div>
     </noscript>
+    <!-- For normal people ------>
+    <!-- input buttons plus left/right margin spacers -->
     <div class="container-fluid" id="file-buttons">
         <div class="row">
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <a class="navbar-brand" href="#">Menu</a>
+            <a id="menu-title" class="navbar-brand" href="#">TreeTangler</a>
 <div class="btn-group" role="group" aria-label="Basic example">
-            <input id="fileInputLeft" 
-                type="file" 
-                accept=".nw, .newick" 
-                style="display:none" > <!-- hidden element for file upload -->
+            <!-- hidden form inputs for file upload -->
+            <input id="fileInputLeft" type="file" accept=".nw, .newick" style="display:none" > 
+            <input id="fileInputMiddle" type="file" style="display:none" > 
+            <input id="fileInputRight" type="file" accept=".nw, .newick" style="display:none">  
+            <!-- visible file upload buttons -->
             <button id="fileButtonLeft" 
                 type="button" 
                 class="btn btn-secondary">
-                Left-side tree (newick) 
+                Left tree <img src="img/button_left_tree_icon@0.5x.png" alt="button for left tree">
             </button> 
-            <input 
-                id="fileInputMiddle" 
-                type="file" 
-                style="display:none" > <!-- hidden element for file upload -->
             <button 
                 id="fileButtonMiddle" 
                 type="button" 
-                class="btn btn-secondary" >
-                Upload lookup file (text)
+                class="btn btn-secondary" 
+                style="border-left-color: white; border-right-color: white;">
+                Map Names <img src="img/button_mapping_icon@0.5x.png" alt="button for mapping file"> Between Trees 
             </button>
-                <input 
-                    type="file" 
-                    id="fileInputRight" 
-                    accept=".nw, .newick" 
-                    style="display:none">  <!-- hidden element for file upload -->
                 <button id="fileButtonRight" 
                     type="button" 
                     class="btn btn-secondary ">
-                    Right-side tree (newick) 
+                    Right tree <img src="img/button_right_tree_icon@0.5x.png" alt="button for right tree">
                 </button> 
 </div><!-- end button group -->
 
 <div class="collapse navbar-collapse" id="navbarSupportedContent">
     <ul class="navbar-nav mr-auto">
-      <li class="nav-item">
-        <a class="nav-link" href="#">Help</a>
-      </li>
               <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                   Actions
@@ -95,6 +116,8 @@
                     <a class="nav-link" id="svglink" href="#">Export SVG</a>
                     <a class="nav-link" id="newick_left_export" href="#">Newick (left)</a>
                     <a class="nav-link" id="newick_right_export" href="#">Newick (right)</a>
+                    <a class="nav-link" id="jsonlink" href="#">Export JSON (save app)</a>
+    
                 </div>
               </li>
               <div class="form-check form-check-inline">
@@ -106,6 +129,7 @@
                 <label class="form-check-label" for="cladogramInput">Cladogram</label>
               </div>
       </ul>
+            <a id="menu-lab-title" class="navbar-brand" target="_new" href="https://www.stengleinlab.org/" title="Stenglein Lab"><img src="img/stenglein_logo_@32px.png" alt="Stenglein logo" ></a>
 </div>
 
             </nav>
@@ -121,7 +145,6 @@
             </div>
         </div><!-- end row -->
     </div><!-- end #file-buttons -->
-
 <!-- empty containers to be populated by various figs -->
     <div id="graph" class="container-fluid">
         <div class="row" id="spearman-value">
@@ -133,7 +156,7 @@
         </div> <!-- end #spearman-value -->
         <div class="row" id="spearman-slider">
             <div class="col-md-1" id="left_container"> 
-                Vertical scale: <span id="currentVertScaleLabel">6</span><br/>
+                Phylogram y-height: <span id="currentVertScaleLabel">6</span><br/>
                 <input 
                     id="ex1" 
                     type="text" 
@@ -148,5 +171,29 @@
             <div class="col-md-1" id="right_container"> </div>
         </div><!-- end #spearman-slider -->
     </div><!-- end #graph -->
+
+<div class="container">
+  <div class="row">
+    <div class="col" style="background-color:white;margin-top: 20px; margin-bottom: 20px;">&nbsp;</div>
+  </div>
+  <div class="row">
+    <div class="col" style="background-color:white; padding-top:25px;">
+    <h3>Usage:</h3>
+    <p>
+    Tree Tangler compares two phylogenetic trees <strong>in newick
+format.</strong> 
+    <hr/>
+    </p>
+    <p>
+    Both trees:<br/>
+    </p>
+    <p style="margin-left: 1em;">
+       1) describe the same set of leaves (identical names in both trees).<br/>
+                     <span style="margin-left: 10em;">or</span><br/>
+       2) describe different sets of leaves (needs file to connect leaf names).
+    </p>
+    </div>
+  </div>
+
 </body>
 </html>

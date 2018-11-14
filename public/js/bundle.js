@@ -44,8 +44,10 @@ $(document).ready(function() {
 
     // some menu bar functions are connected here
     $('#svglink').on("click", function() {
-        console.log("here I am going to export SVG");
         SVGExport();
+    });
+    $('#jsonlink').on("click", function() {
+        export_JSON();
     });
     $('#newick_left_export').on("click", function() {
         console.log("here I am going to export newick of the left Tree");
@@ -99,6 +101,12 @@ $(document).ready(function() {
             loadData(leftURL, rightURL);
         }
     });
+    // from modal
+    var inputNewickModalLeftSelectFile = $('#inputNewickModalLeftSelectFile');
+    inputNewickModalLeftSelectFile.click(function() {
+        fileInputLeft.click();
+    });
+
     fileButtonLeft.click(function() { 
         fileInputLeft.click();
     });
@@ -197,6 +205,17 @@ $(document).ready(function() {
             return;
         }
     }
+
+    // set up a modal dialog
+    $('#inputNewickModalLeft').on('show.bs.modal', function (event) {
+      var button = $(event.relatedTarget); // Button that triggered the modal
+      var which_side = button.data('launcher'); // Extract info from data-* attributes
+      // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
+      // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
+      var modal = $(this);
+      //modal.find('.modal-title').text('New message to ' + which);
+      //modal.find('.modal-body input').val(recipient);
+    });
 });
 cophylogeny_fig = null;
 function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}) {
@@ -242,6 +261,7 @@ function loadData(leftURL, rightURL) {
         {
             treetools.make_binary(nwTrees.left);
             treetools.make_binary(nwTrees.right);
+            $('#graph').css('display', 'block');
             render_cophylogeny('#middle_container','unnamed', nwTrees.left, nwTrees.right, 700, userArgs);
         })
         .catch(reason => {
@@ -376,6 +396,22 @@ function SVGExport() {
         }
     }
     return;
+}
+
+function export_JSON() {
+    var pack = Object.create(null);
+    pack.leftTree = cophylogeny_fig.leftTree;
+    pack.rightTree = cophylogeny_fig.rightTree;
+    var txt = JSON.stringify(pack);
+    
+    var txtBlob = new Blob([txt], {type:"text/plain;charset=utf-8"});
+    var txtURL = URL.createObjectURL(txtBlob);
+    var downloadLink = document.createElement("a");
+    downloadLink.href = txtURL;
+    downloadLink.download = "app-state.JSON";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
 }
 
 
