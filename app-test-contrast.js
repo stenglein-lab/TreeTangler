@@ -1,84 +1,14 @@
 var bootstrap = require('bootstrap');
 var bootslider = require('bootstrap-slider');
+var contrast_styling = require('./lib/contrast-styling');
 
-function colorScale(f) {
-    //return redBlue(f);
-    //return plasma(f);
-    //return cool(f);
-    return warm(f);
-    //return cubeHelixDefault(f);
-    //return viridis(f);
-    //return magma(f);
-}
-
-function redBlue(f) {
-// given a value in {0,1}, give rgb interpolated through purple (red-0, blue-1)
-    if (f > 1) { f = 1; }
-    if (f < 0) { f = 0; }
-    var red = Math.round(255 * f);
-    var blue = Math.round(255 * (1 - f));
-    return { r: red, g: 0, b: blue };
-}
-function blackRed(f) {
-    if (f > 1) { f = 1; }
-    if (f < 0) { f = 0; }
-    return { r: Math.round(255 * f), g: 0, b: 0 };
-}
-function objectifyD3Output(val) {
-    if (val.substr(0,1) == "#") {
-        return hexToObj(val);
-    }
-    if (val.substr(0,4) == "rgb(") {
-        var arr = val.substr(4, val.length - 5).split(',');
-        var red = parseInt(arr[0]);
-        var green = parseInt(arr[1]);
-        var blue = parseInt(arr[2]);
-        if (! isNaN(red) && ! isNaN(green) && ! isNaN(blue)) return { r: red, g: green, b: blue };
-    }
-    throw "Can't recognize color string:" + val;
-}
-function viridis(f) {
-    return objectifyD3Output( d3.interpolateViridis(f) );
-}
-function cubeHelixDefault(f) {
-    return objectifyD3Output( d3.interpolateCubehelixDefault(f) );
-}
-function cool(f) {
-    return objectifyD3Output( d3.interpolateCool(f) );
-}
-function plasma(f) {
-    return hexToObj(d3.interpolatePlasma(f));
-}
-function inferno(f) {
-    return hexToObj(d3.interpolateInferno(f));
-}
-function magma(f) {
-    return hexToObj(d3.interpolateMagma(f));
-}
-function warm(f) {
-    return objectifyD3Output( d3.interpolateWarm(f) );
-}
-
-function hexToObj(hex) {
-    return {
-      r : parseInt(hex.substr(1,2), 16),
-      g : parseInt(hex.substr(3,2), 16),
-      b : parseInt(hex.substr(5,2), 16)
-    };
-}
-function objToHex(obj) {
-    // for use in style definition
-    var hex = '#';
-    hex += (obj.r < 16 ? '0' : '') + obj.r.toString(16);
-    hex += (obj.g < 16 ? '0' : '') + obj.g.toString(16);
-    hex += (obj.b < 16 ? '0' : '') + obj.b.toString(16);
-    return hex;
-}
 var d3 = require('d3');
 var $ = require('jquery');
 // dfoot from Orthobunyavirus_L versus M (although there are node-name-matching errors)
 var data = [0,37,51,51,35,35,38,34,34,34,36,38,38,35,33,36,29,35,68,68,72,67,67,67,67,54,54,66,56,53,53,54,49,44,44,30,31,29,30,30,30,30,30,31,29,30,30,8,8,8,10,10,6,6,13,9,7,56,56,49,49,38,50,49,51,40,51,50,48,48,54,52,54,51,50,46,49,41,48,51,49,49,47,50,47,51,60,80,80,80,85,85,89,89,0,0];
 
+
+/*
 data.sort(function(a,b) { return a - b; });
 
 // sigmoidal distribution scaling
@@ -133,8 +63,8 @@ function update_styles() {
         var x = +data_level;
         var f = sigmoid_scaled(x, param_a, param_mid);
         //var rgb = redBlue(f);
-        var rgb = colorScale(f);
-        var rgb_hex = objToHex(rgb);
+        var rgb = CS.colorScale(f);
+        var rgb_hex = CS.objToHex(rgb);
         if (x == 49) {
             console.log(f, param_a, param_mid, rgb, rgb_hex);
         }
@@ -163,6 +93,7 @@ function update_rule(data_level, rgb_hex, rules, sheet) {
         }
     }
 }
+*/
 
 
 $(document).ready(function() {
@@ -175,6 +106,8 @@ var margin = {top: 20, right: 20, bottom: 30, left: 40},
 $('#ex1').css('width' , margin.width + 'px');
 $('#ex1').css('margin-left', margin.left + 'px');
 
+
+var CS = new contrast_styling(data, document.styleSheets[document.styleSheets.length - 1]);
 
 var x = d3.scaleLinear()
     .range([0, width]);
@@ -189,6 +122,7 @@ var svg = d3.select("body").insert("svg", ":first-child")
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+/*
 // define our own stylesheet to make use of the data levels
 var sheets = document.styleSheets;
 var sheet = document.styleSheets[ sheets.length - 1];
@@ -196,17 +130,19 @@ for (var data_level in ecdh) {
     var rule_name = ".data_level_" + data_level;
     var f = ecdh[data_level];
     //var rgb = redBlue(f);
-    var rgb = colorScale(f);
-    var rgb_hex = objToHex(rgb);
+    var rgb = CS.colorScale(f);
+    var rgb_hex = CS.objToHex(rgb);
     //var rule_text = rule_name + " { fill: "  + rgb_hex + "}";
     //var index = sheet.cssRules.length - 1;
     //sheet.insertRule(rule_text, index);
     update_rule(data_level, rgb_hex, css_rules, sheet);
 }
+*/
 // something d3 can use
 var plot_data = [];
-for (var i = 0; i < n; i++) {
-    plot_data.push( { x: data[i], y: ecdf[i] } );
+for (var i = 0; i < CS.length; i++) {
+    //plot_data.push( { x: data[i], y: ecdf[i] } );
+    plot_data.push( { x: CS.data[i], y: CS.quantiles[i] } );
 }
 
 // Compute the scales’ domains.
@@ -235,9 +171,9 @@ svg.append("g")
 var ffunc = function(d) {
     var yprime = -1;
     if (d.x == 30) {
-        yprime = sigmoid_scaled(d.x);
+        yprime = CS.sigmoid_scaled(d.x);
     }
-    yprime = sigmoid_scaled(d.x);
+    yprime = CS.sigmoid_scaled(d.x);
     return yprime;
 };
 
@@ -284,12 +220,12 @@ function changeFuncMidPoint(changeEvt) {
     update_midpoint(changeEvt.value.newValue);
 }
 function update_midpoint(value) {
-    update_params(param_a, value);
-    update_styles();
+    CS.update_midpoint(value);
+    CS.update_styles();
     update_points();
     $('#sliderText').text(value);
-    $('#a_param').text(param_a);
-    $('#midpoint').text(param_mid);
+    $('#a_param').text(CS.param_a);
+    $('#midpoint').text(CS.param_midpoint);
 }
 function slideFuncContrast(slideEvt) {
     update_contrast(slideEvt.value); 
@@ -299,12 +235,12 @@ function changeFuncContrast(changeEvt) {
     update_contrast(changeEvt.value.newValue);
 }
 function update_contrast(value) {
-    update_params(value, param_mid);
-    update_styles();
+    CS.update_contrast(value);
+    CS.update_styles();
     update_points();
     //$('#sliderText').text(value);
-    $('#a_param').text(param_a);
-    $('#midpoint').text(param_mid);
+    $('#a_param').text(CS.param_a);
+    $('#midpoint').text(CS.param_midpoint);
 }
 slide
     .on('change', changeFuncMidPoint)

@@ -1,85 +1,15 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 var bootstrap = require('bootstrap');
 var bootslider = require('bootstrap-slider');
+var contrast_styling = require('./lib/contrast-styling');
 
-function colorScale(f) {
-    //return redBlue(f);
-    //return plasma(f);
-    //return cool(f);
-    return warm(f);
-    //return cubeHelixDefault(f);
-    //return viridis(f);
-    //return magma(f);
-}
-
-function redBlue(f) {
-// given a value in {0,1}, give rgb interpolated through purple (red-0, blue-1)
-    if (f > 1) { f = 1; }
-    if (f < 0) { f = 0; }
-    var red = Math.round(255 * f);
-    var blue = Math.round(255 * (1 - f));
-    return { r: red, g: 0, b: blue };
-}
-function blackRed(f) {
-    if (f > 1) { f = 1; }
-    if (f < 0) { f = 0; }
-    return { r: Math.round(255 * f), g: 0, b: 0 };
-}
-function objectifyD3Output(val) {
-    if (val.substr(0,1) == "#") {
-        return hexToObj(val);
-    }
-    if (val.substr(0,4) == "rgb(") {
-        var arr = val.substr(4, val.length - 5).split(',');
-        var red = parseInt(arr[0]);
-        var green = parseInt(arr[1]);
-        var blue = parseInt(arr[2]);
-        if (! isNaN(red) && ! isNaN(green) && ! isNaN(blue)) return { r: red, g: green, b: blue };
-    }
-    throw "Can't recognize color string:" + val;
-}
-function viridis(f) {
-    return objectifyD3Output( d3.interpolateViridis(f) );
-}
-function cubeHelixDefault(f) {
-    return objectifyD3Output( d3.interpolateCubehelixDefault(f) );
-}
-function cool(f) {
-    return objectifyD3Output( d3.interpolateCool(f) );
-}
-function plasma(f) {
-    return hexToObj(d3.interpolatePlasma(f));
-}
-function inferno(f) {
-    return hexToObj(d3.interpolateInferno(f));
-}
-function magma(f) {
-    return hexToObj(d3.interpolateMagma(f));
-}
-function warm(f) {
-    return objectifyD3Output( d3.interpolateWarm(f) );
-}
-
-function hexToObj(hex) {
-    return {
-      r : parseInt(hex.substr(1,2), 16),
-      g : parseInt(hex.substr(3,2), 16),
-      b : parseInt(hex.substr(5,2), 16)
-    };
-}
-function objToHex(obj) {
-    // for use in style definition
-    var hex = '#';
-    hex += (obj.r < 16 ? '0' : '') + obj.r.toString(16);
-    hex += (obj.g < 16 ? '0' : '') + obj.g.toString(16);
-    hex += (obj.b < 16 ? '0' : '') + obj.b.toString(16);
-    return hex;
-}
 var d3 = require('d3');
 var $ = require('jquery');
 // dfoot from Orthobunyavirus_L versus M (although there are node-name-matching errors)
 var data = [0,37,51,51,35,35,38,34,34,34,36,38,38,35,33,36,29,35,68,68,72,67,67,67,67,54,54,66,56,53,53,54,49,44,44,30,31,29,30,30,30,30,30,31,29,30,30,8,8,8,10,10,6,6,13,9,7,56,56,49,49,38,50,49,51,40,51,50,48,48,54,52,54,51,50,46,49,41,48,51,49,49,47,50,47,51,60,80,80,80,85,85,89,89,0,0];
 
+
+/*
 data.sort(function(a,b) { return a - b; });
 
 // sigmoidal distribution scaling
@@ -134,8 +64,8 @@ function update_styles() {
         var x = +data_level;
         var f = sigmoid_scaled(x, param_a, param_mid);
         //var rgb = redBlue(f);
-        var rgb = colorScale(f);
-        var rgb_hex = objToHex(rgb);
+        var rgb = CS.colorScale(f);
+        var rgb_hex = CS.objToHex(rgb);
         if (x == 49) {
             console.log(f, param_a, param_mid, rgb, rgb_hex);
         }
@@ -164,6 +94,7 @@ function update_rule(data_level, rgb_hex, rules, sheet) {
         }
     }
 }
+*/
 
 
 $(document).ready(function() {
@@ -176,6 +107,8 @@ var margin = {top: 20, right: 20, bottom: 30, left: 40},
 $('#ex1').css('width' , margin.width + 'px');
 $('#ex1').css('margin-left', margin.left + 'px');
 
+
+var CS = new contrast_styling(data, document.styleSheets[document.styleSheets.length - 1]);
 
 var x = d3.scaleLinear()
     .range([0, width]);
@@ -190,6 +123,7 @@ var svg = d3.select("body").insert("svg", ":first-child")
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+/*
 // define our own stylesheet to make use of the data levels
 var sheets = document.styleSheets;
 var sheet = document.styleSheets[ sheets.length - 1];
@@ -197,17 +131,19 @@ for (var data_level in ecdh) {
     var rule_name = ".data_level_" + data_level;
     var f = ecdh[data_level];
     //var rgb = redBlue(f);
-    var rgb = colorScale(f);
-    var rgb_hex = objToHex(rgb);
+    var rgb = CS.colorScale(f);
+    var rgb_hex = CS.objToHex(rgb);
     //var rule_text = rule_name + " { fill: "  + rgb_hex + "}";
     //var index = sheet.cssRules.length - 1;
     //sheet.insertRule(rule_text, index);
     update_rule(data_level, rgb_hex, css_rules, sheet);
 }
+*/
 // something d3 can use
 var plot_data = [];
-for (var i = 0; i < n; i++) {
-    plot_data.push( { x: data[i], y: ecdf[i] } );
+for (var i = 0; i < CS.length; i++) {
+    //plot_data.push( { x: data[i], y: ecdf[i] } );
+    plot_data.push( { x: CS.data[i], y: CS.quantiles[i] } );
 }
 
 // Compute the scales’ domains.
@@ -236,9 +172,9 @@ svg.append("g")
 var ffunc = function(d) {
     var yprime = -1;
     if (d.x == 30) {
-        yprime = sigmoid_scaled(d.x);
+        yprime = CS.sigmoid_scaled(d.x);
     }
-    yprime = sigmoid_scaled(d.x);
+    yprime = CS.sigmoid_scaled(d.x);
     return yprime;
 };
 
@@ -285,12 +221,12 @@ function changeFuncMidPoint(changeEvt) {
     update_midpoint(changeEvt.value.newValue);
 }
 function update_midpoint(value) {
-    update_params(param_a, value);
-    update_styles();
+    CS.update_midpoint(value);
+    CS.update_styles();
     update_points();
     $('#sliderText').text(value);
-    $('#a_param').text(param_a);
-    $('#midpoint').text(param_mid);
+    $('#a_param').text(CS.param_a);
+    $('#midpoint').text(CS.param_midpoint);
 }
 function slideFuncContrast(slideEvt) {
     update_contrast(slideEvt.value); 
@@ -300,12 +236,12 @@ function changeFuncContrast(changeEvt) {
     update_contrast(changeEvt.value.newValue);
 }
 function update_contrast(value) {
-    update_params(value, param_mid);
-    update_styles();
+    CS.update_contrast(value);
+    CS.update_styles();
     update_points();
     //$('#sliderText').text(value);
-    $('#a_param').text(param_a);
-    $('#midpoint').text(param_mid);
+    $('#a_param').text(CS.param_a);
+    $('#midpoint').text(CS.param_midpoint);
 }
 slide
     .on('change', changeFuncMidPoint)
@@ -334,7 +270,197 @@ $('#ex2Slider').css('top', '0px');
 });
 
 
-},{"bootstrap":3,"bootstrap-slider":2,"d3":35,"jquery":36}],2:[function(require,module,exports){
+},{"./lib/contrast-styling":2,"bootstrap":4,"bootstrap-slider":3,"d3":36,"jquery":37}],2:[function(require,module,exports){
+/************* Module contrast-styling **************/
+(function () {
+    // imports
+    var d3 = require('d3');
+    var $ = require('jquery');
+
+    // module object to be exported
+    var ContrastStyling = function(data, stylesheet) {
+        this.data = data;
+        this.stylesheet = stylesheet;
+    /***
+
+          Create a set of style classes in document.stylesheet taking the form 'data_level_d' for each unique value of 
+        'd' in data. 
+          Corresponding rules therefore will be expressed as '.data_level_d' and will assign graphics colors 
+        to the data levels in a linear fashion, or smoothed or contrasted via a sigmoidal function.
+
+                                                                                                                 ***/
+
+        this.data.sort(function(a,b) { return a - b; });
+
+        // parameters for the graphing eqn
+        this.x_min = this.data[0];
+        this.x_max = this.data[this.data.length-1];
+        this.length = this.data.length;
+        // default parameters for sigmoid
+        this.param_a = 0.01;
+        this.param_midpoint = (this.x_min+this.x_max)/2;
+
+        // rules to be created and updated as user slides parameters
+        this.css_rules = Object.create(null);
+
+        // update upon parameter changes
+        this.sigmoid_min = null;
+        this.sigmoid_max = null;
+
+
+        /** The Empirical Distribution Hash **/
+        // Scan sorted data backwards
+        // The last element (data[n-1]) corresponds to 1. 
+        // The first element (data[0]) corresponds to 1 / n.
+        // The data array is sorted, so ties are consecutive in the array.
+        // Scanning backwards (high to low) assures that the lowest index 
+        // is used for any given value in the array.
+        // Quantiles: 
+        // Build a new array, this time scanning forward (low to high)
+        var ecdh = {};
+        var n = this.length;
+        for (var i = n - 1; i >= 0; i--) {
+            var d = this.data[i];
+            if (! ecdh.hasOwnProperty(d)) { ecdh[d] = (i+1)/n; }
+        }
+        var quantiles = [];
+        this.data.forEach(function(d) { quantiles.push( ecdh[d] ); });
+        this.ecdh = ecdh;
+        this.quantiles = quantiles;
+
+        this.update_params(this.param_a, this.param_midpoint);
+        this.update_styles();
+    };
+    ContrastStyling.prototype.update_rule = function(data_level, rgb_hex) { 
+        var sheet = this.stylesheet;
+        var rules = this.css_rules;
+        var rule_name = ".data_level_" + data_level;
+        var rule_text = rule_name + " { fill: "  + rgb_hex + "}";
+
+        if (data_level in rules) { // update a rule we already set
+            if (sheet.rules[rules[data_level].index].selectorText != rule_name) { throw "TANTRUM"; }
+            sheet.rules[rules[data_level].index].style.fill = rgb_hex;
+        }   
+        else { // add a new rule
+            var index = sheet.rules.length - 1;
+            sheet.insertRule(rule_text, index);
+            rules[data_level] = { index: index };
+        }   
+    };
+    ContrastStyling.prototype.update_styles = function() {
+        for (var data_level in this.ecdh) {
+            var x = +data_level;
+            var f = this.sigmoid_scaled(x);
+            var rgb = this.colorScale(f);
+            var rgb_hex = this.objToHex(rgb);
+            this.update_rule(data_level, rgb_hex);
+        }
+    };
+    ContrastStyling.prototype.update_midpoint = function(value) {
+        this.update_params(this.param_a, value);
+        this.update_styles();
+    };
+    ContrastStyling.prototype.update_contrast = function(value) {
+        this.update_params(value, this.param_midpoint);
+        this.update_styles();
+    };
+    ContrastStyling.prototype.update_params = function(a, midpoint) {
+        this.param_a = a;
+        this.param_midpoint = midpoint;
+        this.sigmoid_min = this.sigmoid(this.x_min);
+        this.sigmoid_max = this.sigmoid(this.x_max);
+    };
+
+    ContrastStyling.prototype.sigmoid = function(x) {
+        //return 1 / (1 - Math.pow(a, midpoint - x)); // not tested
+        return  1 / (1 + Math.exp(-this.param_a*(x - this.param_midpoint)));
+    };
+    ContrastStyling.prototype.sigmoid_scaled = function(x) {
+        return (this.sigmoid(x,this.param_a, this.param_midpoint) - this.sigmoid_min) / (this.sigmoid_max - this.sigmoid_min);
+    };
+    
+
+    /** color scales from d3 **/
+    ContrastStyling.prototype.colorScale = function(f) {
+        //return redBlue(f);
+        //return plasma(f);
+        //return cool(f);
+        return warm(f);
+        //return cubeHelixDefault(f);
+        //return viridis(f);
+        //return magma(f);
+    };
+    ContrastStyling.prototype.objToHex = function (obj) {
+
+        // for use in style definition
+        var hex = '#';
+        hex += (obj.r < 16 ? '0' : '') + obj.r.toString(16);
+        hex += (obj.g < 16 ? '0' : '') + obj.g.toString(16);
+        hex += (obj.b < 16 ? '0' : '') + obj.b.toString(16);
+        return hex;
+    };
+
+    function redBlue(f) {
+    // given a value in {0,1}, give rgb interpolated through purple (red-0, blue-1)
+        if (f > 1) { f = 1; }
+        if (f < 0) { f = 0; }
+        var red = Math.round(255 * f);
+        var blue = Math.round(255 * (1 - f));
+        return { r: red, g: 0, b: blue };
+    }
+    function blackRed(f) {
+        if (f > 1) { f = 1; }
+        if (f < 0) { f = 0; }
+        return { r: Math.round(255 * f), g: 0, b: 0 };
+    }
+    function objectifyD3Output(val) {
+        if (val.substr(0,1) == "#") {
+            return hexToObj(val);
+        }
+        if (val.substr(0,4) == "rgb(") {
+            var arr = val.substr(4, val.length - 5).split(',');
+            var red = parseInt(arr[0]);
+            var green = parseInt(arr[1]);
+            var blue = parseInt(arr[2]);
+            if (! isNaN(red) && ! isNaN(green) && ! isNaN(blue)) return { r: red, g: green, b: blue };
+        }
+        throw "Can't recognize color string:" + val;
+    }
+    function viridis(f) {
+        return objectifyD3Output( d3.interpolateViridis(f) );
+    }
+    function cubeHelixDefault(f) {
+        return objectifyD3Output( d3.interpolateCubehelixDefault(f) );
+    }
+    function cool(f) {
+        return objectifyD3Output( d3.interpolateCool(f) );
+    }
+    function plasma(f) {
+        return hexToObj(d3.interpolatePlasma(f));
+    }
+    function inferno(f) {
+        return hexToObj(d3.interpolateInferno(f));
+    }
+    function magma(f) {
+        return hexToObj(d3.interpolateMagma(f));
+    }
+    function warm(f) {
+        return objectifyD3Output( d3.interpolateWarm(f) );
+    }
+
+    function hexToObj(hex) {
+        return {
+          r : parseInt(hex.substr(1,2), 16),
+          g : parseInt(hex.substr(3,2), 16),
+          b : parseInt(hex.substr(5,2), 16)
+        };
+    }
+
+    // export module
+    exports = module.exports = ContrastStyling;
+})();
+
+},{"d3":36,"jquery":37}],3:[function(require,module,exports){
 /*! =======================================================
                       VERSION  10.2.3              
 ========================================================= */
@@ -2219,7 +2345,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 	return Slider;
 });
 
-},{"jquery":36}],3:[function(require,module,exports){
+},{"jquery":37}],4:[function(require,module,exports){
 /*!
   * Bootstrap v4.1.3 (https://getbootstrap.com/)
   * Copyright 2011-2018 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
@@ -6165,7 +6291,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 })));
 
 
-},{"jquery":36,"popper.js":37}],4:[function(require,module,exports){
+},{"jquery":37,"popper.js":38}],5:[function(require,module,exports){
 // https://d3js.org/d3-array/ v1.2.4 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -6757,7 +6883,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 // https://d3js.org/d3-axis/ v1.0.12 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -6952,7 +7078,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 // https://d3js.org/d3-brush/ v1.0.6 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-dispatch'), require('d3-drag'), require('d3-interpolate'), require('d3-transition')) :
@@ -7521,7 +7647,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":11,"d3-drag":12,"d3-interpolate":20,"d3-selection":27,"d3-transition":32}],7:[function(require,module,exports){
+},{"d3-dispatch":12,"d3-drag":13,"d3-interpolate":21,"d3-selection":28,"d3-transition":33}],8:[function(require,module,exports){
 // https://d3js.org/d3-chord/ v1.0.6 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array'), require('d3-path')) :
@@ -7753,7 +7879,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":4,"d3-path":21}],8:[function(require,module,exports){
+},{"d3-array":5,"d3-path":22}],9:[function(require,module,exports){
 // https://d3js.org/d3-collection/ v1.0.7 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -7972,7 +8098,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 // https://d3js.org/d3-color/ v1.2.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -8523,7 +8649,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 // https://d3js.org/d3-contour/ v1.3.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array')) :
@@ -8956,7 +9082,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":4}],11:[function(require,module,exports){
+},{"d3-array":5}],12:[function(require,module,exports){
 // https://d3js.org/d3-dispatch/ v1.0.5 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -9053,7 +9179,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 // https://d3js.org/d3-drag/ v1.2.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-dispatch')) :
@@ -9289,7 +9415,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":11,"d3-selection":27}],13:[function(require,module,exports){
+},{"d3-dispatch":12,"d3-selection":28}],14:[function(require,module,exports){
 // https://d3js.org/d3-dsv/ v1.0.10 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -9453,7 +9579,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 // https://d3js.org/d3-ease/ v1.0.5 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -9714,7 +9840,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 // https://d3js.org/d3-fetch/ v1.1.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dsv')) :
@@ -9818,7 +9944,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dsv":13}],16:[function(require,module,exports){
+},{"d3-dsv":14}],17:[function(require,module,exports){
 // https://d3js.org/d3-force/ v1.1.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-quadtree'), require('d3-collection'), require('d3-dispatch'), require('d3-timer')) :
@@ -10480,7 +10606,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-collection":8,"d3-dispatch":11,"d3-quadtree":23,"d3-timer":31}],17:[function(require,module,exports){
+},{"d3-collection":9,"d3-dispatch":12,"d3-quadtree":24,"d3-timer":32}],18:[function(require,module,exports){
 // https://d3js.org/d3-format/ v1.3.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -10802,7 +10928,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 // https://d3js.org/d3-geo/ v1.11.1 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array')) :
@@ -13907,7 +14033,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":4}],19:[function(require,module,exports){
+},{"d3-array":5}],20:[function(require,module,exports){
 // https://d3js.org/d3-hierarchy/ v1.1.8 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -15199,7 +15325,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 // https://d3js.org/d3-interpolate/ v1.3.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-color')) :
@@ -15773,7 +15899,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":9}],21:[function(require,module,exports){
+},{"d3-color":10}],22:[function(require,module,exports){
 // https://d3js.org/d3-path/ v1.0.7 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -15916,7 +16042,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 // https://d3js.org/d3-polygon/ v1.0.5 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -16068,7 +16194,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 // https://d3js.org/d3-quadtree/ v1.0.5 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -16505,7 +16631,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 // https://d3js.org/d3-random/ v1.1.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -16622,7 +16748,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],25:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 // https://d3js.org/d3-scale-chromatic/ v1.3.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-interpolate'), require('d3-color')) :
@@ -17122,7 +17248,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":9,"d3-interpolate":20}],26:[function(require,module,exports){
+},{"d3-color":10,"d3-interpolate":21}],27:[function(require,module,exports){
 // https://d3js.org/d3-scale/ v2.1.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-collection'), require('d3-array'), require('d3-interpolate'), require('d3-format'), require('d3-time'), require('d3-time-format')) :
@@ -18025,7 +18151,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":4,"d3-collection":8,"d3-format":17,"d3-interpolate":20,"d3-time":30,"d3-time-format":29}],27:[function(require,module,exports){
+},{"d3-array":5,"d3-collection":9,"d3-format":18,"d3-interpolate":21,"d3-time":31,"d3-time-format":30}],28:[function(require,module,exports){
 // https://d3js.org/d3-selection/ v1.3.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -19022,7 +19148,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],28:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 // https://d3js.org/d3-shape/ v1.2.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-path')) :
@@ -20959,7 +21085,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-path":21}],29:[function(require,module,exports){
+},{"d3-path":22}],30:[function(require,module,exports){
 // https://d3js.org/d3-time-format/ v2.1.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-time')) :
@@ -21645,7 +21771,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-time":30}],30:[function(require,module,exports){
+},{"d3-time":31}],31:[function(require,module,exports){
 // https://d3js.org/d3-time/ v1.0.10 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -22020,7 +22146,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],31:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 // https://d3js.org/d3-timer/ v1.0.9 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -22171,7 +22297,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],32:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 // https://d3js.org/d3-transition/ v1.1.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dispatch'), require('d3-timer'), require('d3-color'), require('d3-interpolate'), require('d3-selection'), require('d3-ease')) :
@@ -22960,7 +23086,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":9,"d3-dispatch":11,"d3-ease":14,"d3-interpolate":20,"d3-selection":27,"d3-timer":31}],33:[function(require,module,exports){
+},{"d3-color":10,"d3-dispatch":12,"d3-ease":15,"d3-interpolate":21,"d3-selection":28,"d3-timer":32}],34:[function(require,module,exports){
 // https://d3js.org/d3-voronoi/ v1.1.4 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -23961,7 +24087,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],34:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 // https://d3js.org/d3-zoom/ v1.7.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-dispatch'), require('d3-drag'), require('d3-interpolate'), require('d3-transition')) :
@@ -24465,7 +24591,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":11,"d3-drag":12,"d3-interpolate":20,"d3-selection":27,"d3-transition":32}],35:[function(require,module,exports){
+},{"d3-dispatch":12,"d3-drag":13,"d3-interpolate":21,"d3-selection":28,"d3-transition":33}],36:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -24538,7 +24664,7 @@ Object.keys(d3Zoom).forEach(function (key) { exports[key] = d3Zoom[key]; });
 exports.version = version;
 Object.defineProperty(exports, "event", {get: function() { return d3Selection.event; }});
 
-},{"d3-array":4,"d3-axis":5,"d3-brush":6,"d3-chord":7,"d3-collection":8,"d3-color":9,"d3-contour":10,"d3-dispatch":11,"d3-drag":12,"d3-dsv":13,"d3-ease":14,"d3-fetch":15,"d3-force":16,"d3-format":17,"d3-geo":18,"d3-hierarchy":19,"d3-interpolate":20,"d3-path":21,"d3-polygon":22,"d3-quadtree":23,"d3-random":24,"d3-scale":26,"d3-scale-chromatic":25,"d3-selection":27,"d3-shape":28,"d3-time":30,"d3-time-format":29,"d3-timer":31,"d3-transition":32,"d3-voronoi":33,"d3-zoom":34}],36:[function(require,module,exports){
+},{"d3-array":5,"d3-axis":6,"d3-brush":7,"d3-chord":8,"d3-collection":9,"d3-color":10,"d3-contour":11,"d3-dispatch":12,"d3-drag":13,"d3-dsv":14,"d3-ease":15,"d3-fetch":16,"d3-force":17,"d3-format":18,"d3-geo":19,"d3-hierarchy":20,"d3-interpolate":21,"d3-path":22,"d3-polygon":23,"d3-quadtree":24,"d3-random":25,"d3-scale":27,"d3-scale-chromatic":26,"d3-selection":28,"d3-shape":29,"d3-time":31,"d3-time-format":30,"d3-timer":32,"d3-transition":33,"d3-voronoi":34,"d3-zoom":35}],37:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v3.3.1
  * https://jquery.com/
@@ -34904,7 +35030,7 @@ if ( !noGlobal ) {
 return jQuery;
 } );
 
-},{}],37:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 (function (global){
 /**!
  * @fileOverview Kickass library to create and place poppers near their reference elements.

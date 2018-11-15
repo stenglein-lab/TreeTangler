@@ -101,12 +101,6 @@ $(document).ready(function() {
             loadData(leftURL, rightURL);
         }
     });
-    // from modal
-    var inputNewickModalLeftSelectFile = $('#inputNewickModalLeftSelectFile');
-    inputNewickModalLeftSelectFile.click(function() {
-        fileInputLeft.click();
-    });
-
     fileButtonLeft.click(function() { 
         fileInputLeft.click();
     });
@@ -206,16 +200,6 @@ $(document).ready(function() {
         }
     }
 
-    // set up a modal dialog
-    $('#inputNewickModalLeft').on('show.bs.modal', function (event) {
-      var button = $(event.relatedTarget); // Button that triggered the modal
-      var which_side = button.data('launcher'); // Extract info from data-* attributes
-      // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
-      // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
-      var modal = $(this);
-      //modal.find('.modal-title').text('New message to ' + which);
-      //modal.find('.modal-body input').val(recipient);
-    });
 });
 cophylogeny_fig = null;
 function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}) {
@@ -402,6 +386,8 @@ function export_JSON() {
     var pack = Object.create(null);
     pack.leftTree = cophylogeny_fig.leftTree;
     pack.rightTree = cophylogeny_fig.rightTree;
+    pack.scaleFactor = cophylogeny_fig.scaleFactor;
+    pack.margin = cophylogeny_fig.margin;
     var txt = JSON.stringify(pack);
     
     var txtBlob = new Blob([txt], {type:"text/plain;charset=utf-8"});
