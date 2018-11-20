@@ -245,7 +245,7 @@ function update_contrast(value) {
 slide
     .on('change', changeFuncMidPoint)
     .on('slide', slideFuncMidPoint)
-    .data('slider')
+    .data('slider') // what is the purpose of this?
     ;
 $('#ex1Slider').css('width', width + 'px');
 $('#ex1Slider').css('margin-left', margin.left + 'px');
@@ -258,7 +258,7 @@ var slide2 = $('#ex2').slider({
 slide2
     .on('change', changeFuncContrast)
     .on('slide', slideFuncContrast)
-    .data('slider')
+    .data('slider') // what is the purpose of this?
     ;
 $('#ex2Slider').css('height', height + 'px');
 $('#ex2Slider').css('margin-top', margin.top + 'px');

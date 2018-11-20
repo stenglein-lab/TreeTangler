@@ -246,7 +246,7 @@ function update_contrast(value) {
 slide
     .on('change', changeFuncMidPoint)
     .on('slide', slideFuncMidPoint)
-    .data('slider')
+    .data('slider') // what is the purpose of this?
     ;
 $('#ex1Slider').css('width', width + 'px');
 $('#ex1Slider').css('margin-left', margin.left + 'px');
@@ -259,7 +259,7 @@ var slide2 = $('#ex2').slider({
 slide2
     .on('change', changeFuncContrast)
     .on('slide', slideFuncContrast)
-    .data('slider')
+    .data('slider') // what is the purpose of this?
     ;
 $('#ex2Slider').css('height', height + 'px');
 $('#ex2Slider').css('margin-top', margin.top + 'px');
@@ -278,9 +278,10 @@ $('#ex2Slider').css('top', '0px');
     var $ = require('jquery');
 
     // module object to be exported
-    var ContrastStyling = function(data, stylesheet) {
+    var ContrastStyling = function(data, stylesheet, attribute_to_color = 'fill') {
         this.data = data;
         this.stylesheet = stylesheet;
+        this.attribute_to_color = attribute_to_color;
     /***
 
           Create a set of style classes in document.stylesheet taking the form 'data_level_d' for each unique value of 
@@ -335,11 +336,12 @@ $('#ex2Slider').css('top', '0px');
         var sheet = this.stylesheet;
         var rules = this.css_rules;
         var rule_name = ".data_level_" + data_level;
-        var rule_text = rule_name + " { fill: "  + rgb_hex + "}";
+        //var rule_text = rule_name + " { fill: "  + rgb_hex + "}";
+        var rule_text = `${rule_name} { ${this.attribute_to_color}: ${rgb_hex}`;
 
         if (data_level in rules) { // update a rule we already set
             if (sheet.rules[rules[data_level].index].selectorText != rule_name) { throw "TANTRUM"; }
-            sheet.rules[rules[data_level].index].style.fill = rgb_hex;
+            sheet.rules[rules[data_level].index].style[this.attribute_to_color] = rgb_hex;
         }   
         else { // add a new rule
             var index = sheet.rules.length - 1;

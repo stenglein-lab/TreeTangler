@@ -133,7 +133,51 @@ $(document).ready(function() {
         fileInputRight.click();
     });
 
-    // hook into slider
+    // hook into contrast slider
+    var contrastSlider = $('#contrastSliderInput').slider(
+    {
+        reversed: true
+    });
+    contrastSlider
+        .on('change', changeFuncContrast)
+        .on('slide', slideFuncContrast)
+        .data('slider') // what is the purpose of this?
+    ;
+    function slideFuncContrast(slideEvt) {
+        update_contrast(slideEvt.value); 
+    }
+    function changeFuncContrast(changeEvt) {
+        update_contrast(changeEvt.value.newValue);
+    }
+    function update_contrast(value) {
+        cophylogeny_fig.stroke_style_object.update_contrast(value);
+        cophylogeny_fig.stroke_style_object.update_styles();
+    }
+    var midpointSlider = $('#midpointSliderInput').slider(
+    {
+        reversed: true,
+        max: 90,
+        value: 44
+        /*max: cophylogeny_fig.stroke_style_object.x_max, // need to be set somewhere
+        value: (cophylogeny_fig.stroke_style_object.x_max + cophylogeny_fig.stroke_style_object.x_min ) / 2 */
+    });
+    midpointSlider
+        .on('change', changeFuncMidpoint)
+        .on('slide', slideFuncMidpoint)
+        .data('slider') // what is the purpose of this?
+    ;
+    function slideFuncMidpoint(slideEvt) {
+        update_midpoint(slideEvt.value); 
+    }
+    function changeFuncMidpoint(changeEvt) {
+        update_midpoint(changeEvt.value.newValue);
+    }
+    function update_midpoint(value) {
+        cophylogeny_fig.stroke_style_object.update_midpoint(value);
+        cophylogeny_fig.stroke_style_object.update_styles();
+    }
+
+    // hook into scale slider
     var slider = $('#ex1').slider({
         reversed: true,
         formatter: function(value) {
@@ -431,7 +475,199 @@ function export_newick(which_tree) {
 
 /* jshint ignore: end */
 
-},{"./lib/cophylogeny":10,"./lib/processFile":11,"bootstrap":14,"bootstrap-slider":13,"cophy-treetools":24,"d3":61,"jquery":64,"url-search-params":72}],2:[function(require,module,exports){
+},{"./lib/cophylogeny":11,"./lib/processFile":12,"bootstrap":15,"bootstrap-slider":14,"cophy-treetools":25,"d3":62,"jquery":65,"url-search-params":73}],2:[function(require,module,exports){
+/************* Module contrast-styling **************/
+(function () {
+    // imports
+    var d3 = require('d3');
+    var $ = require('jquery');
+
+    // module object to be exported
+    var ContrastStyling = function(data, stylesheet, attribute_to_color = 'fill') {
+        this.data = data;
+        this.stylesheet = stylesheet;
+        this.attribute_to_color = attribute_to_color;
+    /***
+
+          Create a set of style classes in document.stylesheet taking the form 'data_level_d' for each unique value of 
+        'd' in data. 
+          Corresponding rules therefore will be expressed as '.data_level_d' and will assign graphics colors 
+        to the data levels in a linear fashion, or smoothed or contrasted via a sigmoidal function.
+
+                                                                                                                 ***/
+
+        this.data.sort(function(a,b) { return a - b; });
+
+        // parameters for the graphing eqn
+        this.x_min = this.data[0];
+        this.x_max = this.data[this.data.length-1];
+        this.length = this.data.length;
+        // default parameters for sigmoid
+        this.param_a = 0.01;
+        this.param_midpoint = (this.x_min+this.x_max)/2;
+
+        // rules to be created and updated as user slides parameters
+        this.css_rules = Object.create(null);
+
+        // update upon parameter changes
+        this.sigmoid_min = null;
+        this.sigmoid_max = null;
+
+
+        /** The Empirical Distribution Hash **/
+        // Scan sorted data backwards
+        // The last element (data[n-1]) corresponds to 1. 
+        // The first element (data[0]) corresponds to 1 / n.
+        // The data array is sorted, so ties are consecutive in the array.
+        // Scanning backwards (high to low) assures that the lowest index 
+        // is used for any given value in the array.
+        // Quantiles: 
+        // Build a new array, this time scanning forward (low to high)
+        var ecdh = {};
+        var n = this.length;
+        for (var i = n - 1; i >= 0; i--) {
+            var d = this.data[i];
+            if (! ecdh.hasOwnProperty(d)) { ecdh[d] = (i+1)/n; }
+        }
+        var quantiles = [];
+        this.data.forEach(function(d) { quantiles.push( ecdh[d] ); });
+        this.ecdh = ecdh;
+        this.quantiles = quantiles;
+
+        this.update_params(this.param_a, this.param_midpoint);
+        this.update_styles();
+    };
+    ContrastStyling.prototype.update_rule = function(data_level, rgb_hex) { 
+        var sheet = this.stylesheet;
+        var rules = this.css_rules;
+        var rule_name = ".data_level_" + data_level;
+        //var rule_text = rule_name + " { fill: "  + rgb_hex + "}";
+        var rule_text = `${rule_name} { ${this.attribute_to_color}: ${rgb_hex}`;
+
+        if (data_level in rules) { // update a rule we already set
+            if (sheet.rules[rules[data_level].index].selectorText != rule_name) { throw "TANTRUM"; }
+            sheet.rules[rules[data_level].index].style[this.attribute_to_color] = rgb_hex;
+        }   
+        else { // add a new rule
+            var index = sheet.rules.length - 1;
+            sheet.insertRule(rule_text, index);
+            rules[data_level] = { index: index };
+        }   
+    };
+    ContrastStyling.prototype.update_styles = function() {
+        for (var data_level in this.ecdh) {
+            var x = +data_level;
+            var f = this.sigmoid_scaled(x);
+            var rgb = this.colorScale(f);
+            var rgb_hex = this.objToHex(rgb);
+            this.update_rule(data_level, rgb_hex);
+        }
+    };
+    ContrastStyling.prototype.update_midpoint = function(value) {
+        this.update_params(this.param_a, value);
+        this.update_styles();
+    };
+    ContrastStyling.prototype.update_contrast = function(value) {
+        this.update_params(value, this.param_midpoint);
+        this.update_styles();
+    };
+    ContrastStyling.prototype.update_params = function(a, midpoint) {
+        this.param_a = a;
+        this.param_midpoint = midpoint;
+        this.sigmoid_min = this.sigmoid(this.x_min);
+        this.sigmoid_max = this.sigmoid(this.x_max);
+    };
+
+    ContrastStyling.prototype.sigmoid = function(x) {
+        //return 1 / (1 - Math.pow(a, midpoint - x)); // not tested
+        return  1 / (1 + Math.exp(-this.param_a*(x - this.param_midpoint)));
+    };
+    ContrastStyling.prototype.sigmoid_scaled = function(x) {
+        return (this.sigmoid(x,this.param_a, this.param_midpoint) - this.sigmoid_min) / (this.sigmoid_max - this.sigmoid_min);
+    };
+    
+
+    /** color scales from d3 **/
+    ContrastStyling.prototype.colorScale = function(f) {
+        //return redBlue(f);
+        //return plasma(f);
+        //return cool(f);
+        return warm(f);
+        //return cubeHelixDefault(f);
+        //return viridis(f);
+        //return magma(f);
+    };
+    ContrastStyling.prototype.objToHex = function (obj) {
+
+        // for use in style definition
+        var hex = '#';
+        hex += (obj.r < 16 ? '0' : '') + obj.r.toString(16);
+        hex += (obj.g < 16 ? '0' : '') + obj.g.toString(16);
+        hex += (obj.b < 16 ? '0' : '') + obj.b.toString(16);
+        return hex;
+    };
+
+    function redBlue(f) {
+    // given a value in {0,1}, give rgb interpolated through purple (red-0, blue-1)
+        if (f > 1) { f = 1; }
+        if (f < 0) { f = 0; }
+        var red = Math.round(255 * f);
+        var blue = Math.round(255 * (1 - f));
+        return { r: red, g: 0, b: blue };
+    }
+    function blackRed(f) {
+        if (f > 1) { f = 1; }
+        if (f < 0) { f = 0; }
+        return { r: Math.round(255 * f), g: 0, b: 0 };
+    }
+    function objectifyD3Output(val) {
+        if (val.substr(0,1) == "#") {
+            return hexToObj(val);
+        }
+        if (val.substr(0,4) == "rgb(") {
+            var arr = val.substr(4, val.length - 5).split(',');
+            var red = parseInt(arr[0]);
+            var green = parseInt(arr[1]);
+            var blue = parseInt(arr[2]);
+            if (! isNaN(red) && ! isNaN(green) && ! isNaN(blue)) return { r: red, g: green, b: blue };
+        }
+        throw "Can't recognize color string:" + val;
+    }
+    function viridis(f) {
+        return objectifyD3Output( d3.interpolateViridis(f) );
+    }
+    function cubeHelixDefault(f) {
+        return objectifyD3Output( d3.interpolateCubehelixDefault(f) );
+    }
+    function cool(f) {
+        return objectifyD3Output( d3.interpolateCool(f) );
+    }
+    function plasma(f) {
+        return hexToObj(d3.interpolatePlasma(f));
+    }
+    function inferno(f) {
+        return hexToObj(d3.interpolateInferno(f));
+    }
+    function magma(f) {
+        return hexToObj(d3.interpolateMagma(f));
+    }
+    function warm(f) {
+        return objectifyD3Output( d3.interpolateWarm(f) );
+    }
+
+    function hexToObj(hex) {
+        return {
+          r : parseInt(hex.substr(1,2), 16),
+          g : parseInt(hex.substr(3,2), 16),
+          b : parseInt(hex.substr(5,2), 16)
+        };
+    }
+
+    // export module
+    exports = module.exports = ContrastStyling;
+})();
+
+},{"d3":62,"jquery":65}],3:[function(require,module,exports){
 /*
  * Static functions for drawing SVG elements
  */
@@ -567,7 +803,7 @@ class SVGUtils {
 module.exports = function() {};
 module.exports = SVGUtils;
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 (function() {
     exports = module.exports = function(CoPhylogenyGraph) {
         CoPhylogenyGraph.prototype.addPersistentClass = function (classname, selector, apply=true) {
@@ -576,7 +812,7 @@ module.exports = SVGUtils;
     };
 })();
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 (function() {
     exports = module.exports = function(CoPhylogenyGraph) {
         CoPhylogenyGraph.prototype.getTreeStats = function(node, data) {
@@ -609,7 +845,7 @@ module.exports = SVGUtils;
     };
 })();
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 //CoPhylogeny = require('../../CoPhylogeny');
 (function() {
     /* Extension to d3.hierarchy
@@ -617,6 +853,7 @@ module.exports = SVGUtils;
      */
     d3 = require('d3');
     var stringSimilarity = require('string-similarity'); // to find the matches between trees
+    var ContrastStyling = require('../contrast-styling');
 
     d3.hierarchy.prototype.eachChild = function(callback) {
         var node = this;
@@ -648,6 +885,14 @@ module.exports = SVGUtils;
             var cophy_obj = this;
             var right_tree_names = cophy_obj.leaves(1);
             if (right_tree_names.length == 0) { throw new Error("NO RIGHT_TREE NAMES"); }
+
+            var dfoot_values = [];
+            for (var nodename in cophy_obj.dfoot_obj.diffs) {
+                dfoot_values.push( cophy_obj.dfoot_obj.diffs[nodename] );
+            }
+            var CS = new ContrastStyling(dfoot_values, document.styleSheets[document.styleSheets.length - 1], 'stroke');
+            this.stroke_style_object = CS;
+
             cophy_obj.leftDescendants.forEach(function (leftNode)
             {
                 var rightNode,rightNodeName;
@@ -751,9 +996,14 @@ module.exports = SVGUtils;
                         .curve(d3.curveBundle.beta(0.99))
                         ;
 
+                    // get the data level for this line
+                    var local_dfoot = cophy_obj.dfoot_obj.diffs[rightNodeName];
+
                     var line_connect = cophy_obj.bridge_g.append("path")
                         .attr("d", lineFunction(nodePair_spline_coords))
-                        .attr("class", "bridge")
+                        .attr("class", function (d, i) {
+                            return "bridge " + "data_level_" + local_dfoot;
+                        })
                         .attr("id", leftNodeName.replace(new RegExp(' ','g'),'_') + "_bridge")
                         .attr("pointer-events", "stroke") // only clicking on stroke works
                         .attr("stroke", function (d, i)
@@ -969,7 +1219,7 @@ module.exports = SVGUtils;
     }; //end exports enclosure
 })();
 
-},{"d3":61,"string-similarity":71}],6:[function(require,module,exports){
+},{"../contrast-styling":2,"d3":62,"string-similarity":72}],7:[function(require,module,exports){
 (function() {
     exports = module.exports = function(CoPhylogenyGraph) {
         CoPhylogenyGraph.prototype.addEventListener = function(evt_str, f) {
@@ -1019,7 +1269,7 @@ module.exports = SVGUtils;
     }; // end exports enclosure
 })();
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 (function() {
     exports = module.exports = function(CoPhylogenyGraph) {
         CoPhylogenyGraph.prototype.highlight_from_node = function(isLeft=true)
@@ -1052,7 +1302,7 @@ module.exports = SVGUtils;
     }; // end exports enclosure
 })();
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 (function() {
   exports = module.exports = function(CoPhylogenyGraph) {
     CoPhylogenyGraph.prototype.redraw = function() {
@@ -1225,7 +1475,7 @@ module.exports = SVGUtils;
 })();
 
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 (function() {
     exports = module.exports = function(CoPhylogenyGraph) {
         var treetools = require('cophy-treetools');
@@ -1319,6 +1569,7 @@ module.exports = SVGUtils;
             this.dfoot_sum = obj.sum;
             var nlevels = obj.max - obj.min + 1;
             this.dfoot_color_scale = SVGUtils.blueToRed(nlevels).reverse();
+            console.log('CoPhylogenyGraph.prototype.dfoot');
             console.log(this.dfoot_obj);
             return obj.sum;
         };
@@ -1399,7 +1650,7 @@ module.exports = SVGUtils;
     };// end module.exports enclosure
 })();
 
-},{"cophy-treetools":24}],10:[function(require,module,exports){
+},{"cophy-treetools":25}],11:[function(require,module,exports){
 // this class organization is suggested by
 // http://geekswithblogs.net/shaunxu/archive/2016/03/07/define-a-class-in-multiple-files-in-node.js.aspx
 (function () {
@@ -1483,7 +1734,7 @@ module.exports = SVGUtils;
 
 })();
 
-},{"./SVGUtils":2,"./cophylogeny-addPersistentClass":3,"./cophylogeny-compat":4,"./cophylogeny-draw":5,"./cophylogeny-events":6,"./cophylogeny-inspect":7,"./cophylogeny-render":8,"./cophylogeny-treemods":9,"d3":61}],11:[function(require,module,exports){
+},{"./SVGUtils":3,"./cophylogeny-addPersistentClass":4,"./cophylogeny-compat":5,"./cophylogeny-draw":6,"./cophylogeny-events":7,"./cophylogeny-inspect":8,"./cophylogeny-render":9,"./cophylogeny-treemods":10,"d3":62}],12:[function(require,module,exports){
 var treetools = require('cophy-treetools');
 var d3 = require('d3');
 
@@ -1621,7 +1872,7 @@ module.exports.processUploadedNewick = processUploadedNewick;
 module.exports.getNewickFromURL = getNewickFromURL;
 
 
-},{"cophy-treetools":24,"d3":61}],12:[function(require,module,exports){
+},{"cophy-treetools":25,"d3":62}],13:[function(require,module,exports){
 var freetree = require('freetree');
 var c0 = String.fromCharCode(9500);
 var c1 = String.fromCharCode(9472);
@@ -1669,7 +1920,7 @@ function _generate(tree, end, levels) {
 }
 
 exports.generate = generate;
-},{"freetree":63}],13:[function(require,module,exports){
+},{"freetree":64}],14:[function(require,module,exports){
 /*! =======================================================
                       VERSION  10.2.3              
 ========================================================= */
@@ -3554,7 +3805,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 	return Slider;
 });
 
-},{"jquery":64}],14:[function(require,module,exports){
+},{"jquery":65}],15:[function(require,module,exports){
 /*!
   * Bootstrap v4.1.3 (https://getbootstrap.com/)
   * Copyright 2011-2018 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
@@ -7500,9 +7751,9 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 })));
 
 
-},{"jquery":64,"popper.js":70}],15:[function(require,module,exports){
+},{"jquery":65,"popper.js":71}],16:[function(require,module,exports){
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 (function() {
     traversal = require("./traversal");
     treetools = {};
@@ -7577,7 +7828,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
     module.exports = treetools;
 })();
 
-},{"./traversal":18}],17:[function(require,module,exports){
+},{"./traversal":19}],18:[function(require,module,exports){
 (function() {
     function extend(obj, src) {
         Object.keys(src).forEach(function(key) { obj[key] = src[key]; }); 
@@ -7589,7 +7840,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
     module.exports = treetools;
 })();
 
-},{"./edit":16,"./traversal":18}],18:[function(require,module,exports){
+},{"./edit":17,"./traversal":19}],19:[function(require,module,exports){
 (function() {
     treetools = {};
     treetools.depth = function(root) {
@@ -7633,7 +7884,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
     module.exports = treetools;
 })();
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 (function() {
     builders = require('../builders');
     writer = require('../read-write');
@@ -7730,7 +7981,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 })();
 
 
-},{"../builders":17,"../read-write":27,"string-similarity":71}],20:[function(require,module,exports){
+},{"../builders":18,"../read-write":28,"string-similarity":72}],21:[function(require,module,exports){
 (function() {
     traversal = require('../builders');
     treetools = {};
@@ -7779,7 +8030,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
     module.exports = treetools;
 })();
 
-},{"../builders":17}],21:[function(require,module,exports){
+},{"../builders":18}],22:[function(require,module,exports){
 (function() {
     function extend(obj, src) {
         Object.keys(src).forEach(function(key) { obj[key] = src[key]; }); 
@@ -7794,7 +8045,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 })();
 
 
-},{"./detangler":19,"./general":20,"./string-similarity":22,"./validation":23}],22:[function(require,module,exports){
+},{"./detangler":20,"./general":21,"./string-similarity":23,"./validation":24}],23:[function(require,module,exports){
 /*
 Abstracting the module string-similarity with other comparison functions, such as Levenshtein
 */
@@ -7828,7 +8079,7 @@ Abstracting the module string-similarity with other comparison functions, such a
 })();
 
 
-},{"fast-levenshtein":62,"string-similarity":71}],23:[function(require,module,exports){
+},{"fast-levenshtein":63,"string-similarity":72}],24:[function(require,module,exports){
 (function() {
     // need this
     function format(v) {
@@ -7926,7 +8177,7 @@ Abstracting the module string-similarity with other comparison functions, such a
 })();
 
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 (function() { // hide namespace from global
     function extend(obj, src) {
         Object.keys(src).forEach(function(key) { obj[key] = src[key]; });
@@ -7940,7 +8191,7 @@ Abstracting the module string-similarity with other comparison functions, such a
 
 })();
 
-},{"./builders":17,"./functions":21,"./read-write":27}],25:[function(require,module,exports){
+},{"./builders":18,"./functions":22,"./read-write":28}],26:[function(require,module,exports){
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory();
@@ -8313,12 +8564,12 @@ const normalize = s => {
 /***/ })
 /******/ ]);
 });
-},{}],26:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 var dist = require('./dist/')
 
 module.exports = dist
 
-},{"./dist/":25}],27:[function(require,module,exports){
+},{"./dist/":26}],28:[function(require,module,exports){
 (function() { // hide namespace from global
     function extend(obj, src) {
         Object.keys(src).forEach(function(key) { obj[key] = src[key]; }); 
@@ -8330,7 +8581,7 @@ module.exports = dist
     module.exports = treetools;
 })();
 
-},{"./parse":28,"./write":29}],28:[function(require,module,exports){
+},{"./parse":29,"./write":30}],29:[function(require,module,exports){
 (function() { // hide namespace from global
     Newick = require('newick').Newick;
     fs = require('fs');
@@ -8358,7 +8609,7 @@ module.exports = dist
 
 })();
 
-},{"fs":15,"newick":26}],29:[function(require,module,exports){
+},{"fs":16,"newick":27}],30:[function(require,module,exports){
 (function() { // shield global namespace
     treetools = require('../index');
     treetools.toString = function(nw, round) {
@@ -8457,7 +8708,7 @@ module.exports = dist
 
 })();
 
-},{"../index":24,"ascii-tree":12}],30:[function(require,module,exports){
+},{"../index":25,"ascii-tree":13}],31:[function(require,module,exports){
 // https://d3js.org/d3-array/ v1.2.4 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -9049,7 +9300,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],31:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 // https://d3js.org/d3-axis/ v1.0.12 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -9244,7 +9495,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],32:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 // https://d3js.org/d3-brush/ v1.0.6 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-dispatch'), require('d3-drag'), require('d3-interpolate'), require('d3-transition')) :
@@ -9813,7 +10064,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":37,"d3-drag":38,"d3-interpolate":46,"d3-selection":53,"d3-transition":58}],33:[function(require,module,exports){
+},{"d3-dispatch":38,"d3-drag":39,"d3-interpolate":47,"d3-selection":54,"d3-transition":59}],34:[function(require,module,exports){
 // https://d3js.org/d3-chord/ v1.0.6 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array'), require('d3-path')) :
@@ -10045,7 +10296,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":30,"d3-path":47}],34:[function(require,module,exports){
+},{"d3-array":31,"d3-path":48}],35:[function(require,module,exports){
 // https://d3js.org/d3-collection/ v1.0.7 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -10264,7 +10515,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],35:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 // https://d3js.org/d3-color/ v1.2.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -10815,7 +11066,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],36:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 // https://d3js.org/d3-contour/ v1.3.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array')) :
@@ -11248,7 +11499,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":30}],37:[function(require,module,exports){
+},{"d3-array":31}],38:[function(require,module,exports){
 // https://d3js.org/d3-dispatch/ v1.0.5 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -11345,7 +11596,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],38:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 // https://d3js.org/d3-drag/ v1.2.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-dispatch')) :
@@ -11581,7 +11832,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":37,"d3-selection":53}],39:[function(require,module,exports){
+},{"d3-dispatch":38,"d3-selection":54}],40:[function(require,module,exports){
 // https://d3js.org/d3-dsv/ v1.0.10 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -11745,7 +11996,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],40:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 // https://d3js.org/d3-ease/ v1.0.5 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -12006,7 +12257,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],41:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 // https://d3js.org/d3-fetch/ v1.1.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dsv')) :
@@ -12110,7 +12361,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dsv":39}],42:[function(require,module,exports){
+},{"d3-dsv":40}],43:[function(require,module,exports){
 // https://d3js.org/d3-force/ v1.1.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-quadtree'), require('d3-collection'), require('d3-dispatch'), require('d3-timer')) :
@@ -12772,7 +13023,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-collection":34,"d3-dispatch":37,"d3-quadtree":49,"d3-timer":57}],43:[function(require,module,exports){
+},{"d3-collection":35,"d3-dispatch":38,"d3-quadtree":50,"d3-timer":58}],44:[function(require,module,exports){
 // https://d3js.org/d3-format/ v1.3.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -13094,7 +13345,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],44:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 // https://d3js.org/d3-geo/ v1.11.1 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array')) :
@@ -16199,7 +16450,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":30}],45:[function(require,module,exports){
+},{"d3-array":31}],46:[function(require,module,exports){
 // https://d3js.org/d3-hierarchy/ v1.1.8 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -17491,7 +17742,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],46:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 // https://d3js.org/d3-interpolate/ v1.3.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-color')) :
@@ -18065,7 +18316,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":35}],47:[function(require,module,exports){
+},{"d3-color":36}],48:[function(require,module,exports){
 // https://d3js.org/d3-path/ v1.0.7 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -18208,7 +18459,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],48:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 // https://d3js.org/d3-polygon/ v1.0.5 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -18360,7 +18611,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],49:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 // https://d3js.org/d3-quadtree/ v1.0.5 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -18797,7 +19048,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],50:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 // https://d3js.org/d3-random/ v1.1.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -18914,7 +19165,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],51:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 // https://d3js.org/d3-scale-chromatic/ v1.3.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-interpolate'), require('d3-color')) :
@@ -19414,7 +19665,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":35,"d3-interpolate":46}],52:[function(require,module,exports){
+},{"d3-color":36,"d3-interpolate":47}],53:[function(require,module,exports){
 // https://d3js.org/d3-scale/ v2.1.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-collection'), require('d3-array'), require('d3-interpolate'), require('d3-format'), require('d3-time'), require('d3-time-format')) :
@@ -20317,7 +20568,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":30,"d3-collection":34,"d3-format":43,"d3-interpolate":46,"d3-time":56,"d3-time-format":55}],53:[function(require,module,exports){
+},{"d3-array":31,"d3-collection":35,"d3-format":44,"d3-interpolate":47,"d3-time":57,"d3-time-format":56}],54:[function(require,module,exports){
 // https://d3js.org/d3-selection/ v1.3.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -21314,7 +21565,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],54:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 // https://d3js.org/d3-shape/ v1.2.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-path')) :
@@ -23251,7 +23502,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-path":47}],55:[function(require,module,exports){
+},{"d3-path":48}],56:[function(require,module,exports){
 // https://d3js.org/d3-time-format/ v2.1.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-time')) :
@@ -23937,7 +24188,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-time":56}],56:[function(require,module,exports){
+},{"d3-time":57}],57:[function(require,module,exports){
 // https://d3js.org/d3-time/ v1.0.10 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -24312,7 +24563,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],57:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 // https://d3js.org/d3-timer/ v1.0.9 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -24463,7 +24714,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],58:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 // https://d3js.org/d3-transition/ v1.1.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dispatch'), require('d3-timer'), require('d3-color'), require('d3-interpolate'), require('d3-selection'), require('d3-ease')) :
@@ -25252,7 +25503,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":35,"d3-dispatch":37,"d3-ease":40,"d3-interpolate":46,"d3-selection":53,"d3-timer":57}],59:[function(require,module,exports){
+},{"d3-color":36,"d3-dispatch":38,"d3-ease":41,"d3-interpolate":47,"d3-selection":54,"d3-timer":58}],60:[function(require,module,exports){
 // https://d3js.org/d3-voronoi/ v1.1.4 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -26253,7 +26504,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],60:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 // https://d3js.org/d3-zoom/ v1.7.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-dispatch'), require('d3-drag'), require('d3-interpolate'), require('d3-transition')) :
@@ -26757,7 +27008,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dispatch":37,"d3-drag":38,"d3-interpolate":46,"d3-selection":53,"d3-transition":58}],61:[function(require,module,exports){
+},{"d3-dispatch":38,"d3-drag":39,"d3-interpolate":47,"d3-selection":54,"d3-transition":59}],62:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -26830,7 +27081,7 @@ Object.keys(d3Zoom).forEach(function (key) { exports[key] = d3Zoom[key]; });
 exports.version = version;
 Object.defineProperty(exports, "event", {get: function() { return d3Selection.event; }});
 
-},{"d3-array":30,"d3-axis":31,"d3-brush":32,"d3-chord":33,"d3-collection":34,"d3-color":35,"d3-contour":36,"d3-dispatch":37,"d3-drag":38,"d3-dsv":39,"d3-ease":40,"d3-fetch":41,"d3-force":42,"d3-format":43,"d3-geo":44,"d3-hierarchy":45,"d3-interpolate":46,"d3-path":47,"d3-polygon":48,"d3-quadtree":49,"d3-random":50,"d3-scale":52,"d3-scale-chromatic":51,"d3-selection":53,"d3-shape":54,"d3-time":56,"d3-time-format":55,"d3-timer":57,"d3-transition":58,"d3-voronoi":59,"d3-zoom":60}],62:[function(require,module,exports){
+},{"d3-array":31,"d3-axis":32,"d3-brush":33,"d3-chord":34,"d3-collection":35,"d3-color":36,"d3-contour":37,"d3-dispatch":38,"d3-drag":39,"d3-dsv":40,"d3-ease":41,"d3-fetch":42,"d3-force":43,"d3-format":44,"d3-geo":45,"d3-hierarchy":46,"d3-interpolate":47,"d3-path":48,"d3-polygon":49,"d3-quadtree":50,"d3-random":51,"d3-scale":53,"d3-scale-chromatic":52,"d3-selection":54,"d3-shape":55,"d3-time":57,"d3-time-format":56,"d3-timer":58,"d3-transition":59,"d3-voronoi":60,"d3-zoom":61}],63:[function(require,module,exports){
 (function() {
   'use strict';
   
@@ -26968,7 +27219,7 @@ Object.defineProperty(exports, "event", {get: function() { return d3Selection.ev
 }());
 
 
-},{}],63:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 function parse(str, settings) {
     var _settings = {
         leadingChar: '#',
@@ -27081,7 +27332,7 @@ function compress(root) {
 }
 
 exports.parse = parse;
-},{}],64:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v3.3.1
  * https://jquery.com/
@@ -37447,7 +37698,7 @@ if ( !noGlobal ) {
 return jQuery;
 } );
 
-},{}],65:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 (function (global){
 /**
  * lodash (Custom Build) <https://lodash.com/>
@@ -39846,7 +40097,7 @@ function property(path) {
 module.exports = every;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],66:[function(require,module,exports){
+},{}],67:[function(require,module,exports){
 (function (global){
 /**
  * lodash (Custom Build) <https://lodash.com/>
@@ -40200,7 +40451,7 @@ function isObjectLike(value) {
 module.exports = flattenDeep;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],67:[function(require,module,exports){
+},{}],68:[function(require,module,exports){
 /**
  * lodash (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -40767,7 +41018,7 @@ function identity(value) {
 
 module.exports = forEach;
 
-},{}],68:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 (function (global){
 /**
  * lodash (Custom Build) <https://lodash.com/>
@@ -43137,7 +43388,7 @@ function property(path) {
 module.exports = map;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],69:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 (function (global){
 /**
  * lodash (Custom Build) <https://lodash.com/>
@@ -45405,7 +45656,7 @@ function maxBy(array, iteratee) {
 module.exports = maxBy;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],70:[function(require,module,exports){
+},{}],71:[function(require,module,exports){
 (function (global){
 /**!
  * @fileOverview Kickass library to create and place poppers near their reference elements.
@@ -47951,7 +48202,7 @@ return Popper;
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],71:[function(require,module,exports){
+},{}],72:[function(require,module,exports){
 var _forEach = require('lodash.foreach');
 var _map = require('lodash.map');
 var _every = require('lodash.every');
@@ -48066,7 +48317,7 @@ function findBestMatch(mainString, targetStrings) {
   }
 }
 
-},{"lodash.every":65,"lodash.flattendeep":66,"lodash.foreach":67,"lodash.map":68,"lodash.maxby":69}],72:[function(require,module,exports){
+},{"lodash.every":66,"lodash.flattendeep":67,"lodash.foreach":68,"lodash.map":69,"lodash.maxby":70}],73:[function(require,module,exports){
 (function (global){
 /*!
 Copyright (C) 2015-2017 Andrea Giammarchi - @WebReflection

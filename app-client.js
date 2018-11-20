@@ -132,7 +132,51 @@ $(document).ready(function() {
         fileInputRight.click();
     });
 
-    // hook into slider
+    // hook into contrast slider
+    var contrastSlider = $('#contrastSliderInput').slider(
+    {
+        reversed: true
+    });
+    contrastSlider
+        .on('change', changeFuncContrast)
+        .on('slide', slideFuncContrast)
+        .data('slider') // what is the purpose of this?
+    ;
+    function slideFuncContrast(slideEvt) {
+        update_contrast(slideEvt.value); 
+    }
+    function changeFuncContrast(changeEvt) {
+        update_contrast(changeEvt.value.newValue);
+    }
+    function update_contrast(value) {
+        cophylogeny_fig.stroke_style_object.update_contrast(value);
+        cophylogeny_fig.stroke_style_object.update_styles();
+    }
+    var midpointSlider = $('#midpointSliderInput').slider(
+    {
+        reversed: true,
+        max: 90,
+        value: 44
+        /*max: cophylogeny_fig.stroke_style_object.x_max, // need to be set somewhere
+        value: (cophylogeny_fig.stroke_style_object.x_max + cophylogeny_fig.stroke_style_object.x_min ) / 2 */
+    });
+    midpointSlider
+        .on('change', changeFuncMidpoint)
+        .on('slide', slideFuncMidpoint)
+        .data('slider') // what is the purpose of this?
+    ;
+    function slideFuncMidpoint(slideEvt) {
+        update_midpoint(slideEvt.value); 
+    }
+    function changeFuncMidpoint(changeEvt) {
+        update_midpoint(changeEvt.value.newValue);
+    }
+    function update_midpoint(value) {
+        cophylogeny_fig.stroke_style_object.update_midpoint(value);
+        cophylogeny_fig.stroke_style_object.update_styles();
+    }
+
+    // hook into scale slider
     var slider = $('#ex1').slider({
         reversed: true,
         formatter: function(value) {
