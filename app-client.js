@@ -151,6 +151,7 @@ $(document).ready(function() {
     function update_contrast(value) {
         cophylogeny_fig.stroke_style_object.update_contrast(value);
         cophylogeny_fig.stroke_style_object.update_styles();
+        $('#bl-contrast-spn').text(cophylogeny_fig.stroke_style_object.param_a);
     }
     var midpointSlider = $('#midpointSliderInput').slider(
     {
@@ -174,6 +175,7 @@ $(document).ready(function() {
     function update_midpoint(value) {
         cophylogeny_fig.stroke_style_object.update_midpoint(value);
         cophylogeny_fig.stroke_style_object.update_styles();
+        $('#bl-midpoint-spn').text(cophylogeny_fig.stroke_style_object.param_midpoint);
     }
 
     // hook into scale slider

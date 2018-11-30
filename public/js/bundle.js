@@ -152,6 +152,7 @@ $(document).ready(function() {
     function update_contrast(value) {
         cophylogeny_fig.stroke_style_object.update_contrast(value);
         cophylogeny_fig.stroke_style_object.update_styles();
+        $('#bl-contrast-spn').text(cophylogeny_fig.stroke_style_object.param_a);
     }
     var midpointSlider = $('#midpointSliderInput').slider(
     {
@@ -175,6 +176,7 @@ $(document).ready(function() {
     function update_midpoint(value) {
         cophylogeny_fig.stroke_style_object.update_midpoint(value);
         cophylogeny_fig.stroke_style_object.update_styles();
+        $('#bl-midpoint-spn').text(cophylogeny_fig.stroke_style_object.param_midpoint);
     }
 
     // hook into scale slider
@@ -591,8 +593,8 @@ function export_newick(which_tree) {
     ContrastStyling.prototype.colorScale = function(f) {
         //return redBlue(f);
         //return plasma(f);
-        //return cool(f);
-        return warm(f);
+        return cool(f);
+        //return warm(f);
         //return cubeHelixDefault(f);
         //return viridis(f);
         //return magma(f);

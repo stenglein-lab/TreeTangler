@@ -386,8 +386,8 @@ $('#ex2Slider').css('top', '0px');
     ContrastStyling.prototype.colorScale = function(f) {
         //return redBlue(f);
         //return plasma(f);
-        //return cool(f);
-        return warm(f);
+        return cool(f);
+        //return warm(f);
         //return cubeHelixDefault(f);
         //return viridis(f);
         //return magma(f);
