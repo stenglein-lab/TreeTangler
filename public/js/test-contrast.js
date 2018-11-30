@@ -464,7 +464,7 @@ $('#ex2Slider').css('top', '0px');
 
 },{"d3":36,"jquery":37}],3:[function(require,module,exports){
 /*! =======================================================
-                      VERSION  10.3.2              
+                      VERSION  10.2.3              
 ========================================================= */
 "use strict";
 
@@ -849,15 +849,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
 			// Check options.rtl
 			if (this.options.rtl === 'auto') {
-				var computedStyle = window.getComputedStyle(this.element);
-				if (computedStyle != null) {
-					this.options.rtl = computedStyle.direction === 'rtl';
-				} else {
-					// Fix for Firefox bug in versions less than 62:
-					// https://bugzilla.mozilla.org/show_bug.cgi?id=548397
-					// https://bugzilla.mozilla.org/show_bug.cgi?id=1467722
-					this.options.rtl = this.element.style.direction === 'rtl';
-				}
+				this.options.rtl = window.getComputedStyle(this.element).direction === 'rtl';
 			}
 
 			/*
@@ -1484,6 +1476,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
 			relayout: function relayout() {
 				this._resize();
+				this._layout();
 				return this;
 			},
 
@@ -1744,24 +1737,6 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 									this.tickLabels[i].style['marginLeft'] = this.sliderElem.offsetWidth + "px";
 								}
 								this.tickLabelContainer.style[styleMargin] = this.sliderElem.offsetWidth / 2 * -1 + 'px';
-							}
-
-							/* Set class labels to indicate tick labels are in the selection or selected */
-							this._removeClass(this.tickLabels[i], 'label-in-selection label-is-selection');
-							if (!this.options.range) {
-								if (this.options.selection === 'after' && percentage >= positionPercentages[0]) {
-									this._addClass(this.tickLabels[i], 'label-in-selection');
-								} else if (this.options.selection === 'before' && percentage <= positionPercentages[0]) {
-									this._addClass(this.tickLabels[i], 'label-in-selection');
-								}
-								if (percentage === positionPercentages[0]) {
-									this._addClass(this.tickLabels[i], 'label-is-selection');
-								}
-							} else if (percentage >= positionPercentages[0] && percentage <= positionPercentages[1]) {
-								this._addClass(this.tickLabels[i], 'label-in-selection');
-								if (percentage === positionPercentages[0] || positionPercentages[1]) {
-									this._addClass(this.tickLabels[i], 'label-is-selection');
-								}
 							}
 						}
 					}
@@ -2125,35 +2100,27 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 						val[1] = this._toValue(this._state.percentage[1]);
 						val[1] = this._applyPrecision(val[1]);
 					}
-					if (snapToClosestTick) {
-						val[0] = this._snapToClosestTick(val[0]);
-						val[1] = this._snapToClosestTick(val[1]);
-					}
 				} else {
 					val = this._toValue(this._state.percentage[0]);
 					val = parseFloat(val);
 					val = this._applyPrecision(val);
-					if (snapToClosestTick) {
-						val = this._snapToClosestTick(val);
+				}
+
+				if (snapToClosestTick) {
+					var min = [val, Infinity];
+					for (var i = 0; i < this.options.ticks.length; i++) {
+						var diff = Math.abs(this.options.ticks[i] - val);
+						if (diff <= min[1]) {
+							min = [this.options.ticks[i], diff];
+						}
+					}
+					if (min[1] <= this.options.ticks_snap_bounds) {
+						return min[0];
 					}
 				}
 
 				return val;
 			},
-			_snapToClosestTick: function _snapToClosestTick(val) {
-				var min = [val, Infinity];
-				for (var i = 0; i < this.options.ticks.length; i++) {
-					var diff = Math.abs(this.options.ticks[i] - val);
-					if (diff <= min[1]) {
-						min = [this.options.ticks[i], diff];
-					}
-				}
-				if (min[1] <= this.options.ticks_snap_bounds) {
-					return min[0];
-				}
-				return val;
-			},
-
 			_applyPrecision: function _applyPrecision(val) {
 				var precision = this.options.precision || this._getNumDigitsAfterDecimalPlace(this.options.step);
 				return this._applyToFixedAndParseFloat(val, precision);
@@ -35069,7 +35036,7 @@ return jQuery;
 (function (global){
 /**!
  * @fileOverview Kickass library to create and place poppers near their reference elements.
- * @version 1.14.6
+ * @version 1.14.5
  * @license
  * Copyright (c) 2016 Federico Zivolo and contributors
  *
@@ -35825,8 +35792,8 @@ function getReferenceOffsets(state, popper, reference) {
 function getOuterSizes(element) {
   var window = element.ownerDocument.defaultView;
   var styles = window.getComputedStyle(element);
-  var x = parseFloat(styles.marginTop || 0) + parseFloat(styles.marginBottom || 0);
-  var y = parseFloat(styles.marginLeft || 0) + parseFloat(styles.marginRight || 0);
+  var x = parseFloat(styles.marginTop) + parseFloat(styles.marginBottom);
+  var y = parseFloat(styles.marginLeft) + parseFloat(styles.marginRight);
   var result = {
     width: element.offsetWidth + y,
     height: element.offsetHeight + x
@@ -36278,52 +36245,6 @@ function applyStyleOnLoad(reference, popper, options, modifierOptions, state) {
 
 /**
  * @function
- * @memberof Popper.Utils
- * @argument {Object} data - The data object generated by `update` method
- * @argument {Boolean} shouldRound - If the offsets should be rounded at all
- * @returns {Object} The popper's position offsets rounded
- *
- * The tale of pixel-perfect positioning. It's still not 100% perfect, but as
- * good as it can be within reason.
- * Discussion here: https://github.com/FezVrasta/popper.js/pull/715
- *
- * Low DPI screens cause a popper to be blurry if not using full pixels (Safari
- * as well on High DPI screens).
- *
- * Firefox prefers no rounding for positioning and does not have blurriness on
- * high DPI screens.
- *
- * Only horizontal placement and left/right values need to be considered.
- */
-function getRoundedOffsets(data, shouldRound) {
-  var _data$offsets = data.offsets,
-      popper = _data$offsets.popper,
-      reference = _data$offsets.reference;
-
-
-  var isVertical = ['left', 'right'].indexOf(data.placement) !== -1;
-  var isVariation = data.placement.indexOf('-') !== -1;
-  var sameWidthOddness = reference.width % 2 === popper.width % 2;
-  var bothOddWidth = reference.width % 2 === 1 && popper.width % 2 === 1;
-  var noRound = function noRound(v) {
-    return v;
-  };
-
-  var horizontalToInteger = !shouldRound ? noRound : isVertical || isVariation || sameWidthOddness ? Math.round : Math.floor;
-  var verticalToInteger = !shouldRound ? noRound : Math.round;
-
-  return {
-    left: horizontalToInteger(bothOddWidth && !isVariation && shouldRound ? popper.left - 1 : popper.left),
-    top: verticalToInteger(popper.top),
-    bottom: verticalToInteger(popper.bottom),
-    right: horizontalToInteger(popper.right)
-  };
-}
-
-var isFirefox = isBrowser && /Firefox/i.test(navigator.userAgent);
-
-/**
- * @function
  * @memberof Modifiers
  * @argument {Object} data - The data object generated by `update` method
  * @argument {Object} options - Modifiers configuration and options
@@ -36352,7 +36273,15 @@ function computeStyle(data, options) {
     position: popper.position
   };
 
-  var offsets = getRoundedOffsets(data, window.devicePixelRatio < 2 || !isFirefox);
+  // Avoid blurry text by using full pixel integers.
+  // For pixel-perfect positioning, top/bottom prefers rounded
+  // values, while left/right prefers floored values.
+  var offsets = {
+    left: Math.floor(popper.left),
+    top: Math.round(popper.top),
+    bottom: Math.round(popper.bottom),
+    right: Math.floor(popper.right)
+  };
 
   var sideA = x === 'bottom' ? 'top' : 'bottom';
   var sideB = y === 'right' ? 'left' : 'right';
