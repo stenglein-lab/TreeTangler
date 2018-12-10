@@ -49,11 +49,9 @@ $(document).ready(function() {
         export_JSON();
     });
     $('#newick_left_export').on("click", function() {
-        console.log("here I am going to export newick of the left Tree");
         export_newick("left");
     });
     $('#newick_right_export').on("click", function() {
-        console.log("here I am going to export newick of the right Tree");
         export_newick("right");
     });
 
@@ -187,7 +185,6 @@ $(document).ready(function() {
     });
     slider.on("change", function(evt) {
         var sliderValue = evt.value.newValue;
-        console.dir(evt);
         if (! isNaN(sliderValue)) {
             cophylogeny_fig.yScaleFactor = sliderValue;
             cophylogeny_fig.redraw();
@@ -196,14 +193,12 @@ $(document).ready(function() {
 
     var phylogramCheck = $("#phylogramInput");
     phylogramCheck.on("change", function(evt) {
-        console.log("phylo go");
         userArgs.uniform = false;
         cophylogeny_fig.redraw();
     });
 
     var cladogramCheck = $("#cladogramInput");
     cladogramCheck.on("change", function(evt) {
-        console.log("clado go");
         userArgs.uniform = true;
         cophylogeny_fig.redraw();
     });
@@ -272,12 +267,10 @@ function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}
     
     // link in user functions
     $('#user_detangle_left').on("click", function() {
-        console.log("clicked user_detangle_left");
         cophylogeny_fig.detangle_left();
         cophylogeny_fig.redraw();
     });
     $('#user_detangle_right').on("click", function() {
-        console.log("clicked user_detangle_right");
         cophylogeny_fig.detangle_right();
         cophylogeny_fig.redraw();
     });
@@ -303,8 +296,6 @@ function loadData(leftURL, rightURL) {
 async function getNewicksAsync(leftURL, rightURL) {
     var leftNw = await processFile.getNewickFromURL(leftURL);
     var rightNw = await processFile.getNewickFromURL(rightURL);
-    console.log("getNewicksAsync:" + leftNw);
-    console.log("getNewicksAsync:" + rightNw);
     return {left:leftNw, right:rightNw};
 }
 /* jshint ignore: end */
@@ -403,7 +394,6 @@ function SVGExport() {
             // just GET it and insert it into a STYLE tag of svgData
             d3.text( styleSheet.href )
                 .then( text => { 
-                    console.log(text); 
                     var styleObj = $('<style type="text/css">')[0];
                     styleObj.prepend( text );
                     svgData.prepend( styleObj );
