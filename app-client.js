@@ -11,6 +11,8 @@ var treetools = require('cophy-treetools'); // for make_binary
 * globals
 *************/
 userArgs = {uniform:false};
+left__nw = null;
+right__nw = null;
 
 /************
 * helpers
@@ -94,9 +96,10 @@ $(document).ready(function() {
         fileButtonLeft.addClass(["btn-pass"]);
         fileButtonLeft.attr("disabled","disabled");
         leftURL = processFile.getBlobURL(file);
-        if (rightURL) {
+        setNWFromURL(leftURL, 'left');
+        /*if (rightURL) {
             loadData(leftURL, rightURL);
-        }
+        }*/
     });
     fileButtonLeft.click(function() { 
         fileInputLeft.click();
@@ -122,9 +125,8 @@ $(document).ready(function() {
         fileButtonRight.addClass(["btn-pass"]);
         fileButtonRight.attr("disabled","disabled");
         rightURL = processFile.getBlobURL(file);
-        if (leftURL) {
-            loadData(leftURL, rightURL);
-        }
+        // just load the data here...
+        setNWFromURL(rightURL, "right");
     });
     fileButtonRight.click(function() {
         fileInputRight.click();
@@ -216,8 +218,10 @@ $(document).ready(function() {
         {
             leftURL = query.get("left");
             leftName = basename(leftURL);
+            setNWFromURL(leftURL, "left");
             rightURL = query.get("right");
             rightName = basename(rightURL);
+            setNWFromURL(rightURL, "right");
             // Show input files on the title bar
             document.title += " " + leftName + " vs " + rightName;
             // Set buttons as they would be if file uploaded
@@ -235,7 +239,6 @@ $(document).ready(function() {
             fileButtonLeft.css("white-space", "pre");
             fileButtonLeft.attr('disabled', 'disabled');
             //render_cophylogeny('#middle_container', 'unnamed', leftURL, rightURL, 700, user_args);
-            loadData(leftURL, rightURL);
             return;
         }
     }
@@ -277,26 +280,42 @@ function render_cophylogeny(selector, name, leftNw, rightNw, height, userArgs={}
 
 }
 
-function loadData(leftURL, rightURL) {
-    getNewicksAsync(leftURL, rightURL)
-        .then(nwTrees => // nwTrees: newick objects
-        {
-            treetools.make_binary(nwTrees.left);
-            treetools.make_binary(nwTrees.right);
-            $('#graph').css('display', 'block');
-            render_cophylogeny('#middle_container','unnamed', nwTrees.left, nwTrees.right, 700, userArgs);
+function setNWFromURL(url, which) {
+    // deal with blob/no blob
+    var blobsearch = url.search("blob");
+    console.log(`search ${url} for blob: ${blobsearch}`);
+    if (url.search("blob") == -1) {
+        url = window.location.origin + "/" + url;
+    }
+    d3.text(url)
+        .then(text => {
+            newick = treetools.parse(text);
+            if (which == 'left') {
+                left__nw = newick;
+                console.log('left');
+                console.log(newick);
+            }
+            else {
+                right__nw = newick;
+                console.log('right');
+                console.log(newick);
+            }
+            // if [other] NW is set, check Congruency
+            if (left__nw != null && right__nw != null) {
+                treetools.make_binary(left__nw);
+                treetools.make_binary(right__nw);
+                $('#graph').css('display', 'block');
+                render_cophylogeny('#middle_container','unnamed', left__nw, right__nw, 700, userArgs);
+            }
         })
         .catch(reason => {
-            console.log("There was an error loading the trees.");
-            console.log(reason);
-        });
+            throw which + " tree could not be read:" + reason;
+        })
+    ;
 }
-/* The JSHint does not recognize async/await */
-/* jshint ignore: start */
-async function getNewicksAsync(leftURL, rightURL) {
-    var leftNw = await processFile.getNewickFromURL(leftURL);
-    var rightNw = await processFile.getNewickFromURL(rightURL);
-    return {left:leftNw, right:rightNw};
+
+function checkCongruency(leftNW, rightNW, map=null) {
+    treetools.checkCongruency(leftNW, rightNW, map);
 }
 /* jshint ignore: end */
 
