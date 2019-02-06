@@ -14,6 +14,7 @@ var treetools = require('cophy-treetools'); // for make_binary
 userArgs = {uniform:false};
 left__nw = null;
 right__nw = null;
+left__to__right = null;
 
 /************
 * helpers
@@ -301,8 +302,10 @@ function setNWFromURL(url, which) {
                 console.log('right');
                 console.log(newick);
             }
-            // if [other] NW is set, check Congruency
             if (left__nw != null && right__nw != null) {
+                // if [other] NW is set, check Congruency
+                checkCongruency(left__nw, right__nw, left__to__right);
+                // format into arbitralily binary trees for cophylogeny
                 treetools.make_binary(left__nw);
                 treetools.make_binary(right__nw);
                 $('#graph').css('display', 'block');
@@ -8653,6 +8656,10 @@ Abstracting the module string-similarity with other comparison functions, such a
         
         return { mismatch_reports: json_mismatches, nmismatches: json_mismatches.length };
 
+    }
+    treetools.checkCongruency = function(leftNW, rightNW, map=null) {
+    ///////////////// stub ///////////////// 
+        return;
     }
     module.exports = treetools;
 })();
