@@ -1,3 +1,8 @@
+This repository contains javascript code to draw tanglegrams in a web browser.
+
+This repository is now archived because of security issues with some of the javascript packages used.  Because of these security issues, use at your own risk.
+
+
 Usage
 =======
 The javascript app in /public/js/bundle.js is ready to go as-is,
